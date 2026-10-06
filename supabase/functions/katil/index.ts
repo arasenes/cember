@@ -33,6 +33,23 @@ Deno.serve(async (req) => {
   const { count } = await admin.from("giris_denemeleri").select("id", { count: "exact", head: true }).eq("ip", ip).gte("zaman", since);
   if ((count ?? 0) >= DENEME_LIMIT) return json({ hata: "Çok fazla yanlış deneme. Birkaç dakika sonra tekrar dene." }, 429);
 
+  // Yönetici kodu: oda sahibinin hesabına (nereden girilirse girilsin) yeni bir oturum açar
+  const kodHash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(kod)))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  const { data: yk } = await admin.from("yonetici_kodlari").select("oda_id").eq("kod_hash", kodHash).maybeSingle();
+  if (yk) {
+    const { data: sahip } = await admin.from("uyeler").select("user_id").eq("oda_id", yk.oda_id).eq("rol", "sahip").maybeSingle();
+    const { data: odaYk } = await admin.from("odalar").select("ad").eq("id", yk.oda_id).maybeSingle();
+    const { data: hesap } = sahip ? await admin.auth.admin.getUserById(sahip.user_id) : { data: null };
+    if (!sahip || !hesap?.user?.email) return json({ hata: "Yönetici hesabı bulunamadı." }, 500);
+    const yeniParola = crypto.randomUUID() + crypto.randomUUID();
+    const { error: pErr } = await admin.auth.admin.updateUserById(sahip.user_id, { password: yeniParola });
+    if (pErr) return json({ hata: "Yönetici oturumu açılamadı." }, 500);
+    const anonYk = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { auth: { persistSession: false } });
+    const { data: oturumYk, error: oErrYk } = await anonYk.auth.signInWithPassword({ email: hesap.user.email, password: yeniParola });
+    if (oErrYk || !oturumYk.session) return json({ hata: "Oturum açılamadı." }, 500);
+    return json({ access_token: oturumYk.session.access_token, refresh_token: oturumYk.session.refresh_token, oda_adi: odaYk?.ad ?? "Çember", rol: "sahip" });
+  }
+
   const { data: oda } = await admin.from("odalar").select("id, ad").eq("davet_kodu", kod).maybeSingle();
   if (!oda) {
     await admin.from("giris_denemeleri").insert({ ip });
