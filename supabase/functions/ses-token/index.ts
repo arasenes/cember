@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   const lkSecret = Deno.env.get("LIVEKIT_API_SECRET");
   if (!lkUrl || !lkKey || !lkSecret) return json({ hata: "Sesli odalar henüz kurulmadı.", kod: "kurulmadi" }, 503);
 
-  let govde: { kanal_id?: string };
+  let govde: { kanal_id?: string; ekran?: boolean };
   try { govde = await req.json(); } catch { return json({ hata: "Geçersiz istek" }, 400); }
   const kanalId = String(govde.kanal_id ?? "");
   if (!/^[0-9a-f-]{36}$/i.test(kanalId)) return json({ hata: "Geçersiz kanal" }, 400);
@@ -53,6 +53,13 @@ Deno.serve(async (req) => {
   const kullanilanSn = (oturumlar ?? []).reduce((t, o) => t + (new Date(o.son_nabiz).getTime() - new Date(o.baslangic).getTime()) / 1000, 0);
   const kullanilan = Math.ceil(kullanilanSn / 60);
   if (kullanilan >= AYLIK_LIMIT) return json({ hata: "Bu ay ses limiti doldu. Yazılı sohbet çalışmaya devam ediyor.", kod: "limit", kullanilan }, 403);
+
+  // Telefondan ekran paylaşımı: ayrı bir katılımcı (kimlik "<üye>~ekran"), yalnızca yayın yapar, ses oturumu sayılmaz
+  if (govde.ekran === true) {
+    const atE = new AccessToken(lkKey, lkSecret, { identity: `${uye.id}~ekran`, name: `${uye.takma_ad} (ekran)`, ttl: "2h" });
+    atE.addGrant({ room: kanalId, roomJoin: true, canPublish: true, canSubscribe: false, canPublishData: false });
+    return json({ token: await atE.toJwt(), url: lkUrl, oturum_id: null, kullanilan, limit: AYLIK_LIMIT });
+  }
 
   // Kanal doluluk
   const esik = new Date(Date.now() - NABIZ_PENCERESI_SN * 1000).toISOString();
