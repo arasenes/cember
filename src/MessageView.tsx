@@ -11,11 +11,12 @@ type Props = {
   tepkiler: Tepki[];
   onTepki: (mesajId: string, emoji: string) => void;
   onSil: (mesaj: Mesaj) => void;
+  onSabitle?: (mesaj: Mesaj, sabit: boolean) => void;
   onProfil?: (uyeId: string) => void;
 };
 
 // Metin her zaman düz metin olarak render edilir: React içeriği kaçışlar, dangerouslySetInnerHTML kullanılmaz.
-export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onProfil }: Props) {
+export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onSabitle, onProfil }: Props) {
   const [sec, setSec] = useState(false);
   const benimMi = yazar?.id === benim.id;
   const silebilir = benimMi || benim.rol !== "uye";
@@ -41,6 +42,11 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
           )}
           <time dateTime={mesaj.olusturma}>{saat(mesaj.olusturma)}</time>
           {mesaj.duzenleme && !mesaj.silindi && <span className="hint">(düzenlendi)</span>}
+          {mesaj.sabit && !mesaj.silindi && <span className="pin-isaret" title="Sabitlenmiş mesaj"><span aria-hidden="true">📌</span><span className="sr"> sabitlenmiş</span></span>}
+          {onSabitle && benim.rol !== "uye" && !mesaj.silindi && (
+            <button className="pin-btn" onClick={() => onSabitle(mesaj, !mesaj.sabit)}
+              aria-label={mesaj.sabit ? "Sabitlemeyi kaldır" : "Mesajı sabitle"}>{mesaj.sabit ? "Sabitlemeyi kaldır" : "Sabitle"}</button>
+          )}
           {silebilir && !mesaj.silindi && (
             <button className="del" onClick={() => onSil(mesaj)} aria-label="Mesajı sil">Sil</button>
           )}

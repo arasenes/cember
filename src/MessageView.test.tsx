@@ -8,7 +8,7 @@ vi.mock("./supabase", () => ({
 import type { Mesaj, Uye } from "./types";
 
 const uye: Uye = { id: "u1", oda_id: "o", user_id: "x", takma_ad: "Ayşe", renk: "#E8A33D", rol: "uye", son_gorulme: "" };
-const mesaj = (metin: string): Mesaj => ({ id: "m1", kanal_id: "k", uye_id: "u1", metin, olusturma: new Date().toISOString(), duzenleme: null, silindi: false, ek_yol: null, ek_tur: null, ek_boyut: null, ek_genislik: null, ek_yukseklik: null });
+const mesaj = (metin: string): Mesaj => ({ id: "m1", kanal_id: "k", uye_id: "u1", metin, olusturma: new Date().toISOString(), duzenleme: null, silindi: false, ek_yol: null, ek_tur: null, ek_boyut: null, ek_genislik: null, ek_yukseklik: null, sabit: false, sabit_zaman: null });
 
 describe("MessageView", () => {
   it("<script> metnini düz metin olarak gösterir, DOM'a script eklemez", () => {
@@ -19,6 +19,19 @@ describe("MessageView", () => {
     expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector(".txt")!.textContent).toContain("<script>");
     expect((window as unknown as { __xss?: number }).__xss).toBeUndefined();
+  });
+
+  it("sabitle düğmesi yalnızca yöneticide çıkar ve sabitli mesajı işaretler", () => {
+    const onSabitle = vi.fn();
+    const { rerender } = render(<MessageView mesaj={mesaj("selam")} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} onSabitle={onSabitle} />);
+    expect(screen.queryByRole("button", { name: "Mesajı sabitle" })).toBeNull();
+    const mod: Uye = { ...uye, id: "u2", rol: "moderator" };
+    rerender(<MessageView mesaj={mesaj("selam")} yazar={uye} benim={mod} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} onSabitle={onSabitle} />);
+    fireEvent.click(screen.getByRole("button", { name: "Mesajı sabitle" }));
+    expect(onSabitle).toHaveBeenCalledWith(expect.objectContaining({ id: "m1" }), true);
+    rerender(<MessageView mesaj={{ ...mesaj("selam"), sabit: true }} yazar={uye} benim={mod} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} onSabitle={onSabitle} />);
+    expect(screen.getByTitle("Sabitlenmiş mesaj")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sabitlemeyi kaldır" })).toBeTruthy();
   });
 
   it("silinmiş mesajın metnini göstermez", () => {

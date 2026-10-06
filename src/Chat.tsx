@@ -10,6 +10,7 @@ import { EMOJILER, gunEtiketi, rolEtiketi } from "./util";
 import YonetimPaneli, { susturulmus } from "./YonetimPaneli";
 import Avatar from "./Avatar";
 import KanalSifre from "./KanalSifre";
+import SabitlerDialog from "./SabitlerDialog";
 import ProfilDialog, { type ProfilDegisiklik } from "./ProfilDialog";
 import { boyutMetni, ekHazirla, ekYolu, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
 
@@ -42,6 +43,9 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [profilId, setProfilId] = useState<string | null>(null);
   const [yonetimAcik, setYonetimAcik] = useState(false);
   const [yonBilgi, setYonBilgi] = useState("");
+  const [sabitler, setSabitler] = useState<Mesaj[]>([]);
+  const [sabitAcik, setSabitAcik] = useState(false);
+  const [konuDuzen, setKonuDuzen] = useState<string | null>(null);
   const [acik, setAcik] = useState<Set<string>>(new Set());
   const [sifreKanal, setSifreKanal] = useState<{ kanal: Kanal; sonra: () => void } | null>(null);
   const [simdi, setSimdi] = useState(() => Date.now());
@@ -165,6 +169,19 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     return () => { iptal = true; };
   }, [aktif]);
 
+  // Kanaldaki sabit mesajlar
+  useEffect(() => {
+    setSabitler([]); setSabitAcik(false); setKonuDuzen(null);
+    if (!aktif) return;
+    let iptal = false;
+    (async () => {
+      const { data } = await supabase.from("mesajlar").select("*").eq("kanal_id", aktif).eq("sabit", true).eq("silindi", false)
+        .order("sabit_zaman", { ascending: false });
+      if (!iptal && data) setSabitler(data as Mesaj[]);
+    })();
+    return () => { iptal = true; };
+  }, [aktif]);
+
   const eskileriYukle = useCallback(async () => {
     if (!aktif || !mesajlar.length) return;
     const { data } = await supabase.from("mesajlar").select("*").eq("kanal_id", aktif)
@@ -189,8 +206,12 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "mesajlar" }, (p) => {
         const m = (p.eventType === "DELETE" ? p.old : p.new) as Mesaj;
         if (m.kanal_id !== aktifRef.current) return;
-        if (p.eventType === "DELETE") return setMesajlar((x) => x.filter((y) => y.id !== m.id));
+        if (p.eventType === "DELETE") { setSabitler((x) => x.filter((y) => y.id !== m.id)); return setMesajlar((x) => x.filter((y) => y.id !== m.id)); }
         setMesajlar((x) => birlestir(x, [m]));
+        setSabitler((x) => {
+          const kalan = x.filter((y) => y.id !== m.id);
+          return m.sabit && !m.silindi ? [m, ...kalan].sort((a, b) => (b.sabit_zaman ?? "").localeCompare(a.sabit_zaman ?? "")) : kalan;
+        });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "tepkiler" }, (p) => {
         if (p.eventType === "DELETE") {
@@ -374,6 +395,20 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     }
   }
 
+  async function sabitle(m: Mesaj, sabit: boolean) {
+    setHata("");
+    const { error } = await supabase.rpc("mesaj_sabitle", { p_mesaj: m.id, p_sabit: sabit });
+    if (error) setHata(error.message || "Sabitleme yapılamadı.");
+  }
+
+  async function konuKaydet() {
+    if (!aktifKanal || konuDuzen === null) return;
+    const { error } = await supabase.rpc("kanal_aciklama_ayarla", { p_kanal: aktifKanal.id, p_metin: konuDuzen });
+    if (error) { setHata(error.message || "Açıklama kaydedilemedi."); return; }
+    setKanallar((x) => x.map((k) => (k.id === aktifKanal.id ? { ...k, aciklama: konuDuzen.trim() || null } : k)));
+    setKonuDuzen(null);
+  }
+
   async function cikis() {
     if (!confirm("Çıkış yapılsın mı? Bu takma adla bu tarayıcıdan tekrar giremezsin; oda sahibi seni silerse yeniden katılabilirsin.")) return;
     await supabase.auth.signOut();
@@ -392,7 +427,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     if (g !== sonGun) { sonGun = g; satirlar.push(<div className="day" key={"g" + m.id}>{g}</div>); }
     satirlar.push(
       <MessageView key={m.id} mesaj={m} yazar={uyeHaritasi.get(m.uye_id)} benim={ben}
-        tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} onProfil={setProfilId} />,
+        tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} onSabitle={sabitle} onProfil={setProfilId} />,
     );
   }
 
@@ -467,7 +502,28 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setSurukle(true); } }}
         onDragLeave={(e) => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setSurukle(false); }}
         onDrop={(e) => { e.preventDefault(); setSurukle(false); const f = resimBul(e.dataTransfer.files); if (f) void ekSec(f); else if (e.dataTransfer.files.length) setHata("Yalnızca resim dosyaları gönderilebilir."); }}>
-        <div className="head"><h2># {aktifKanal?.ad ?? "…"}</h2></div>
+        <div className="head">
+          <div className="kanal-baslik">
+            <h2># {aktifKanal?.ad ?? "…"}</h2>
+            {konuDuzen !== null ? (
+              <form className="kanal-konu-duzen" onSubmit={(e) => { e.preventDefault(); void konuKaydet(); }}>
+                <input type="text" value={konuDuzen} onChange={(e) => setKonuDuzen(e.target.value)} maxLength={200} placeholder="Kanal açıklaması" aria-label="Kanal açıklaması" autoFocus />
+                <button className="linkbtn" type="submit">Kaydet</button>
+                <button className="linkbtn" type="button" onClick={() => setKonuDuzen(null)}>Vazgeç</button>
+              </form>
+            ) : aktifKanal?.aciklama ? (
+              <div className="kanal-konu" title={aktifKanal.aciklama}>{aktifKanal.aciklama}</div>
+            ) : null}
+          </div>
+          <div className="head-dugmeler">
+            {yonetici && aktifKanal && konuDuzen === null && (
+              <button className="head-dugme" onClick={() => setKonuDuzen(aktifKanal.aciklama ?? "")} aria-label="Kanal açıklamasını düzenle">✎ {aktifKanal.aciklama ? "Açıklama" : "Açıklama ekle"}</button>
+            )}
+            {sabitler.length > 0 && (
+              <button className="head-dugme" onClick={() => setSabitAcik(true)} aria-label={`${sabitler.length} sabitlenmiş mesajı göster`}>📌 {sabitler.length}</button>
+            )}
+          </div>
+        </div>
         {ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
         {hata && <div className="banner" role="alert">{hata}</div>}
         {yonBilgi && <div className="banner info" role="status">{yonBilgi} <button className="linkbtn" onClick={() => setYonBilgi("")}>Tamam</button></div>}
@@ -527,6 +583,10 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
       {yonetimAcik && yonetici && (
         <YonetimPaneli ben={ben} uyeler={uyeler} kanallar={kanallar} sesKonum={sesKonum} cevrimici={cevrimici}
           onKapat={() => setYonetimAcik(false)} />
+      )}
+      {sabitAcik && (
+        <SabitlerDialog mesajlar={sabitler} uyeler={uyeHaritasi} kanalAdi={aktifKanal?.ad ?? ""} yonetici={yonetici}
+          onKaldir={(m) => void sabitle(m, false)} onKapat={() => setSabitAcik(false)} />
       )}
       {sifreKanal && (
         <KanalSifre kanal={sifreKanal.kanal} onKapat={() => setSifreKanal(null)}
