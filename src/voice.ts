@@ -3,6 +3,11 @@ import type { Room } from "livekit-client";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
 import { ekranHatasi, ekranPaylasilabilirTarayici, KALITE, uygulamaIci, yerelEkran, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
 
+/** Yerel eklenti yanıt vermese bile bağlantı akışını kilitlemesin diye zaman aşımı ile durdurur. */
+async function yerelDurdur(y: { durdur(): Promise<void> }) {
+  try { await Promise.race([y.durdur(), new Promise((r) => setTimeout(r, 3000))]); } catch { /* yoksay */ }
+}
+
 export type SesDurumu = "kapali" | "baglaniyor" | "bagli";
 export type BaglanSonuc = { ok: boolean; neden?: "limit" | "kurulmadi" | "dolu" | "izin" | "ag" | "iptal"; mesaj?: string };
 
@@ -41,6 +46,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   const [izlenen, setIzlenen] = useState<Izlenen | null>(null);
   const [paylasiyorum, setPaylasiyorum] = useState(false);
   const yerelDinleyici = useRef<{ remove: () => Promise<void> } | null>(null);
+  const yerelAktif = useRef(false); // telefonda ekran paylaşımı başlatıldı mı (yerel eklentiyi gereksiz çağırmamak için)
 
   const temizle = useCallback(async () => {
     if (nabizRef.current) { clearInterval(nabizRef.current); nabizRef.current = null; }
@@ -54,7 +60,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     setKonusanlar(new Set());
     setIzlenen(null); setPaylasiyorum(false);
     const y = yerelEkran();
-    if (y) { try { await y.durdur(); } catch { /* yoksay */ } }
+    if (y && yerelAktif.current) { yerelAktif.current = false; void yerelDurdur(y); }
     try { await yerelDinleyici.current?.remove(); } catch { /* yoksay */ }
     yerelDinleyici.current = null;
   }, []);
@@ -170,6 +176,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
         if (!r.ok) return { ok: false, mesaj: j.hata ?? "Ekran paylaşımı başlatılamadı." };
         try { await yerelDinleyici.current?.remove(); } catch { /* yoksay */ }
         yerelDinleyici.current = await yerel.addListener("durdu", () => setPaylasiyorum(false));
+        yerelAktif.current = true;
         await yerel.baslat({ url: j.url, token: j.token });
         setPaylasiyorum(true);
         return { ok: true };
@@ -205,7 +212,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   const ekranDurdur = useCallback(async () => {
     setPaylasiyorum(false);
     const y = yerelEkran();
-    if (y) { try { await y.durdur(); } catch { /* yoksay */ } return; }
+    if (y) { yerelAktif.current = false; await yerelDurdur(y); return; }
     try { await odaRef.current?.localParticipant.setScreenShareEnabled(false); } catch { /* yoksay */ }
   }, []);
 
