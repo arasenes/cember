@@ -176,7 +176,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       } catch (e) {
         setPaylasiyorum(false);
         const m = String((e as { message?: string })?.message ?? "");
-        if (/iptal|cancel|denied|reddedildi/i.test(m)) return { ok: false };
+        if (/iptal|cancel|denied|reddedildi/i.test(m)) return { ok: false, mesaj: `Ekran paylaşımı başlamadı: izin verilmedi ya da iptal edildi (${m}).` };
         return { ok: false, mesaj: "Ekran paylaşılamadı. " + m };
       }
     }

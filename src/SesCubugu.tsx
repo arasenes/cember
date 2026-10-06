@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { SesArayuzu } from "./sesMotoru";
-import { ekranPaylasilabilirTarayici, KALITE, yerelEkran, type EkranKalite } from "./ekranOrtak";
+import { ekranPaylasilabilirTarayici, KALITE, uygulamaIci, yerelEkran, type EkranKalite } from "./ekranOrtak";
 
 type Props = { ses: SesArayuzu; kanalAdi: string; className: string; baskasiPaylasiyor?: string | null };
 
@@ -42,6 +42,9 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
                   : <div className="hint">Telefonun tüm ekranını paylaşmak için Çember Android uygulaması (APK) gerekir.</div>}
           </>
         )
+      )}
+      {className.includes("vbar-dock") && ses.ekranDestegi && !ses.paylasiyorum && (
+        <div className="vbar-dbg">uygulama: {uygulamaIci() ? "evet" : "hayır"} · eklenti: {yerelEkran() ? "var" : "yok"} · {(globalThis as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? "tarayıcı"}</div>
       )}
       {className.includes("vbar-dock") && ses.hata && <div className="vbar-hata" role="alert">{ses.hata} <button className="linkbtn" onClick={ses.hataTemizle}>Kapat</button></div>}
       {ses.paylasiyorum && <div className="hint">Ekranın odadakilere gösteriliyor. Kendi ekranını burada görmezsin; ses geri dönmesin diye kulaklık kullan.</div>}
