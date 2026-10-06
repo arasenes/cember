@@ -18,7 +18,7 @@ type Props = {
 export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onProfil }: Props) {
   const [sec, setSec] = useState(false);
   const benimMi = yazar?.id === benim.id;
-  const silebilir = benimMi || benim.rol === "sahip";
+  const silebilir = benimMi || benim.rol !== "uye";
 
   const gruplar = new Map<string, Tepki[]>();
   for (const t of tepkiler) gruplar.set(t.emoji, [...(gruplar.get(t.emoji) ?? []), t]);

@@ -15,3 +15,6 @@ export function gunEtiketi(iso: string): string {
 export function bas(ad: string): string {
   return (ad.trim()[0] ?? "?").toLocaleUpperCase("tr-TR");
 }
+export function rolEtiketi(rol: "sahip" | "moderator" | "uye"): string {
+  return rol === "sahip" ? "Oda sahibi" : rol === "moderator" ? "Moderatör" : "Üye";
+}

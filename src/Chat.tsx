@@ -6,7 +6,8 @@ import SesCubugu from "./SesCubugu";
 import EkranPaneli from "./EkranPaneli";
 import type { Kanal, Mesaj, Tepki, Uye } from "./types";
 import MessageView from "./MessageView";
-import { EMOJILER, gunEtiketi } from "./util";
+import { EMOJILER, gunEtiketi, rolEtiketi } from "./util";
+import YonetimPaneli, { susturulmus } from "./YonetimPaneli";
 import Avatar from "./Avatar";
 import ProfilDialog, { type ProfilDegisiklik } from "./ProfilDialog";
 import { boyutMetni, ekHazirla, ekYolu, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
@@ -38,6 +39,9 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [surukle, setSurukle] = useState(false);
   const [profilId, setProfilId] = useState<string | null>(null);
+  const [yonetimAcik, setYonetimAcik] = useState(false);
+  const [yonBilgi, setYonBilgi] = useState("");
+  const [simdi, setSimdi] = useState(() => Date.now());
   const dosyaRef = useRef<HTMLInputElement>(null);
   const ekRef = useRef<HazirEk | null>(null);
   ekRef.current = ek;
@@ -62,6 +66,8 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     return null;
   }, [me.id]);
   const ses = useSesMotoru(me.id, kanalDuyur, motorSor);
+  const sesRef = useRef(ses);
+  sesRef.current = ses;
   // Ekran paylaşımı başlayınca/bitince odadaki herkese duyurulur ("🖥️ yayında" göstergesi ve çift paylaşımı engelleme için)
   useEffect(() => {
     if (!duyuruRef.current.ses) return;
@@ -73,6 +79,17 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const paylasanId = ses.kanalId ? [...sesKonum].find(([uid, v]) => uid !== me.id && v.kanal === ses.kanalId && v.ekran)?.[0] ?? null : null;
   const paylasanAd = paylasanId ? uyeHaritasi.get(paylasanId)?.takma_ad ?? "Biri" : null;
   const profilUyesi = profilId ? uyeHaritasi.get(profilId) : undefined;
+  const yonetici = ben.rol !== "uye";
+  const benSusturuldu = susturulmus(ben, simdi);
+
+  // Susturma süresi dolunca yazma kutusu kendiliğinden açılır
+  useEffect(() => {
+    if (!ben.susturma_bitis) return;
+    const kalan = new Date(ben.susturma_bitis).getTime() - Date.now();
+    if (kalan <= 0) { setSimdi(Date.now()); return; }
+    const t = setTimeout(() => setSimdi(Date.now()), Math.min(kalan + 500, 2_000_000_000));
+    return () => clearTimeout(t);
+  }, [ben.susturma_bitis]);
 
   // İlk yükleme: oda, kanallar, üyeler
   useEffect(() => {
@@ -158,6 +175,18 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         } else {
           const u = p.new as Uye;
           setUyeler((x) => (x.some((y) => y.id === u.id) ? x.map((y) => (y.id === u.id ? u : y)) : [...x, u]));
+        }
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "yonetim_komutlari", filter: `hedef_uye=eq.${me.id}` }, (p) => {
+        const k = p.new as { tur: "ses-at" | "tasi"; kanal_id: string | null };
+        const s = sesRef.current;
+        if (!s.kanalId) return;
+        if (k.tur === "tasi" && k.kanal_id) {
+          setYonBilgi("Yönetici seni başka bir sesli odaya taşıdı.");
+          void s.baglan(k.kanal_id);
+        } else {
+          setYonBilgi("Yönetici seni sesli odadan çıkardı.");
+          void s.ayril();
         }
       })
       .on("presence", { event: "sync" }, () => {
@@ -320,9 +349,9 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
 
   const uyeSatiri = (u: Uye, acik: boolean) => (
     <button key={u.id} className={"mem" + (acik ? "" : " off")} onClick={() => setProfilId(u.id)}
-      aria-label={`${u.takma_ad} profilini aç${u.rol === "sahip" ? ", oda sahibi" : ""}`}>
+      aria-label={`${u.takma_ad} profilini aç${u.rol !== "uye" ? `, ${rolEtiketi(u.rol).toLowerCase()}` : ""}`}>
       <Avatar uye={u}>{acik && <span className="on-dot" />}</Avatar>
-      <div className="mem-ad">{u.takma_ad}{u.rol === "sahip" && <small>Oda sahibi</small>}{u.hakkinda && <small className="mem-hk">{u.hakkinda}</small>}</div>
+      <div className="mem-ad">{u.takma_ad}{u.rol !== "uye" && <small>{rolEtiketi(u.rol)}</small>}{u.hakkinda && <small className="mem-hk">{u.hakkinda}</small>}</div>
     </button>
   );
 
@@ -368,8 +397,9 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         <div className="me">
           <button className="me-profil" onClick={() => setProfilId(me.id)} aria-label="Profilimi aç ve düzenle">
             <Avatar uye={ben} />
-            <div><b>{ben.takma_ad}</b><span>{me.rol === "sahip" ? "Oda sahibi" : "Üye"} · Profili düzenle</span></div>
+            <div><b>{ben.takma_ad}</b><span>{rolEtiketi(ben.rol)} · Profili düzenle</span></div>
           </button>
+          {yonetici && <button className="yon-ac" onClick={() => setYonetimAcik(true)} aria-label="Yönetim panelini aç" title="Yönetim">🛡️</button>}
           <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={cikis}>Çıkış</button>
         </div>
       </section>
@@ -382,6 +412,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         <SesCubugu className="vbar-chat" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
         {ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
         {hata && <div className="banner" role="alert">{hata}</div>}
+        {yonBilgi && <div className="banner info" role="status">{yonBilgi} <button className="linkbtn" onClick={() => setYonBilgi("")}>Tamam</button></div>}
         {ses.hata && <div className="banner" role="alert">{ses.hata} <button className="linkbtn" onClick={ses.hataTemizle}>Kapat</button></div>}
         {ses.bilgi && !ses.hata && <div className="banner info" role="status">{ses.bilgi} <button className="linkbtn" onClick={ses.hataTemizle}>Tamam</button></div>}
         {me.rol === "sahip" && kullanimDk !== null && kullanimDk >= SES_LIMIT * 0.8 && (
@@ -408,15 +439,15 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             </div>
           )}
           <button className="sq" onClick={() => setEmojiAcik(!emojiAcik)} aria-label="Emoji seçici" aria-expanded={emojiAcik}>🙂</button>
-          <button className="sq" onClick={() => dosyaRef.current?.click()} aria-label="Resim ekle" disabled={gonderiliyor}>📎</button>
+          <button className="sq" onClick={() => dosyaRef.current?.click()} aria-label="Resim ekle" disabled={gonderiliyor || benSusturuldu}>📎</button>
           <input ref={dosyaRef} type="file" accept={IZINLI_TURLER.join(",")} hidden
             onChange={(e) => { void ekSec(e.target.files?.[0]); e.target.value = ""; }} />
-          <textarea ref={metinRef} rows={1} value={metin} maxLength={4000} aria-label="Mesaj yaz"
-            placeholder={`#${aktifKanal?.ad ?? ""} kanalına yaz`}
+          <textarea ref={metinRef} rows={1} value={metin} maxLength={4000} aria-label="Mesaj yaz" disabled={benSusturuldu}
+            placeholder={benSusturuldu ? `Susturuldun; ${new Date(ben.susturma_bitis!).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}'e kadar yazamazsın` : `#${aktifKanal?.ad ?? ""} kanalına yaz`}
             onChange={(e) => setMetin(e.target.value)}
             onPaste={(e) => { const f = resimBul(e.clipboardData.files); if (f) { e.preventDefault(); void ekSec(f, "Ekran görüntüsü"); } }}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); gonder(); } }} />
-          <button className="sq send" onClick={gonder} aria-label="Gönder" disabled={(!metin.trim() && !ek) || gonderiliyor}>{gonderiliyor ? "…" : "➤"}</button>
+          <button className="sq send" onClick={gonder} aria-label="Gönder" disabled={(!metin.trim() && !ek) || gonderiliyor || benSusturuldu}>{gonderiliyor ? "…" : "➤"}</button>
         </div>
       </section>
 
@@ -434,6 +465,10 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         <ProfilDialog key={profilUyesi.id} uye={profilUyesi} benim={profilUyesi.id === me.id}
           cevrimici={cevrimici.has(profilUyesi.id) || profilUyesi.id === me.id}
           onKapat={() => setProfilId(null)} onKaydet={profilKaydet} />
+      )}
+      {yonetimAcik && yonetici && (
+        <YonetimPaneli ben={ben} uyeler={uyeler} kanallar={kanallar} sesKonum={sesKonum} cevrimici={cevrimici}
+          onKapat={() => setYonetimAcik(false)} />
       )}
       {ses.kabiRefleri.map((r, i) => <div key={i} ref={r} className="sr" aria-hidden="true" />)}
       <nav className="nav" aria-label="Bölme seçimi">

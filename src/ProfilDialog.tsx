@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import { avatarHazirla, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
 import type { Uye } from "./types";
+import { rolEtiketi } from "./util";
 
 // Seçici renkleri, üzerindeki baş harfin kontrastı en az 4.5 olacak şekilde seçildi (profil.test.tsx denetler).
 export const PROFIL_RENKLERI = ["#E8A33D", "#1F7A4D", "#0B7A91", "#B3261E", "#6B4FA0", "#B04680", "#3C6FB5", "#8A6D3B", "#287878", "#68761F", "#B5563C", "#4F5BA0"];
@@ -107,7 +108,7 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet 
           <Avatar uye={gosterilenUye} onizleme={yeni?.onizleme ?? null} className="buyuk" />
           <div>
             {!benim && <div className="profil-ad">{uye.takma_ad}</div>}
-            <div className="hint">{uye.rol === "sahip" ? "Oda sahibi" : "Üye"} · {cevrimici ? "Çevrimiçi" : "Çevrimdışı"}</div>
+            <div className="hint">{rolEtiketi(uye.rol)} · {cevrimici ? "Çevrimiçi" : "Çevrimdışı"}</div>
             {benim && (
               <div className="profil-foto">
                 <button className="ib" onClick={() => dosyaRef.current?.click()} disabled={kaydediliyor}>Fotoğraf seç</button>
