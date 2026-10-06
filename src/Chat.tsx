@@ -471,6 +471,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           onKapat={() => setYonetimAcik(false)} />
       )}
       {ses.kabiRefleri.map((r, i) => <div key={i} ref={r} className="sr" aria-hidden="true" />)}
+      <SesCubugu className="vbar-dock" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
       <nav className="nav" aria-label="Bölme seçimi">
         <button aria-current={pane === "side"} onClick={() => setPane("side")}>Kanallar</button>
         <button aria-current={pane === "chat"} onClick={() => setPane("chat")}>Sohbet</button>
