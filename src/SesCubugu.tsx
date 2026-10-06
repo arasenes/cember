@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { SesArayuzu } from "./sesMotoru";
-import { KALITE, type EkranKalite } from "./ekranOrtak";
+import { KALITE, yerelEkran, type EkranKalite } from "./ekranOrtak";
 
 type Props = { ses: SesArayuzu; kanalAdi: string; className: string; baskasiPaylasiyor?: string | null };
 
@@ -35,7 +35,9 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
             </div>
             {baskasiPaylasiyor
               ? <div className="hint">{baskasiPaylasiyor} ekran paylaşıyor; bitince sen paylaşabilirsin.</div>
-              : <div className="hint">Dizi için: açılan pencerede <b>Chrome Sekmesi</b>'ni seç ve <b>Sekme sesini paylaş</b>'ı işaretle.</div>}
+              : yerelEkran()
+                ? <div className="hint">Android'in açacağı izin penceresinde <b>Başla</b>'ya bas; telefonun tüm ekranı paylaşılır. Sonra paylaşmak istediğin uygulamaya geç.</div>
+                : <div className="hint">Dizi için: açılan pencerede <b>Chrome Sekmesi</b>'ni seç ve <b>Sekme sesini paylaş</b>'ı işaretle.</div>}
           </>
         )
       )}

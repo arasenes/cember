@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Room } from "livekit-client";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
-import { ekranHatasi, ekranPaylasilabilirTarayici, KALITE, yerelEkran, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
+import { ekranHatasi, KALITE, yerelEkran, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
 
 export type SesDurumu = "kapali" | "baglaniyor" | "bagli";
 export type BaglanSonuc = { ok: boolean; neden?: "limit" | "kurulmadi" | "dolu" | "izin" | "ag" | "iptal"; mesaj?: string };
@@ -156,7 +156,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     if (!room) return { ok: false, mesaj: "Önce sesli odaya katıl." };
     const k = KALITE[kalite];
     const yerel = yerelEkran();
-    if (yerel && !ekranPaylasilabilirTarayici()) {
+    if (yerel) {
       // Android uygulaması: ekran, yerel eklenti üzerinden ayrı bir katılımcı olarak yayınlanır
       try {
         const kanal = hedefRef.current;
@@ -200,7 +200,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   const ekranDurdur = useCallback(async () => {
     setPaylasiyorum(false);
     const y = yerelEkran();
-    if (y && !ekranPaylasilabilirTarayici()) { try { await y.durdur(); } catch { /* yoksay */ } return; }
+    if (y) { try { await y.durdur(); } catch { /* yoksay */ } return; }
     try { await odaRef.current?.localParticipant.setScreenShareEnabled(false); } catch { /* yoksay */ }
   }, []);
 
