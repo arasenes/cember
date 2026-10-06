@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useSes } from "./voice";
 import { useSesP2P } from "./p2p";
-import { ekranPaylasilabilir, type EkranKalite, type EkranSonuc } from "./ekranOrtak";
+import { ekranPaylasilabilir, ekranPaylasilabilirTarayici, type EkranKalite, type EkranSonuc } from "./ekranOrtak";
 
 export type Motor = "livekit" | "p2p";
 
@@ -74,8 +74,13 @@ export function useSesMotoru(
     // Ekran paylaşımı: izleyenin gördüğü yayın, benim paylaşıp paylaşmadığım ve başlat/durdur
     izlenen: aktif.izlenen,
     paylasiyorum: aktif.paylasiyorum,
-    ekranDestegi: ekranPaylasilabilir(motor !== "p2p"),
+    ekranDestegi: ekranPaylasilabilir(true),
     ekranPaylas: async (kalite: EkranKalite): Promise<EkranSonuc> => {
+      if (motor === "p2p" && !ekranPaylasilabilirTarayici()) {
+        const m = "Doğrudan (ücretsiz) modda telefondan ekran paylaşımı çalışmıyor; LiveKit'e bağlanılamamış. Sesli odadan çıkıp tekrar gir.";
+        setHata(m);
+        return { ok: false, mesaj: m };
+      }
       const r = await aktif.ekranPaylas(kalite);
       if (!r.ok && r.mesaj) setHata(r.mesaj);
       return r;
