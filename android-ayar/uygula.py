@@ -66,6 +66,8 @@ if "kotlin-gradle-plugin" not in kg:
     kg, n = re.subn(r"(classpath ['\"]com\.android\.tools\.build:gradle:[^'\"]+['\"])", r"\1\n        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20'", kg, count=1)
     if n != 1:
         sys.exit("android/build.gradle içinde AGP classpath satırı bulunamadı")
+    # LiveKit'in ses yönlendirme kütüphanesi (audioswitch) JitPack'te yayınlanıyor
+    kg += "\nallprojects {\n    repositories {\n        maven { url 'https://jitpack.io' }\n    }\n}\n"
     kok_gradle.write_text(kg, encoding="utf-8")
 uyg = android / "app/build.gradle"
 ug = uyg.read_text(encoding="utf-8")
