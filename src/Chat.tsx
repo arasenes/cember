@@ -9,6 +9,7 @@ import MessageView from "./MessageView";
 import { EMOJILER, gunEtiketi, rolEtiketi } from "./util";
 import YonetimPaneli, { susturulmus } from "./YonetimPaneli";
 import Avatar from "./Avatar";
+import KanalSifre from "./KanalSifre";
 import ProfilDialog, { type ProfilDegisiklik } from "./ProfilDialog";
 import { boyutMetni, ekHazirla, ekYolu, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
 
@@ -41,6 +42,8 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [profilId, setProfilId] = useState<string | null>(null);
   const [yonetimAcik, setYonetimAcik] = useState(false);
   const [yonBilgi, setYonBilgi] = useState("");
+  const [acik, setAcik] = useState<Set<string>>(new Set());
+  const [sifreKanal, setSifreKanal] = useState<{ kanal: Kanal; sonra: () => void } | null>(null);
   const [simdi, setSimdi] = useState(() => Date.now());
   const dosyaRef = useRef<HTMLInputElement>(null);
   const ekRef = useRef<HazirEk | null>(null);
@@ -81,6 +84,29 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const profilUyesi = profilId ? uyeHaritasi.get(profilId) : undefined;
   const yonetici = ben.rol !== "uye";
   const benSusturuldu = susturulmus(ben, simdi);
+  const girebilir = useCallback((k: Kanal) => !k.sifreli || yonetici || acik.has(k.id), [yonetici, acik]);
+
+  // Şifresi sonradan konan/değişen ya da silinen kanalda kalma
+  useEffect(() => {
+    if (!kanallar.length) return;
+    const a = kanallar.find((k) => k.id === aktif);
+    if (aktif && (!a || !girebilir(a))) {
+      const yedek = kanallar.find((k) => k.tur === "yazili" && girebilir(k));
+      setAktif(yedek?.id ?? null);
+      if (!yedek) { setMesajlar([]); setTepkiler([]); }
+    }
+    const sk = ses.kanalId ? kanallar.find((k) => k.id === ses.kanalId) : null;
+    if (ses.kanalId && ses.durum !== "kapali" && (!sk || !girebilir(sk))) {
+      setYonBilgi("Bu sesli odanın şifresi değişti ya da oda kapandı; yeniden girmen gerekebilir.");
+      void ses.ayril();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kanallar, girebilir]);
+
+  function kanalaGir(k: Kanal, sonra: () => void) {
+    if (girebilir(k)) sonra();
+    else setSifreKanal({ kanal: k, sonra });
+  }
 
   // Susturma süresi dolunca yazma kutusu kendiliğinden açılır
   useEffect(() => {
@@ -94,15 +120,19 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   // İlk yükleme: oda, kanallar, üyeler
   useEffect(() => {
     (async () => {
-      const [o, k, u] = await Promise.all([
+      const [o, k, u, a] = await Promise.all([
         supabase.from("odalar").select("ad").eq("id", me.oda_id).maybeSingle(),
         supabase.from("kanallar").select("*").eq("oda_id", me.oda_id).order("sira"),
         supabase.from("uyeler").select("*").eq("oda_id", me.oda_id),
+        supabase.from("kanal_acik").select("kanal_id"),
       ]);
       if (o.data) setOdaAdi(o.data.ad);
+      const acikSet = new Set(((a?.data ?? []) as { kanal_id: string }[]).map((x) => x.kanal_id));
+      setAcik(acikSet);
       if (k.data) {
         setKanallar(k.data as Kanal[]);
-        const ilk = (k.data as Kanal[]).find((x) => x.tur === "yazili");
+        const yon = ((u.data ?? []) as Uye[]).find((x) => x.id === me.id)?.rol ?? me.rol;
+        const ilk = (k.data as Kanal[]).find((x) => x.tur === "yazili" && (!x.sifreli || yon !== "uye" || acikSet.has(x.id)));
         if (ilk) setAktif(ilk.id);
       }
       if (u.data) setUyeler(u.data as Uye[]);
@@ -165,6 +195,21 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         } else {
           const t = p.new as Tepki;
           setTepkiler((x) => (x.some((y) => y.id === t.id) ? x : [...x, t]));
+        }
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "kanallar" }, (p) => {
+        if (p.eventType === "DELETE") {
+          const k = p.old as Kanal;
+          setKanallar((x) => x.filter((y) => y.id !== k.id));
+          return;
+        }
+        const k = p.new as Kanal;
+        setKanallar((x) => (x.some((y) => y.id === k.id) ? x.map((y) => (y.id === k.id ? k : y)) : [...x, k]).sort((a, b) => a.sira - b.sira));
+        // Şifre değişince herkesin açık kaydı sıfırlanır: güncel durumu sunucudan al
+        if (p.eventType === "UPDATE") {
+          supabase.from("kanal_acik").select("kanal_id").then(({ data }) => {
+            if (data) setAcik(new Set((data as { kanal_id: string }[]).map((x) => x.kanal_id)));
+          });
         }
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "uyeler" }, (p) => {
@@ -360,22 +405,32 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
       <section className="col side" aria-label="Kanallar">
         <div className="head"><h1>{odaAdi}</h1></div>
         <nav className="scroll" aria-label="Kanal listesi">
-          <div className="sec">Yazılı kanallar</div>
+          <div className="sec sec-satir">
+            <span>Yazılı kanallar</span>
+            {yonetici && <button className="sec-ekle" onClick={() => setYonetimAcik(true)} aria-label="Kanal veya sesli oda aç" title="Kanal / oda aç">+</button>}
+          </div>
           {yaziKanallari.map((k) => (
-            <button key={k.id} className="ch" aria-current={k.id === aktif} onClick={() => { setAktif(k.id); setPane("chat"); }}>
+            <button key={k.id} className="ch" aria-current={k.id === aktif}
+              aria-label={k.sifreli ? `${k.ad}, şifreli kanal` : undefined}
+              onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); })}>
               <span className="hash" aria-hidden="true">#</span>{k.ad}
+              {k.sifreli && <span className="kilit" aria-hidden="true">🔒</span>}
             </button>
           ))}
-          <div className="sec">Sesli odalar</div>
+          <div className="sec sec-satir">
+            <span>Sesli odalar</span>
+            {yonetici && <button className="sec-ekle" onClick={() => setYonetimAcik(true)} aria-label="Kanal veya sesli oda aç" title="Kanal / oda aç">+</button>}
+          </div>
           {sesKanallari.map((k) => {
             const icindekiler = uyeler.filter((u) => sesKonum.get(u.id)?.kanal === k.id);
             const buradayim = ses.kanalId === k.id && ses.durum !== "kapali";
             return (
               <div key={k.id}>
                 <button className="ch" aria-pressed={buradayim} disabled={ses.durum === "baglaniyor"}
-                  onClick={() => (buradayim ? ses.ayril() : ses.baglan(k.id))}
-                  aria-label={`${k.ad} sesli odası, ${buradayim ? "ayrılmak için tıkla" : "katılmak için tıkla"}`}>
+                  onClick={() => (buradayim ? ses.ayril() : kanalaGir(k, () => { void ses.baglan(k.id); }))}
+                  aria-label={`${k.ad} sesli odası${k.sifreli ? ", şifreli" : ""}, ${buradayim ? "ayrılmak için tıkla" : "katılmak için tıkla"}`}>
                   <span className="hash" aria-hidden="true">🔊</span>{k.ad}
+                  {k.sifreli && <span className="kilit" aria-hidden="true">🔒</span>}
                   {buradayim && <span className="soon">bağlı</span>}
                 </button>
                 {icindekiler.length > 0 && (
@@ -469,6 +524,15 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
       {yonetimAcik && yonetici && (
         <YonetimPaneli ben={ben} uyeler={uyeler} kanallar={kanallar} sesKonum={sesKonum} cevrimici={cevrimici}
           onKapat={() => setYonetimAcik(false)} />
+      )}
+      {sifreKanal && (
+        <KanalSifre kanal={sifreKanal.kanal} onKapat={() => setSifreKanal(null)}
+          onAcildi={() => {
+            const { kanal, sonra } = sifreKanal;
+            setAcik((x) => new Set(x).add(kanal.id));
+            setSifreKanal(null);
+            sonra();
+          }} />
       )}
       {ses.kabiRefleri.map((r, i) => <div key={i} ref={r} className="sr" aria-hidden="true" />)}
       <SesCubugu className="vbar-dock" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />

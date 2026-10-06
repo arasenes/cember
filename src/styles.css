@@ -25,7 +25,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .logo b{font:700 34px/1 var(--display);letter-spacing:-.02em}
 .gatecard p{margin:0;color:var(--muted)}
 label{font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-input[type=text],textarea{width:100%;min-height:48px;padding:10px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--fg);font:inherit}
+input[type=text],input[type=password],textarea{width:100%;min-height:48px;padding:10px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--fg);font:inherit}
 .field{display:flex;flex-direction:column;gap:6px}
 .cta{min-height:52px;border-radius:14px;border:0;background:var(--fg);color:var(--bg);font-weight:800;font-size:16px;padding:0 20px}
 .hint{font-size:13px;color:var(--muted)}
@@ -230,3 +230,15 @@ input[type=text],textarea{width:100%;min-height:48px;padding:10px 14px;border-ra
 }
 .vbar-hata{color:var(--danger);font-size:12px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
 .vbar-dbg{font-size:11px;color:var(--muted)}
+
+/* Kanal yönetimi + şifreli kanal */
+.ch .kilit{margin-left:auto;font-size:13px;opacity:.7}
+.sec-satir{display:flex;align-items:center;justify-content:space-between;padding-right:12px}
+.sec-ekle{width:32px;height:32px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);font-weight:800;font-size:18px;line-height:1;margin-top:8px}
+.kanal-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.kanal-form input[type=text],.kanal-form input[type=password]{flex:1 1 150px;min-height:44px}
+.kanal-form select{min-height:44px}
+.kanal-form .ib{flex:none;padding:0 14px}
+.yon-kanal{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.yon-kanal .kanal-ad{font-weight:700;overflow-wrap:anywhere}
+.yon-kanal .ib{flex:none;min-height:40px;padding:0 12px}

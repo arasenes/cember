@@ -3,7 +3,7 @@ export type Uye = {
   renk: string; rol: "sahip" | "moderator" | "uye"; son_gorulme: string; susturma_bitis?: string | null;
   avatar_yol?: string | null; hakkinda?: string | null;
 };
-export type Kanal = { id: string; oda_id: string; ad: string; tur: "yazili" | "sesli"; sira: number };
+export type Kanal = { id: string; oda_id: string; ad: string; tur: "yazili" | "sesli"; sira: number; sifreli: boolean };
 export type Mesaj = {
   id: string; kanal_id: string; uye_id: string; metin: string;
   olusturma: string; duzenleme: string | null; silindi: boolean;

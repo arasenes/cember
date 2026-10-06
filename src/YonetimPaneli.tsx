@@ -49,6 +49,12 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
   const [kod, setKod] = useState<string | null>(null);
   const [kodOnay, setKodOnay] = useState(false);
   const kutuRef = useRef<HTMLDivElement>(null);
+  const [yeniAd, setYeniAd] = useState("");
+  const [yeniTur, setYeniTur] = useState<"yazili" | "sesli">("yazili");
+  const [yeniSifre, setYeniSifre] = useState("");
+  const [sifreKanal, setSifreKanal] = useState<string | null>(null);
+  const [duzenSifre, setDuzenSifre] = useState("");
+  const [silKanal, setSilKanal] = useState<string | null>(null);
   const sesKanallari = kanallar.filter((k) => k.tur === "sesli");
 
   const yasaklariYukle = useCallback(async () => {
@@ -98,6 +104,23 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
     if (!h) setYasaklar((x) => x.filter((z) => z.id !== y.id));
     return h;
   });
+  const kanalAc = (e: React.FormEvent) => {
+    e.preventDefault();
+    const ad = yeniAd.trim();
+    if (!ad) return;
+    void calistir(`"${ad}" ${yeniTur === "sesli" ? "sesli odası" : "kanalı"} açıldı${yeniSifre ? " (şifreli)" : ""}.`, async () => {
+      const h = await rpc("kanal_olustur", { p_ad: ad, p_tur: yeniTur, p_sifre: yeniSifre || null });
+      if (!h) { setYeniAd(""); setYeniSifre(""); }
+      return h;
+    });
+  };
+  const sifreKaydet = (k: Kanal, sifre: string) => calistir(sifre ? `"${k.ad}" için şifre ayarlandı; herkes yeniden girmeli.` : `"${k.ad}" artık şifresiz.`, async () => {
+    const h = await rpc("kanal_sifre_ayarla", { p_kanal: k.id, p_sifre: sifre });
+    if (!h) { setSifreKanal(null); setDuzenSifre(""); }
+    return h;
+  });
+  const kanalSil = (k: Kanal) => calistir(`"${k.ad}" silindi.`, () => rpc("kanal_sil", { p_kanal: k.id }));
+
   async function kodGoster() {
     const { data } = await supabase.rpc("davet_kodu_getir", { p_oda: ben.oda_id });
     if (typeof data === "string") setKod(data); else setBildirim({ metin: "Davet kodu alınamadı.", hata: true });
@@ -126,8 +149,47 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
           <h2 id="yonetim-baslik">🛡️ Yönetim</h2>
           <button className="lb-kapat modal-x" onClick={onKapat} aria-label="Kapat" disabled={mesgul}>✕</button>
         </div>
-        <div className="hint">{sahip ? "Oda sahibi olarak üyeleri yönetebilirsin." : "Moderatör olarak üyeleri atabilir, susturabilir, sesten çıkarabilir ve taşıyabilirsin."}</div>
+        <div className="hint">{sahip ? "Oda sahibi olarak üyeleri yönetebilirsin." : "Moderatör olarak kanal açabilir, şifre koyabilir; üyeleri atabilir, susturabilir, sesten çıkarabilir ve taşıyabilirsin."}</div>
         <div className={"yon-bildirim" + (bildirim?.hata ? " hata" : "")} role="status" aria-live="polite">{bildirim?.metin ?? ""}</div>
+
+        <h3 className="yon-baslik">Kanallar ve odalar — {kanallar.length}</h3>
+        <form className="kanal-form" onSubmit={kanalAc}>
+          <input type="text" value={yeniAd} onChange={(e) => setYeniAd(e.target.value)} maxLength={40} placeholder="Yeni kanal adı" aria-label="Yeni kanal adı" disabled={mesgul} />
+          <select value={yeniTur} onChange={(e) => setYeniTur(e.target.value as "yazili" | "sesli")} aria-label="Kanal türü" disabled={mesgul}>
+            <option value="yazili"># Yazılı</option>
+            <option value="sesli">🔊 Sesli</option>
+          </select>
+          <input type="password" value={yeniSifre} onChange={(e) => setYeniSifre(e.target.value)} maxLength={40} placeholder="Şifre (isteğe bağlı)" aria-label="Kanal şifresi (isteğe bağlı)" autoComplete="new-password" disabled={mesgul} />
+          <button className="ib" type="submit" disabled={mesgul || !yeniAd.trim()}>Aç</button>
+        </form>
+        <ul className="yon-liste">
+          {kanallar.map((k) => (
+            <li key={k.id} className="yon-kanal">
+              <span className="kanal-ad">{k.tur === "sesli" ? "🔊" : "#"} {k.ad}{k.sifreli && " 🔒"}</span>
+              {sifreKanal === k.id ? (
+                <form className="yon-eylemler" onSubmit={(e) => { e.preventDefault(); void sifreKaydet(k, duzenSifre); }}>
+                  <input type="password" value={duzenSifre} onChange={(e) => setDuzenSifre(e.target.value)} maxLength={40} placeholder="Yeni şifre" aria-label={`${k.ad} için yeni şifre`} autoComplete="new-password" />
+                  <button className="ib" type="submit" disabled={mesgul || duzenSifre.length < 3}>Kaydet</button>
+                  <button className="ib" type="button" onClick={() => { setSifreKanal(null); setDuzenSifre(""); }}>Vazgeç</button>
+                </form>
+              ) : silKanal === k.id ? (
+                <div className="yon-onay" role="alertdialog" aria-label="Onay">
+                  <span>Kanal ve içindeki mesajlar silinsin mi?</span>
+                  <div className="yon-eylemler">
+                    <button className="ib tehlike" disabled={mesgul} onClick={() => void kanalSil(k)}>Evet, sil</button>
+                    <button className="ib" onClick={() => setSilKanal(null)}>Vazgeç</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="yon-eylemler">
+                  <button className="ib" disabled={mesgul} onClick={() => { setSifreKanal(k.id); setDuzenSifre(""); }}>{k.sifreli ? "Şifreyi değiştir" : "Şifre koy"}</button>
+                  {k.sifreli && <button className="ib" disabled={mesgul} onClick={() => void sifreKaydet(k, "")}>Şifreyi kaldır</button>}
+                  {sahip && <button className="ib tehlike" disabled={mesgul} onClick={() => setSilKanal(k.id)}>Sil</button>}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
 
         <h3 className="yon-baslik">Üyeler — {liste.length}</h3>
         {liste.length === 0 && <div className="hint">Odada başka kimse yok.</div>}
