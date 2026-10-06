@@ -1,10 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import MessageView from "./MessageView";
+
+vi.mock("./supabase", () => ({
+  supabase: { storage: { from: () => ({ createSignedUrl: async (yol: string) => ({ data: { signedUrl: `https://ornek.test/${yol}?token=t` }, error: null }) }) } },
+}));
 import type { Mesaj, Uye } from "./types";
 
 const uye: Uye = { id: "u1", oda_id: "o", user_id: "x", takma_ad: "Ayşe", renk: "#E8A33D", rol: "uye", son_gorulme: "" };
-const mesaj = (metin: string): Mesaj => ({ id: "m1", kanal_id: "k", uye_id: "u1", metin, olusturma: new Date().toISOString(), duzenleme: null, silindi: false });
+const mesaj = (metin: string): Mesaj => ({ id: "m1", kanal_id: "k", uye_id: "u1", metin, olusturma: new Date().toISOString(), duzenleme: null, silindi: false, ek_yol: null, ek_tur: null, ek_boyut: null, ek_genislik: null, ek_yukseklik: null });
 
 describe("MessageView", () => {
   it("<script> metnini düz metin olarak gösterir, DOM'a script eklemez", () => {
@@ -29,5 +33,32 @@ describe("MessageView", () => {
     expect(screen.queryByLabelText("Mesajı sil")).toBeNull();
     rerender(<MessageView mesaj={mesaj("a")} yazar={uye} benim={{ ...baskasi, rol: "sahip" }} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} />);
     expect(screen.getByLabelText("Mesajı sil")).toBeTruthy();
+  });
+
+  const resimli = (extra: Partial<Mesaj> = {}): Mesaj => ({
+    ...mesaj(""), ek_yol: "o/k/r.webp", ek_tur: "image/webp", ek_boyut: 1000, ek_genislik: 800, ek_yukseklik: 400, ...extra,
+  });
+
+  it("resimli mesajda imzalı bağlantıyla resmi gösterir, metin boşsa metin kutusu çıkmaz", async () => {
+    const { container } = render(<MessageView mesaj={resimli()} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} />);
+    const img = await screen.findByAltText("Ayşe tarafından gönderilen resim");
+    expect(img.getAttribute("src")).toBe("https://ornek.test/o/k/r.webp?token=t");
+    expect(img.getAttribute("width")).toBe("360");
+    expect(img.getAttribute("height")).toBe("180");
+    expect(container.querySelector(".txt")).toBeNull();
+  });
+
+  it("resme tıklayınca büyütür, Escape ile kapatır", async () => {
+    render(<MessageView mesaj={resimli()} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: /büyütmek için tıkla/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("silinmiş mesajın resmini göstermez", () => {
+    const { container } = render(<MessageView mesaj={resimli({ silindi: true })} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} />);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("Bu mesaj silindi.")).toBeTruthy();
   });
 });

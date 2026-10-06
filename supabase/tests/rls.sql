@@ -5,7 +5,7 @@ do $$
 declare
   ua uuid := gen_random_uuid(); ub uuid := gen_random_uuid(); uc uuid := gen_random_uuid();
   o1 uuid; o2 uuid; k1 uuid; k2 uuid; ma uuid; mb uuid; mc uuid; msg1 uuid; msg2 uuid;
-  rapor text := ''; n int;
+  rapor text := ''; n int; yol1 text; yol2 text; yol3 text; yol_k2 text;
 begin
   insert into auth.users (id, instance_id, aud, role, email) values
     (ua,'00000000-0000-0000-0000-000000000000','authenticated','authenticated','a@t.invalid'),
@@ -60,9 +60,56 @@ begin
   select count(*) into n from mesajlar where kanal_id = k1; rapor := rapor||'C oda-1 mesajları (0): '||n||E'\n';
   select count(*) into n from uyeler where oda_id = o1; rapor := rapor||'C oda-1 üyeleri (0): '||n||E'\n';
 
+  -- Resim ekleri (migration 005). Not: storage.objects'ten doğrudan silme Supabase'te kapalıdır, silme API ile yapılır.
+  reset role;
+  yol1 := o1 || '/' || k1 || '/' || gen_random_uuid() || '.webp';
+  yol2 := o1 || '/' || k1 || '/' || gen_random_uuid() || '.png';
+  yol3 := o1 || '/' || k1 || '/' || gen_random_uuid() || '.webp';
+  yol_k2 := o2 || '/' || k2 || '/' || gen_random_uuid() || '.webp';
+  perform set_config('request.jwt.claims', json_build_object('sub',ub,'role','authenticated')::text, true);
+  set local role authenticated;
+  begin insert into storage.objects(bucket_id,name,owner_id) values ('ekler', yol1, ub::text); rapor := rapor||E'OK: B kendi odasına resim yükledi\n';
+  exception when others then rapor := rapor||E'FAIL: B kendi odasına yükleyemedi: '||sqlerrm||E'\n'; end;
+  begin insert into storage.objects(bucket_id,name,owner_id) values ('ekler', yol_k2, ub::text); rapor := rapor||E'FAIL: B başka odaya resim yükledi\n';
+  exception when others then rapor := rapor||E'OK: başka odanın klasörüne yükleme reddedildi\n'; end;
+  begin insert into storage.objects(bucket_id,name,owner_id) values ('ekler', o1 || '/' || k2 || '/' || gen_random_uuid() || '.webp', ub::text); rapor := rapor||E'FAIL: kanal-oda uyumsuz yol kabul edildi\n';
+  exception when others then rapor := rapor||E'OK: kanal-oda uyumsuz yol reddedildi\n'; end;
+  begin insert into storage.objects(bucket_id,name,owner_id) values ('ekler', o1 || '/' || k1 || '/kotu.exe', ub::text); rapor := rapor||E'FAIL: geçersiz dosya adı kabul edildi\n';
+  exception when others then rapor := rapor||E'OK: geçersiz dosya adı reddedildi\n'; end;
+  begin insert into mesajlar(kanal_id,uye_id,metin,ek_yol,ek_tur,ek_boyut,ek_genislik,ek_yukseklik) values (k1,mb,'',yol1,'image/webp',1000,100,100) returning id into msg1;
+    rapor := rapor||E'OK: metinsiz resim mesajı yazıldı\n';
+  exception when others then rapor := rapor||E'FAIL: resim mesajı yazılamadı: '||sqlerrm||E'\n'; end;
+  begin insert into mesajlar(kanal_id,uye_id,metin) values (k1,mb,''); rapor := rapor||E'FAIL: boş mesaj kabul edildi\n';
+  exception when others then rapor := rapor||E'OK: metinsiz ve resimsiz mesaj reddedildi\n'; end;
+  begin insert into mesajlar(kanal_id,uye_id,metin,ek_yol,ek_tur,ek_boyut,ek_genislik,ek_yukseklik) values (k1,mb,'x',yol_k2,'image/webp',1000,100,100);
+    rapor := rapor||E'FAIL: başka odanın resmine bağlanan mesaj kabul edildi\n';
+  exception when others then rapor := rapor||E'OK: başka odanın yoluna bağlanan mesaj reddedildi\n'; end;
+  begin insert into mesajlar(kanal_id,uye_id,metin,ek_yol,ek_tur,ek_boyut,ek_genislik,ek_yukseklik) values (k1,mb,'x',yol3,'image/svg+xml',1000,100,100);
+    rapor := rapor||E'FAIL: svg türü kabul edildi\n';
+  exception when others then rapor := rapor||E'OK: svg türü reddedildi\n'; end;
+  begin update mesajlar set ek_yol = yol3 where id = msg1; rapor := rapor||E'FAIL: ek yolu sonradan değiştirildi\n';
+  exception when others then rapor := rapor||E'OK: ek yolu sonradan değiştirilemez\n'; end;
+  select count(*) into n from storage.objects where bucket_id='ekler'; rapor := rapor||'B oda-1 resimlerini görür (1): '||n||E'\n';
+
+  -- C (başka oda) oda-1 resimlerini göremez
+  reset role;
+  perform set_config('request.jwt.claims', json_build_object('sub',uc,'role','authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from storage.objects where bucket_id='ekler' and name = yol1; rapor := rapor||'C oda-1 resmini görür (0): '||n||E'\n';
+  begin insert into storage.objects(bucket_id,name,owner_id) values ('ekler', yol3, uc::text); rapor := rapor||E'FAIL: C başka odanın klasörüne yükledi\n';
+  exception when others then rapor := rapor||E'OK: C başka odaya yükleyemedi\n'; end;
+
+  -- A (oda-1 sahibi) oda-1 resimlerini görür
+  reset role;
+  perform set_config('request.jwt.claims', json_build_object('sub',ua,'role','authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from storage.objects where bucket_id='ekler' and name = yol1; rapor := rapor||'A oda-1 resmini görür (1): '||n||E'\n';
+
   -- anon hiçbir şey göremez
   reset role;
   set local role anon;
+  begin select count(*) into n from storage.objects where bucket_id = 'ekler'; rapor := rapor||'anon resim sayısı (0): '||n||E'\n';
+  exception when others then rapor := rapor||E'OK: anon depolamaya erişemez\n'; end;
   begin execute 'select count(*) from mesajlar'; rapor := rapor||E'FAIL: anon mesaj okudu\n';
   exception when others then rapor := rapor||E'OK: anon mesajlara erişemez\n'; end;
   reset role;

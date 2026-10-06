@@ -2,7 +2,7 @@
 
 Arkadaşlara özel, davet kodlu yazılı sohbet (ve ileride sesli oda) uygulaması. Vite + React + TypeScript, arka uç Supabase.
 
-Durum: **Aşama 1** (iskelet, davet kodlu giriş, yazılı sohbet) ve **Aşama 3** (sesli oda: LiveKit + otomatik yedek P2P) hazır. Dosya/emoji (Aşama 2) ve cila (Aşama 4) sonra.
+Durum: **Aşama 1** (iskelet, davet kodlu giriş, yazılı sohbet), **Aşama 3** (sesli oda: LiveKit + otomatik yedek P2P) ve **Aşama 2'nin resim kısmı** (resim ve ekran görüntüsü gönderme) hazır. Genel dosya gönderme ve cila (Aşama 4) sonra.
 
 ## Kurulum
 
@@ -49,6 +49,17 @@ TURN tanımlı değilse yalnızca STUN kullanılır; çoğu bağlantı yine kuru
 
 P2P'nin nasıl sınandığı: `harness/` klasöründe sahte Realtime ile üç sekmeli bir deney düzeneği vardır (`npx vite --config harness/vite.config.ts`).
 
+## Resim ve ekran görüntüsü gönderme
+
+Mesaja resim eklemenin üç yolu var: 📎 düğmesiyle dosya seçmek, mesaj kutusuna **Ctrl+V** ile ekran görüntüsü yapıştırmak, ya da resmi sohbetin üstüne sürükleyip bırakmak. Gönderilmeden önce önizleme görünür; resim tek başına ya da yazıyla birlikte gidebilir. Resme tıklayınca büyür (Esc ile kapanır).
+
+- Biçimler: PNG, JPEG, WebP, GIF. SVG ve diğer dosyalar bilerek kabul edilmez.
+- Gönderilmeden önce tarayıcıda uzun kenarı 1600 pikseli geçmeyecek şekilde küçültülür ve WebP'ye çevrilir (yaklaşık 100-300 KB). Bu işlem fotoğraflardaki konum gibi EXIF bilgilerini de siler. GIF olduğu gibi gider (animasyon bozulmasın), en fazla 5 MB.
+- Resimler `ekler` adlı **özel** bir Supabase Storage kovasında tutulur; yol biçimi `<oda>/<kanal>/<uuid>.<uzantı>`. Yalnızca o odanın üyeleri okuyabilir, görüntüleme bir saatlik imzalı bağlantıyla yapılır. Aynı odanın üyesi olmayan biri yükleyemez ve göremez.
+- Mesaj silinince (kendi mesajı ya da oda sahibi) resim dosyası da depolamadan silinir.
+- Supabase ücretsiz planında depolama 1 GB; ortalama bir resim 200 KB ise yaklaşık 5.000 resme yeter.
+- Kurulum: `supabase/migrations/005_resim_ekleri.sql` dosyasını çalıştır. Test: `supabase/tests/rls.sql` artık depolama kurallarını da sınar.
+
 ## Güvenlik notları
 
 - Mesajlar düz metin olarak gösterilir (HTML enjekte edilemez); `MessageView.test.tsx` bunu sınar.
@@ -62,6 +73,7 @@ P2P'nin nasıl sınandığı: `harness/` klasöründe sahte Realtime ile üç se
 - Odaya ilk giren kişi sahip olur.
 - Sesli odada yeniden bağlanma ve bildirimler Aşama 4'te.
 - Mesaj düzenleme arayüzü yok (veritabanı hazır).
+- Bir mesajda tek resim gönderilebilir; resim dışındaki dosyalar (PDF vb.) henüz yok.
 
 ## Yayın
 

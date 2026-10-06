@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Mesaj, Tepki, Uye } from "./types";
 import { bas, HIZLI_TEPKILER, saat } from "./util";
+import EkResim from "./EkResim";
 
 type Props = {
   mesaj: Mesaj;
@@ -36,7 +37,11 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
           <div className="txt silindi">Bu mesaj silindi.</div>
         ) : (
           <>
-            <div className="txt">{mesaj.metin}</div>
+            {mesaj.metin && <div className="txt">{mesaj.metin}</div>}
+            {mesaj.ek_yol && mesaj.ek_genislik && mesaj.ek_yukseklik && (
+              <EkResim yol={mesaj.ek_yol} genislik={mesaj.ek_genislik} yukseklik={mesaj.ek_yukseklik}
+                alt={`${yazar?.takma_ad ?? "Eski üye"} tarafından gönderilen resim`} />
+            )}
             <div className="rx">
               {[...gruplar.entries()].map(([emoji, liste]) => {
                 const benimki = liste.some((t) => t.uye_id === benim.id);
