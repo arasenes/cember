@@ -242,3 +242,10 @@ input[type=text],input[type=password],textarea{width:100%;min-height:48px;paddin
 .yon-kanal{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
 .yon-kanal .kanal-ad{font-weight:700;overflow-wrap:anywhere}
 .yon-kanal .ib{flex:none;min-height:40px;padding:0 12px}
+
+/* Ekran izleme: büyütülmüş görünüm */
+.ekran-ust{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ekran-dugmeler{display:flex;gap:14px;flex:none}
+.ekran-dugmeler .linkbtn{color:#EEF1F7;min-height:32px}
+.ekran-panel.buyuk{position:fixed;inset:0;z-index:45;border:0}
+.ekran-panel.buyuk video{flex:1;max-height:none;height:100%}

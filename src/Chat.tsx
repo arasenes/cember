@@ -84,6 +84,10 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const profilUyesi = profilId ? uyeHaritasi.get(profilId) : undefined;
   const yonetici = ben.rol !== "uye";
   const benSusturuldu = susturulmus(ben, simdi);
+
+  // Biri ekranını paylaşmaya başlayınca izleme alanı (Sohbet bölmesi) kendiliğinden açılır
+  const izlenenUye = ses.izlenen?.uyeId ?? null;
+  useEffect(() => { if (izlenenUye) setPane("chat"); }, [izlenenUye]);
   const girebilir = useCallback((k: Kanal) => !k.sifreli || yonetici || acik.has(k.id), [yonetici, acik]);
 
   // Şifresi sonradan konan/değişen ya da silinen kanalda kalma
