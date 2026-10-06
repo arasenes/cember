@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useSes } from "./voice";
 import { useSesP2P } from "./p2p";
+import { gurultuTercihi, gurultuTercihiKaydet } from "./gurultu";
 import { ekranPaylasilabilir, ekranPaylasilabilirTarayici, type EkranKalite, type EkranSonuc } from "./ekranOrtak";
 
 export type Motor = "livekit" | "p2p";
@@ -23,6 +24,7 @@ export function useSesMotoru(
 ) {
   const [hata, setHata] = useState("");
   const [bilgi, setBilgi] = useState("");
+  const [gurultu, setGurultu] = useState(gurultuTercihi);
   const baglanRef = useRef<(k: string) => Promise<void>>(async () => {});
 
   const lk = useSes(uyeId, (k) => onKanal(k, k ? "livekit" : null), (k) => {
@@ -74,6 +76,12 @@ export function useSesMotoru(
     baglan,
     ayril: async () => { await Promise.all([lk.ayril(), p2p.ayril()]); },
     sessizDegistir: aktif.sessizDegistir,
+    gurultu,
+    gurultuDegistir: async () => {
+      const yeni = !gurultu;
+      setGurultu(yeni); gurultuTercihiKaydet(yeni);
+      await Promise.all([lk.gurultuAyarla(yeni), p2p.gurultuAyarla(yeni)]);
+    },
     // Ekran paylaşımı: izleyenin gördüğü yayın, benim paylaşıp paylaşmadığım ve başlat/durdur
     izlenen: aktif.izlenen,
     paylasiyorum: aktif.paylasiyorum,

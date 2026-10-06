@@ -1,3 +1,4 @@
+import { gurultuTercihi, gurultuUygula } from "./gurultu";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
@@ -121,7 +122,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       const { iceServers, turn } = await iceSunuculariniAl();
       setTurnVar(turn);
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: { echoCancellation: true, noiseSuppression: gurultuTercihi(), autoGainControl: gurultuTercihi() },
       });
       if (islem !== islemRef.current) { stream.getTracks().forEach((t) => t.stop()); return { ok: false, neden: "iptal" }; }
       yerelRef.current = stream;
@@ -432,6 +433,9 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     }
   }, [temizle, ayril, onKanal, uyeId]);
 
+  const gurultuAyarla = useCallback(async (acik: boolean) => { await gurultuUygula(yerelRef.current?.getAudioTracks()[0], acik); }, []);
+
+
   const sessizDegistir = useCallback(async () => {
     const yeni = !sessiz;
     yerelRef.current?.getAudioTracks().forEach((t) => { t.enabled = !yeni; });
@@ -447,5 +451,5 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const ekranPaylas = useCallback(async (kalite: EkranKalite): Promise<EkranSonuc> => ekranRef.current ? ekranRef.current.baslat(kalite) : { ok: false, mesaj: "Önce sesli odaya katıl." }, []);
   const ekranDurdur = useCallback(async () => { await ekranRef.current?.durdur(); }, []);
 
-  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, izlenen, paylasiyorum, ekranPaylas, ekranDurdur };
+  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur };
 }

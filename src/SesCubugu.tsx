@@ -24,6 +24,12 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
         )}
         <button className="ib leave" onClick={ses.ayril}>Ayrıl</button>
       </div>
+      <div className="vbtns">
+        <button className="ib gurultu" aria-pressed={ses.gurultu} onClick={() => void ses.gurultuDegistir()} disabled={baglaniyor}
+          title="Klavye, fan, çevre sesi gibi arka plan gürültüsünü azaltır">
+          {ses.gurultu ? "🔕 Gürültü engelleme: açık" : "🔔 Gürültü engelleme: kapalı"}
+        </button>
+      </div>
       {!dock && ses.ekranDestegi && (
         ses.paylasiyorum ? (
           <div className="vbtns">

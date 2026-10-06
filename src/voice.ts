@@ -1,3 +1,4 @@
+import { gurultuTercihi, gurultuUygula } from "./gurultu";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Room } from "livekit-client";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
@@ -94,7 +95,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
 
       const { Room: LkRoom, RoomEvent, Track } = await import("livekit-client");
       const room = new LkRoom({
-        audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audioCaptureDefaults: { echoCancellation: true, noiseSuppression: gurultuTercihi(), autoGainControl: gurultuTercihi() },
       });
       odaRef.current = room;
       room.on(RoomEvent.TrackSubscribed, (track, yayin, katilimci) => {
@@ -156,6 +157,15 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       return { ok: false, neden, mesaj };
     }
   }, [temizle, ayril, onKanal, onKoptu]);
+
+  const gurultuAyarla = useCallback(async (acik: boolean) => {
+
+    const pub = odaRef.current?.localParticipant.getTrackPublications().find((p) => p.kind === "audio" && p.source === "microphone");
+
+    await gurultuUygula(pub?.track?.mediaStreamTrack, acik);
+
+  }, []);
+
 
   const sessizDegistir = useCallback(async () => {
     const room = odaRef.current;
@@ -232,5 +242,5 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   }, [temizle]);
 
   void uyeId;
-  return { durum, kanalId, sessiz, konusanlar, kullanilan, sesKabi, baglan, ayril, sessizDegistir, izlenen, paylasiyorum, ekranPaylas, ekranDurdur };
+  return { durum, kanalId, sessiz, konusanlar, kullanilan, sesKabi, baglan, ayril, sessizDegistir, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur };
 }
