@@ -1,0 +1,59 @@
+name: Android APK
+
+# Elle ("Run workflow") ya da APK ayarları değişince çalışır. Site güncellemeleri APK'yı yeniden derlemeyi gerektirmez,
+# çünkü uygulama yayındaki siteyi açar.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "capacitor.config.json"
+      - "android-ayar/**"
+      - ".github/workflows/apk.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Capacitor araçlarını kur (projenin bağımlılıklarına eklenmez)
+        run: npm install --no-save @capacitor/cli@^8.5.2 @capacitor/core@^8.5.2 @capacitor/android@^8.5.2
+      - run: npm run build
+      - name: Android projesini oluştur ve Çember ayarlarını uygula
+        env:
+          SURUM_NO: ${{ github.run_number }}
+        run: |
+          npx cap add android
+          pip install pillow
+          python3 android-ayar/ikon_uret.py android/app/src/main/res
+          python3 android-ayar/uygula.py
+          npx cap sync android
+      - name: APK derle
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: APK'yı yayınla (sabit indirme bağlantısı)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk cember.apk
+          gh release delete apk-son --yes --cleanup-tag || true
+          gh release create apk-son cember.apk --prerelease \
+            --title "Çember Android (test sürümü ${{ github.run_number }})" \
+            --notes "Telefonda indirip kur. Kurulum için 'bilinmeyen kaynaklardan yüklemeye' izin vermen gerekir."
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cember-apk
+          path: cember.apk
