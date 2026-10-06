@@ -39,6 +39,12 @@ Deno.serve(async (req) => {
     return json({ hata: "Davet kodu yanlış." }, 403);
   }
 
+  // Yasaklı mı? (takma ad ya da IP eşleşirse girilemez)
+  const adKacis = takmaAd.replace(/[%_\\]/g, (m) => "\\" + m);
+  const { data: adYasagi } = await admin.from("yasaklar").select("id").eq("oda_id", oda.id).ilike("takma_ad", adKacis).maybeSingle();
+  const { data: ipYasagi } = ip === "bilinmiyor" ? { data: null } : await admin.from("yasaklar").select("id").eq("oda_id", oda.id).eq("ip", ip).maybeSingle();
+  if (adYasagi || ipYasagi) return json({ hata: "Bu odaya girişin engellendi." }, 403);
+
   const { count: uyeSayisi } = await admin.from("uyeler").select("id", { count: "exact", head: true }).eq("oda_id", oda.id);
   if ((uyeSayisi ?? 0) >= MAX_UYE) return json({ hata: "Oda dolu." }, 409);
 
@@ -55,12 +61,13 @@ Deno.serve(async (req) => {
   if (kErr || !kullanici.user) return json({ hata: "Hesap oluşturulamadı." }, 500);
 
   const renk = RENKLER[(uyeSayisi ?? 0) % RENKLER.length];
-  const { error: uErr } = await admin.from("uyeler").insert({ oda_id: oda.id, user_id: kullanici.user.id, takma_ad: takmaAd, renk, rol });
+  const { data: yeniUye, error: uErr } = await admin.from("uyeler").insert({ oda_id: oda.id, user_id: kullanici.user.id, takma_ad: takmaAd, renk, rol }).select("id").single();
   if (uErr) {
     await admin.auth.admin.deleteUser(kullanici.user.id);
     const ad = uErr.code === "23505";
     return json({ hata: ad ? "Bu takma ad odada kullanılıyor, başka bir tane seç." : "Odaya katılınamadı." }, ad ? 409 : 500);
   }
+  if (yeniUye && ip !== "bilinmiyor") await admin.from("uye_ip").insert({ uye_id: yeniUye.id, ip });
   if (rol === "sahip") await admin.from("odalar").update({ olusturan: kullanici.user.id }).eq("id", oda.id);
 
   const anon = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { auth: { persistSession: false } });
