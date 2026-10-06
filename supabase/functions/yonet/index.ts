@@ -99,6 +99,8 @@ Deno.serve(async (req) => {
       const { data: k } = await admin.from("kanallar").select("id").eq("id", g.kanal_id).eq("oda_id", hedef.oda_id).eq("tur", "sesli").maybeSingle();
       if (!k) return json({ hata: "Sesli kanal bulunamadı" }, 404);
       kanalId = k.id;
+      // Şifreli odaya taşınan üye şifre sormadan girebilsin
+      await admin.from("kanal_acik").upsert({ kanal_id: k.id, uye_id: hedef.id }, { onConflict: "kanal_id,uye_id" });
     } else if (g.tur !== "at") return json({ hata: "Geçersiz işlem" }, 400);
     // Eski komutları temizle, yenisini yaz (hedefin istemcisi Realtime ile alır)
     await admin.from("yonetim_komutlari").delete().eq("hedef_uye", hedef.id).lt("olusturma", new Date(Date.now() - 60_000).toISOString());
