@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Room } from "livekit-client";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
-import { ekranHatasi, KALITE, yerelEkran, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
+import { ekranHatasi, ekranPaylasilabilirTarayici, KALITE, uygulamaIci, yerelEkran, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
 
 export type SesDurumu = "kapali" | "baglaniyor" | "bagli";
 export type BaglanSonuc = { ok: boolean; neden?: "limit" | "kurulmadi" | "dolu" | "izin" | "ag" | "iptal"; mesaj?: string };
@@ -179,6 +179,11 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
         if (/iptal|cancel|denied|reddedildi/i.test(m)) return { ok: false };
         return { ok: false, mesaj: "Ekran paylaşılamadı. " + m };
       }
+    }
+    if (!ekranPaylasilabilirTarayici()) {
+      return { ok: false, mesaj: uygulamaIci()
+        ? "Bu uygulama sürümünde ekran paylaşımı yok. Güncel APK'yı indirip kur: github.com/arasenes/cember/releases/download/apk-son/cember.apk"
+        : "Telefon tarayıcısı ekranı paylaşamaz. Tüm ekranı paylaşmak için Çember Android uygulamasını (APK) kur: github.com/arasenes/cember/releases/download/apk-son/cember.apk" };
     }
     try {
       await room.localParticipant.setScreenShareEnabled(

@@ -228,3 +228,4 @@ input[type=text],textarea{width:100%;min-height:48px;padding:10px 14px;border-ra
   .vbar-dock .vbtns{gap:6px}
   .vbar-dock .ib{min-height:40px}
 }
+.vbar-hata{color:var(--danger);font-size:12px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}

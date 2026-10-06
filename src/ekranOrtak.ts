@@ -38,9 +38,17 @@ export function yerelEkran(): YerelEkran | null {
 export function ekranPaylasilabilirTarayici(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getDisplayMedia === "function";
 }
-/** Paylaşma düğmesi gösterilsin mi? (motor LiveKit ise telefon uygulaması da paylaşabilir) */
+/** Çember Android uygulaması (APK) içinde mi çalışıyoruz? */
+export function uygulamaIci(): boolean {
+  const c = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+  return !!c?.isNativePlatform?.();
+}
+function telefonMu(): boolean {
+  return typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+/** Paylaşma düğmesi gösterilsin mi? Telefonda her zaman gösterilir; paylaşamıyorsa basınca nedenini söyler. */
 export function ekranPaylasilabilir(motorLivekit = true): boolean {
-  return ekranPaylasilabilirTarayici() || (motorLivekit && yerelEkran() !== null);
+  return ekranPaylasilabilirTarayici() || (motorLivekit && (yerelEkran() !== null || uygulamaIci() || telefonMu()));
 }
 
 /** Kullanıcı seçim penceresini kapatırsa (iptal) hata göstermeyiz. */
