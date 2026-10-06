@@ -15,9 +15,22 @@ export type YerelEkran = {
   durdur(): Promise<void>;
   addListener(ad: "durdu", f: () => void): Promise<{ remove: () => Promise<void> }> | { remove: () => Promise<void> };
 };
+type CapacitorKopru = {
+  Plugins?: Record<string, unknown>;
+  isNativePlatform?: () => boolean;
+  isPluginAvailable?: (ad: string) => boolean;
+  registerPlugin?: (ad: string) => unknown;
+};
+let kayitliEkran: YerelEkran | null = null;
 export function yerelEkran(): YerelEkran | null {
-  const c = (globalThis as { Capacitor?: { Plugins?: Record<string, unknown>; isNativePlatform?: () => boolean } }).Capacitor;
-  const p = c?.Plugins?.EkranYakala as YerelEkran | undefined;
+  const c = (globalThis as { Capacitor?: CapacitorKopru }).Capacitor;
+  if (!c) return null;
+  // Yerel (Kotlin) eklentiler, JS tarafında kayıt edilmedikçe Capacitor.Plugins içinde görünmez; bu yüzden kaydı biz yaparız.
+  let p = c.Plugins?.EkranYakala as YerelEkran | undefined;
+  if (!p && c.isNativePlatform?.() && (c.isPluginAvailable?.("EkranYakala") ?? true) && typeof c.registerPlugin === "function") {
+    kayitliEkran ??= c.registerPlugin("EkranYakala") as YerelEkran;
+    p = kayitliEkran;
+  }
   return p && typeof p.baslat === "function" ? p : null;
 }
 
