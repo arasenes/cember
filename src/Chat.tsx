@@ -478,6 +478,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
                       <li key={u.id} className="vp">
                         <Avatar uye={u} className={ses.konusanlar.has(u.id) ? "speak" : ""} />
                         {u.takma_ad}{ses.konusanlar.has(u.id) && <span className="sr"> konuşuyor</span>}
+                        {ses.sorunlu.has(u.id) && <span className="yayin" title="Bu kişiyle bağlantı kurulamıyor"><span aria-hidden="true">⚠️</span><span className="sr"> bağlantı sorunu</span></span>}
                         {sesKonum.get(u.id)?.ekran && <span className="yayin" title="Ekran paylaşıyor"><span aria-hidden="true">🖥️</span><span className="sr"> ekran paylaşıyor</span></span>}
                       </li>
                     ))}
@@ -528,6 +529,12 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         {hata && <div className="banner" role="alert">{hata}</div>}
         {yonBilgi && <div className="banner info" role="status">{yonBilgi} <button className="linkbtn" onClick={() => setYonBilgi("")}>Tamam</button></div>}
         {ses.hata && <div className="banner" role="alert">{ses.hata} <button className="linkbtn" onClick={ses.hataTemizle}>Kapat</button></div>}
+        {ses.sorunlu.size > 0 && (
+          <div className="banner" role="status">
+            {[...ses.sorunlu].map((id) => uyeHaritasi.get(id)?.takma_ad ?? "Biri").join(", ")} ile ses bağlantısı kurulamıyor; tekrar deneniyor.
+            {ses.turnVar === false && " (Ağ kısıtlı olabilir; yönetici TURN sunucusunu açmalı.)"}
+          </div>
+        )}
         {ses.bilgi && !ses.hata && <div className="banner info" role="status">{ses.bilgi} <button className="linkbtn" onClick={ses.hataTemizle}>Tamam</button></div>}
         {me.rol === "sahip" && kullanimDk !== null && kullanimDk >= SES_LIMIT * 0.8 && (
           <div className="banner" role="status">Bu ay sesli odada {kullanimDk} / {SES_LIMIT} dakika kullanıldı{kullanimDk >= SES_LIMIT ? "; limit doldu, ses kapandı" : "; limite yaklaşıyorsunuz"}. Yazılı sohbet çalışmaya devam eder.</div>

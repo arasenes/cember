@@ -17,9 +17,9 @@ const VARSAYILAN_ICE: RTCIceServer[] = [{ urls: ["stun:stun.cloudflare.com:3478"
 // Ekranı paylaşan her izleyiciye ayrı bir bağlantı kurar (teklifi her zaman paylaşan verir).
 type Sinyal = { to: string; from: string; tur: "offer" | "answer" | "ice" | "ekran-offer" | "ekran-answer" | "ekran-ice"; veri: unknown };
 type EkranEs = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean };
-type Es = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean; baslatan: boolean; el?: HTMLAudioElement; analiz?: AnalyserNode; sonlandir: () => void };
+type Es = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean; baslatan: boolean; el?: HTMLAudioElement; analiz?: AnalyserNode; sonlandir: () => void; sorunZamani?: number };
 
-async function iceSunuculariniAl(): Promise<RTCIceServer[]> {
+async function iceSunuculariniAl(): Promise<{ iceServers: RTCIceServer[]; turn: boolean }> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const r = await fetch(`${SUPABASE_URL}/functions/v1/turn-bilgi`, {
@@ -27,11 +27,11 @@ async function iceSunuculariniAl(): Promise<RTCIceServer[]> {
       headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ""}` },
       body: "{}",
     });
-    if (!r.ok) return VARSAYILAN_ICE;
+    if (!r.ok) return { iceServers: VARSAYILAN_ICE, turn: false };
     const j = await r.json();
-    return Array.isArray(j.iceServers) && j.iceServers.length ? j.iceServers : VARSAYILAN_ICE;
+    return Array.isArray(j.iceServers) && j.iceServers.length ? { iceServers: j.iceServers, turn: j.turn === true } : { iceServers: VARSAYILAN_ICE, turn: false };
   } catch {
-    return VARSAYILAN_ICE;
+    return { iceServers: VARSAYILAN_ICE, turn: false };
   }
 }
 
@@ -44,6 +44,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const islemRef = useRef(0);
   const kapatRef = useRef<(() => Promise<void>) | null>(null);
   const yerelRef = useRef<MediaStream | null>(null);
+  const [sorunlu, setSorunlu] = useState<Set<string>>(new Set());
+  const [turnVar, setTurnVar] = useState<boolean | null>(null);
   const [izlenen, setIzlenen] = useState<Izlenen | null>(null);
   const [paylasiyorum, setPaylasiyorum] = useState(false);
   const ekranRef = useRef<{ baslat: (k: EkranKalite) => Promise<EkranSonuc>; durdur: () => Promise<void> } | null>(null);
@@ -54,7 +56,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     if (k) await k();
     yerelRef.current = null;
     ekranRef.current = null;
-    setKonusanlar(new Set());
+    setKonusanlar(new Set()); setSorunlu(new Set());
     setIzlenen(null); setPaylasiyorum(false);
   }, []);
 
@@ -74,6 +76,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     let kanal: RealtimeChannel | null = null;
     let ctx: AudioContext | null = null;
     let olcum: ReturnType<typeof setInterval> | null = null;
+    let bekci: ReturnType<typeof setInterval> | null = null;
+    let sesAc: (() => void) | null = null;
     const esler = new Map<string, Es>();
     const bekleyenIcePeer = new Map<string, RTCIceCandidateInit[]>();
     let kuyruk: Promise<void> = Promise.resolve();
@@ -88,6 +92,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     const kapat = async () => {
       kapandi = true;
       if (olcum) clearInterval(olcum);
+      if (bekci) clearInterval(bekci);
+      if (sesAc) { document.removeEventListener("pointerdown", sesAc, true); document.removeEventListener("keydown", sesAc, true); sesAc = null; }
       for (const e of esler.values()) e.sonlandir();
       esler.clear();
       ekranAkis?.getTracks().forEach((t) => t.stop());
@@ -112,7 +118,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) return await basarisiz("izin", "Sesli odalar yalnızca güvenli (https) bağlantıda çalışır.");
-      const iceServers = await iceSunuculariniAl();
+      const { iceServers, turn } = await iceSunuculariniAl();
+      setTurnVar(turn);
       stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
@@ -148,6 +155,14 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         if (imza !== sonKonusan) { sonKonusan = imza; setKonusanlar(new Set(konusan)); }
       }, 60);
 
+      // Tarayıcı sesi otomatik çalmayı engellediyse, ilk dokunuşta/tuşta tüm karşı seslerini yeniden başlat
+      sesAc = () => {
+        void ctx?.resume();
+        for (const e of esler.values()) if (e.el && e.el.paused) void e.el.play().catch(() => {});
+      };
+      document.addEventListener("pointerdown", sesAc, true);
+      document.addEventListener("keydown", sesAc, true);
+
       const benimT = Date.now();
       kanal = supabase.channel(`ses:${hedef}`, { config: { private: true, broadcast: { self: false }, presence: { key: uyeId } } });
       const aktifKanal = kanal;
@@ -157,7 +172,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
 
       const esKur = (peerId: string, baslatan: boolean): Es => {
         const pc = new RTCPeerConnection({ iceServers });
-        const es: Es = { pc, bekleyenIce: bekleyenIcePeer.get(peerId) ?? [], uzakVar: false, baslatan, sonlandir: () => {} };
+        const es: Es = { pc, bekleyenIce: bekleyenIcePeer.get(peerId) ?? [], uzakVar: false, baslatan, sonlandir: () => {}, sorunZamani: Date.now() };
         bekleyenIcePeer.delete(peerId);
         stream!.getTracks().forEach((t) => pc.addTrack(t, stream!));
         pc.onicecandidate = (e) => { if (e.candidate) gonder(peerId, "ice", e.candidate.toJSON()); };
@@ -168,7 +183,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             el.autoplay = true; el.setAttribute("playsinline", "");
             el.srcObject = uzak;
             sesKabi.current?.appendChild(el);
-            void el.play().catch(() => {});
+            void el.play().catch(() => { /* tarayıcı engelledi: bir sonraki dokunuşta tekrar denenir */ });
             es.el = el;
             analizEkle(peerId, uzak);
           }
@@ -196,6 +211,24 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         await es.pc.setLocalDescription(teklif);
         gonder(peerId, "offer", es.pc.localDescription?.toJSON());
       };
+
+      // Bağlantı bekçisi: 10 sn içinde kurulamayan / kopan bağlantılar yeniden denenir; takılanlar arayüzde işaretlenir
+      bekci = setInterval(() => {
+        if (kapandi) return;
+        const simdi = Date.now();
+        const sorunluYeni = new Set<string>();
+        for (const [id, es] of [...esler]) {
+          if (es.pc.connectionState === "connected") { es.sorunZamani = undefined; continue; }
+          es.sorunZamani ??= simdi;
+          if (simdi - es.sorunZamani < 10_000) continue;
+          sorunluYeni.add(id);
+          if (es.baslatan) {
+            es.sonlandir(); esler.delete(id);
+            kuyruk = kuyruk.then(() => (kapandi || esler.has(id) ? undefined : teklifGonder(id))).catch(() => {});
+          }
+        }
+        setSorunlu((onceki) => (onceki.size === sorunluYeni.size && [...sorunluYeni].every((x) => onceki.has(x)) ? onceki : sorunluYeni));
+      }, 4000);
 
       const bitHiziSinirla = async (pc: RTCPeerConnection, bps: number) => {
         for (const g of pc.getSenders()) {
@@ -414,5 +447,5 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const ekranPaylas = useCallback(async (kalite: EkranKalite): Promise<EkranSonuc> => ekranRef.current ? ekranRef.current.baslat(kalite) : { ok: false, mesaj: "Önce sesli odaya katıl." }, []);
   const ekranDurdur = useCallback(async () => { await ekranRef.current?.durdur(); }, []);
 
-  return { durum, kanalId, sessiz, konusanlar, sesKabi, baglan, ayril, sessizDegistir, izlenen, paylasiyorum, ekranPaylas, ekranDurdur };
+  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, izlenen, paylasiyorum, ekranPaylas, ekranDurdur };
 }

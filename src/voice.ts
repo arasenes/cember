@@ -123,6 +123,14 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
         const k = hedefRef.current;
         void ayril().then(() => { if (k) onKoptu?.(k); });
       });
+      // Tarayıcı sesi otomatik çalmayı engellediyse ilk dokunuşta/tuşta başlat
+      const sesiAc = () => { if (!room.canPlaybackAudio) void room.startAudio().catch(() => {}); };
+      document.addEventListener("pointerdown", sesiAc, true);
+      document.addEventListener("keydown", sesiAc, true);
+      room.on(RoomEvent.Disconnected, () => {
+        document.removeEventListener("pointerdown", sesiAc, true);
+        document.removeEventListener("keydown", sesiAc, true);
+      });
       await room.connect(j.url, j.token);
       await room.localParticipant.setMicrophoneEnabled(true);
       if (islem !== islemRef.current) { await room.disconnect(); return { ok: false, neden: "iptal" }; }

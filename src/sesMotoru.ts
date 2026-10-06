@@ -4,6 +4,7 @@ import { useSesP2P } from "./p2p";
 import { ekranPaylasilabilir, ekranPaylasilabilirTarayici, type EkranKalite, type EkranSonuc } from "./ekranOrtak";
 
 export type Motor = "livekit" | "p2p";
+const BOS_KUME: Set<string> = new Set();
 
 /**
  * İki sesli motoru birleştirir:
@@ -64,6 +65,8 @@ export function useSesMotoru(
     sessiz: aktif.sessiz,
     konusanlar: aktif.konusanlar,
     kullanilan: lk.kullanilan,
+    sorunlu: motor === "p2p" ? p2p.sorunlu : BOS_KUME,
+    turnVar: p2p.turnVar,
     motor,
     hata,
     bilgi,
