@@ -468,7 +468,6 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         onDragLeave={(e) => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setSurukle(false); }}
         onDrop={(e) => { e.preventDefault(); setSurukle(false); const f = resimBul(e.dataTransfer.files); if (f) void ekSec(f); else if (e.dataTransfer.files.length) setHata("Yalnızca resim dosyaları gönderilebilir."); }}>
         <div className="head"><h2># {aktifKanal?.ad ?? "…"}</h2></div>
-        <SesCubugu className="vbar-chat" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
         {ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
         {hata && <div className="banner" role="alert">{hata}</div>}
         {yonBilgi && <div className="banner info" role="status">{yonBilgi} <button className="linkbtn" onClick={() => setYonBilgi("")}>Tamam</button></div>}
