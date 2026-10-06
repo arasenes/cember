@@ -124,3 +124,12 @@ input[type=text],textarea{width:100%;min-height:48px;padding:10px 14px;border-ra
 .rxpick{display:flex;gap:4px;margin-top:2px}
 .rxpick button{min-width:34px;min-height:34px;border:1.5px solid var(--line);border-radius:17px;background:var(--card);font-size:16px}
 .counter{font-size:12px;color:var(--muted);align-self:center}
+
+/* Aşama 3: sesli oda */
+.vbar-chat{display:none}
+.vlist .vp .dot{width:24px;height:24px;font-size:11px}
+@media (max-width:820px){
+  .vbar-side{display:none}
+  .vbar-chat.on{display:flex}
+}
+.banner.info{background:color-mix(in srgb,var(--acc) 16%,var(--bg));color:var(--fg)}

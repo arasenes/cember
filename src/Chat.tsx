@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { useSesMotoru, type Motor } from "./sesMotoru";
+import SesCubugu from "./SesCubugu";
 import type { Kanal, Mesaj, Tepki, Uye } from "./types";
 import MessageView from "./MessageView";
 import { bas, EMOJILER, gunEtiketi } from "./util";
 
 const SAYFA = 50;
 type Pane = "side" | "chat" | "mem";
+const SES_LIMIT = Number(import.meta.env.VITE_SES_AYLIK_DAKIKA ?? 5000);
 
 function birlestir(eski: Mesaj[], yeni: Mesaj[]): Mesaj[] {
   const m = new Map<string, Mesaj>();
@@ -30,8 +34,19 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const akisRef = useRef<HTMLDivElement>(null);
   const altaKaydir = useRef(true);
   const metinRef = useRef<HTMLTextAreaElement>(null);
+  const kanalRef = useRef<RealtimeChannel | null>(null);
+  const [sesKonum, setSesKonum] = useState<Map<string, { kanal: string; motor: Motor | null }>>(new Map());
+  const sesKonumRef = useRef(sesKonum);
+  sesKonumRef.current = sesKonum;
+  const [kullanimDk, setKullanimDk] = useState<number | null>(null);
 
   aktifRef.current = aktif;
+  const kanalDuyur = useCallback((k: string | null, motor: Motor | null) => { void kanalRef.current?.track({ t: Date.now(), ses: k, motor }); }, []);
+  const motorSor = useCallback((kanalId: string): Motor | null => {
+    for (const [uid, v] of sesKonumRef.current) if (uid !== me.id && v.kanal === kanalId && v.motor) return v.motor;
+    return null;
+  }, [me.id]);
+  const ses = useSesMotoru(me.id, kanalDuyur, motorSor);
   const uyeHaritasi = useMemo(() => new Map(uyeler.map((u) => [u.id, u])), [uyeler]);
   const aktifKanal = kanallar.find((k) => k.id === aktif);
 
@@ -94,6 +109,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   // Realtime + presence
   useEffect(() => {
     const kanal = supabase.channel(`oda-${me.oda_id}`, { config: { presence: { key: me.id } } });
+    kanalRef.current = kanal;
     kanal
       .on("postgres_changes", { event: "*", schema: "public", table: "mesajlar" }, (p) => {
         const m = (p.eventType === "DELETE" ? p.old : p.new) as Mesaj;
@@ -120,19 +136,34 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           setUyeler((x) => (x.some((y) => y.id === u.id) ? x.map((y) => (y.id === u.id ? u : y)) : [...x, u]));
         }
       })
-      .on("presence", { event: "sync" }, () => setCevrimici(new Set(Object.keys(kanal.presenceState()))))
-      .subscribe(async (durum) => { if (durum === "SUBSCRIBED") await kanal.track({ t: Date.now() }); });
+      .on("presence", { event: "sync" }, () => {
+        const durum = kanal.presenceState<{ ses?: string | null; motor?: Motor | null }>();
+        setCevrimici(new Set(Object.keys(durum)));
+        const konum = new Map<string, { kanal: string; motor: Motor | null }>();
+        for (const [uyeId, metalar] of Object.entries(durum)) {
+          const son = metalar[metalar.length - 1];
+          if (son?.ses) konum.set(uyeId, { kanal: son.ses, motor: son.motor ?? null });
+        }
+        setSesKonum(konum);
+      })
+      .subscribe(async (durum) => { if (durum === "SUBSCRIBED") await kanal.track({ t: Date.now(), ses: null, motor: null }); });
 
     const nabiz = setInterval(() => {
       supabase.from("uyeler").update({ son_gorulme: new Date().toISOString() }).eq("id", me.id).then(() => {});
     }, 60000);
-    return () => { clearInterval(nabiz); supabase.removeChannel(kanal); };
+    return () => { clearInterval(nabiz); kanalRef.current = null; supabase.removeChannel(kanal); };
   }, [me.id, me.oda_id, onExit]);
 
   useEffect(() => {
     const el = akisRef.current;
     if (el && altaKaydir.current) el.scrollTop = el.scrollHeight;
   }, [mesajlar]);
+
+  // Oda sahibi için aylık ses kullanımı (bağlantı durumu değişince yenilenir)
+  useEffect(() => {
+    if (me.rol !== "sahip") return;
+    supabase.rpc("ses_kullanim", { p_oda: me.oda_id }).then(({ data }) => { if (typeof data === "number") setKullanimDk(data); });
+  }, [me.rol, me.oda_id, ses.durum]);
 
   async function gonder() {
     const t = metin.trim();
@@ -206,12 +237,32 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             </button>
           ))}
           <div className="sec">Sesli odalar</div>
-          {sesKanallari.map((k) => (
-            <button key={k.id} className="ch" disabled title="Sesli odalar bir sonraki aşamada açılacak">
-              <span className="hash" aria-hidden="true">🔊</span>{k.ad}<span className="soon">yakında</span>
-            </button>
-          ))}
+          {sesKanallari.map((k) => {
+            const icindekiler = uyeler.filter((u) => sesKonum.get(u.id)?.kanal === k.id);
+            const buradayim = ses.kanalId === k.id && ses.durum !== "kapali";
+            return (
+              <div key={k.id}>
+                <button className="ch" aria-pressed={buradayim} disabled={ses.durum === "baglaniyor"}
+                  onClick={() => (buradayim ? ses.ayril() : ses.baglan(k.id))}
+                  aria-label={`${k.ad} sesli odası, ${buradayim ? "ayrılmak için tıkla" : "katılmak için tıkla"}`}>
+                  <span className="hash" aria-hidden="true">🔊</span>{k.ad}
+                  {buradayim && <span className="soon">bağlı</span>}
+                </button>
+                {icindekiler.length > 0 && (
+                  <ul className="vlist" aria-label={`${k.ad} katılımcıları`}>
+                    {icindekiler.map((u) => (
+                      <li key={u.id} className="vp">
+                        <span className={"dot" + (ses.konusanlar.has(u.id) ? " speak" : "")} style={{ background: u.renk }} aria-hidden="true">{bas(u.takma_ad)}</span>
+                        {u.takma_ad}{ses.konusanlar.has(u.id) && <span className="sr"> konuşuyor</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </nav>
+        <SesCubugu className="vbar-side" ses={ses} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
         <div className="me">
           <div className="dot" style={{ background: me.renk }} aria-hidden="true">{bas(me.takma_ad)}</div>
           <div><b>{me.takma_ad}</b><span>{me.rol === "sahip" ? "Oda sahibi" : "Üye"}</span></div>
@@ -221,7 +272,13 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
 
       <section className="col chat" aria-label="Sohbet">
         <div className="head"><h2># {aktifKanal?.ad ?? "…"}</h2></div>
+        <SesCubugu className="vbar-chat" ses={ses} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
         {hata && <div className="banner" role="alert">{hata}</div>}
+        {ses.hata && <div className="banner" role="alert">{ses.hata} <button className="linkbtn" onClick={ses.hataTemizle}>Kapat</button></div>}
+        {ses.bilgi && !ses.hata && <div className="banner info" role="status">{ses.bilgi} <button className="linkbtn" onClick={ses.hataTemizle}>Tamam</button></div>}
+        {me.rol === "sahip" && kullanimDk !== null && kullanimDk >= SES_LIMIT * 0.8 && (
+          <div className="banner" role="status">Bu ay sesli odada {kullanimDk} / {SES_LIMIT} dakika kullanıldı{kullanimDk >= SES_LIMIT ? "; limit doldu, ses kapandı" : "; limite yaklaşıyorsunuz"}. Yazılı sohbet çalışmaya devam eder.</div>
+        )}
         <div className="msgs" ref={akisRef} role="log" aria-live="polite" aria-label="Mesajlar">
           {dahaVar && <button className="more" onClick={eskileriYukle}>Eski mesajları yükle</button>}
           {!mesajlar.length && <div className="empty">Henüz mesaj yok. İlk mesajı sen yaz.</div>}
@@ -254,6 +311,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         </div>
       </aside>
 
+      {ses.kabiRefleri.map((r, i) => <div key={i} ref={r} className="sr" aria-hidden="true" />)}
       <nav className="nav" aria-label="Bölme seçimi">
         <button aria-current={pane === "side"} onClick={() => setPane("side")}>Kanallar</button>
         <button aria-current={pane === "chat"} onClick={() => setPane("chat")}>Sohbet</button>
