@@ -7,6 +7,7 @@ import EkranPaneli from "./EkranPaneli";
 import type { Kanal, Mesaj, Tepki, Uye } from "./types";
 import MessageView from "./MessageView";
 import { EMOJILER, gunEtiketi, rolEtiketi } from "./util";
+import { bildirim, bildirimIzniIste, duyur, etiketVar, seslerAcik, seslerKaydet, sesleriHazirla } from "./uyari";
 import YonetimPaneli, { susturulmus } from "./YonetimPaneli";
 import Avatar from "./Avatar";
 import KanalSifre from "./KanalSifre";
@@ -49,6 +50,11 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [acik, setAcik] = useState<Set<string>>(new Set());
   const [sifreKanal, setSifreKanal] = useState<{ kanal: Kanal; sonra: () => void } | null>(null);
   const [simdi, setSimdi] = useState(() => Date.now());
+  const [sesler, setSesler] = useState(seslerAcik);
+  const [sesOlay, setSesOlay] = useState("");
+  const olayZamanRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const oncekiKonumRef = useRef<{ kanal: string | null; konum: Map<string, string> }>({ kanal: null, konum: new Map() });
+  const uyelerRef = useRef<Uye[]>([]);
   const dosyaRef = useRef<HTMLInputElement>(null);
   const ekRef = useRef<HazirEk | null>(null);
   ekRef.current = ek;
@@ -80,6 +86,14 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     if (!duyuruRef.current.ses) return;
     void kanalRef.current?.track({ t: Date.now(), ...duyuruRef.current, ekran: ses.paylasiyorum });
   }, [ses.paylasiyorum]);
+  uyelerRef.current = uyeler;
+  useEffect(() => sesleriHazirla(), []);
+  const etiketAday = useMemo(() => {
+    const x = /(?:^|\s)@([^\s@]*)$/.exec(metin);
+    if (!x) return [];
+    const q = x[1].toLocaleLowerCase("tr");
+    return uyeler.filter((u) => u.id !== me.id && u.takma_ad.toLocaleLowerCase("tr").includes(q)).slice(0, 5);
+  }, [metin, uyeler, me.id]);
   const uyeHaritasi = useMemo(() => new Map(uyeler.map((u) => [u.id, u])), [uyeler]);
   const aktifKanal = kanallar.find((k) => k.id === aktif);
   const ben = uyeHaritasi.get(me.id) ?? me;
@@ -205,6 +219,12 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     kanal
       .on("postgres_changes", { event: "*", schema: "public", table: "mesajlar" }, (p) => {
         const m = (p.eventType === "DELETE" ? p.old : p.new) as Mesaj;
+        if (p.eventType === "INSERT" && m.uye_id !== me.id && !m.silindi) {
+          const yazar = uyelerRef.current.find((u) => u.id === m.uye_id)?.takma_ad ?? "Biri";
+          const benAd = uyelerRef.current.find((u) => u.id === me.id)?.takma_ad ?? me.takma_ad;
+          if (etiketVar(m.metin ?? "", benAd)) { duyur("etiket", `${yazar} seni etiketledi`); bildirim(`${yazar} seni etiketledi`, m.metin); }
+          else duyur("mesaj");
+        }
         if (m.kanal_id !== aktifRef.current) return;
         if (p.eventType === "DELETE") { setSabitler((x) => x.filter((y) => y.id !== m.id)); return setMesajlar((x) => x.filter((y) => y.id !== m.id)); }
         setMesajlar((x) => birlestir(x, [m]));
@@ -268,6 +288,22 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           if (son?.ses) konum.set(uyeId, { kanal: son.ses, motor: son.motor ?? null, ekran: !!son.ekran });
         }
         setSesKonum(konum);
+        // Benim bulunduğum sesli odaya girenleri / çıkanları duyur
+        const benimKanal = sesRef.current.kanalId;
+        const onc = oncekiKonumRef.current;
+        if (benimKanal && onc.kanal === benimKanal) {
+          const olay = (id: string, girdi: boolean) => {
+            const ad = uyelerRef.current.find((u) => u.id === id)?.takma_ad ?? "Biri";
+            const metin = `${ad} ${girdi ? "bağlandı" : "ayrıldı"}`;
+            duyur(girdi ? "baglandi" : "ayrildi", metin);
+            setSesOlay(`${girdi ? "🟢" : "🔴"} ${metin}`);
+            if (olayZamanRef.current) clearTimeout(olayZamanRef.current);
+            olayZamanRef.current = setTimeout(() => setSesOlay(""), 4000);
+          };
+          for (const [id, k] of konum) if (id !== me.id && k.kanal === benimKanal && onc.konum.get(id) !== benimKanal) olay(id, true);
+          for (const [id, kk] of onc.konum) if (id !== me.id && kk === benimKanal && konum.get(id)?.kanal !== benimKanal) olay(id, false);
+        }
+        oncekiKonumRef.current = { kanal: benimKanal, konum: new Map([...konum].map(([id, k]) => [id, k.kanal])) };
       })
       .subscribe(async (durum) => { if (durum === "SUBSCRIBED") await kanal.track({ t: Date.now(), ses: null, motor: null }); });
 
@@ -495,6 +531,9 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             <div><b>{ben.takma_ad}</b><span>{rolEtiketi(ben.rol)} · Profili düzenle</span></div>
           </button>
           {yonetici && <button className="yon-ac" onClick={() => setYonetimAcik(true)} aria-label="Yönetim panelini aç" title="Yönetim">🛡️</button>}
+          <button className="yon-ac" aria-pressed={sesler} aria-label={sesler ? "Uyarı seslerini kapat" : "Uyarı seslerini aç"}
+            title={sesler ? "Uyarı sesleri: açık (mesaj, etiket, odaya giriş/çıkış)" : "Uyarı sesleri: kapalı"}
+            onClick={() => { const y = !sesler; setSesler(y); seslerKaydet(y); if (y) bildirimIzniIste(); }}>{sesler ? "🔔" : "🔕"}</button>
           <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={cikis}>Çıkış</button>
         </div>
       </section>
@@ -526,6 +565,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           </div>
         </div>
         {ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
+        {sesOlay && <div className="ses-toast" role="status">{sesOlay}</div>}
         {hata && <div className="banner" role="alert">{hata}</div>}
         {yonBilgi && <div className="banner info" role="status">{yonBilgi} <button className="linkbtn" onClick={() => setYonBilgi("")}>Tamam</button></div>}
         {ses.hata && <div className="banner" role="alert">{ses.hata} <button className="linkbtn" onClick={ses.hataTemizle}>Kapat</button></div>}
@@ -552,6 +592,14 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           </div>
         )}
         <div className="composer">
+          {etiketAday.length > 0 && (
+            <div className="etiket-liste" role="listbox" aria-label="Etiketlenecek kişi">
+              {etiketAday.map((u) => (
+                <button key={u.id} role="option" aria-selected={false} onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setMetin((m) => m.replace(/@[^\s@]*$/, `@${u.takma_ad} `)); metinRef.current?.focus(); }}>@{u.takma_ad}</button>
+              ))}
+            </div>
+          )}
           {emojiAcik && (
             <div className="picker on" role="group" aria-label="Emoji seç">
               {EMOJILER.map((e) => (
