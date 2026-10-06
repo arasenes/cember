@@ -38,12 +38,18 @@ Deno.serve(async (req) => {
 
   const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-  const { data: kanal } = await admin.from("kanallar").select("id, oda_id, tur").eq("id", kanalId).maybeSingle();
+  const { data: kanal } = await admin.from("kanallar").select("id, oda_id, tur, sifreli").eq("id", kanalId).maybeSingle();
   if (!kanal || kanal.tur !== "sesli") return json({ hata: "Sesli kanal bulunamadı" }, 404);
 
   // Kullanıcı bu odanın üyesi mi?
-  const { data: uye } = await admin.from("uyeler").select("id, takma_ad").eq("oda_id", kanal.oda_id).eq("user_id", user.id).maybeSingle();
+  const { data: uye } = await admin.from("uyeler").select("id, takma_ad, rol").eq("oda_id", kanal.oda_id).eq("user_id", user.id).maybeSingle();
   if (!uye) return json({ hata: "Bu odanın üyesi değilsin" }, 403);
+
+  // Şifreli odada: yönetici ya da şifreyi girmiş üye
+  if (kanal.sifreli && uye.rol !== "sahip" && uye.rol !== "moderator") {
+    const { data: acik } = await admin.from("kanal_acik").select("uye_id").eq("kanal_id", kanalId).eq("uye_id", uye.id).maybeSingle();
+    if (!acik) return json({ hata: "Bu odanın şifresini girmelisin.", kod: "sifre" }, 403);
+  }
 
   // Aylık limit
   const ayBasi = new Date(); ayBasi.setUTCDate(1); ayBasi.setUTCHours(0, 0, 0, 0);
