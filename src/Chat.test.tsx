@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Uye } from "./types";
 
@@ -8,6 +8,8 @@ const durum = vi.hoisted(() => ({
   silinen: [] as string[][],
   yuklemeHatasi: false,
   eklemeHatasi: false,
+  guncellenen: [] as Record<string, unknown>[],
+  profilHatasi: null as null | { code: string },
 }));
 
 vi.mock("./supabase", () => {
@@ -21,7 +23,21 @@ vi.mock("./supabase", () => {
   const from = (tablo: string) => {
     if (tablo === "odalar") return sonucOlustur({ ad: "Test Odası" });
     if (tablo === "kanallar") return sonucOlustur([{ id: "k1", oda_id: "o1", ad: "genel", tur: "yazili", sira: 0 }]);
-    if (tablo === "uyeler") return sonucOlustur([{ id: "u1", oda_id: "o1", user_id: "x", takma_ad: "Ayşe", renk: "#E8A33D", rol: "uye", son_gorulme: "" }]);
+    if (tablo === "uyeler") {
+      const satirlar = [
+        { id: "u1", oda_id: "o1", user_id: "x", takma_ad: "Ayşe", renk: "#E8A33D", rol: "uye", son_gorulme: "", avatar_yol: "o1/u1/eski.webp", hakkinda: null },
+        { id: "u2", oda_id: "o1", user_id: "y", takma_ad: "Mehmet", renk: "#1F7A4D", rol: "sahip", son_gorulme: "", avatar_yol: null, hakkinda: "Gitar çalarım" },
+      ];
+      const o = sonucOlustur(satirlar);
+      o.update = (v: Record<string, unknown>) => {
+        durum.guncellenen.push(v);
+        const z: Record<string, unknown> = { eq: () => z, select: () => z,
+          single: async () => (durum.profilHatasi ? { data: null, error: durum.profilHatasi } : { data: { ...satirlar[0], ...v }, error: null }),
+          then: (r: (x: unknown) => unknown) => r({ data: null, error: null }) };
+        return z;
+      };
+      return o;
+    }
     if (tablo === "mesajlar") {
       const o = sonucOlustur([]);
       o.insert = (v: Record<string, unknown>) => {
@@ -69,6 +85,10 @@ vi.mock("./ekler", async (orijinal) => {
   const gercek = await orijinal<typeof import("./ekler")>();
   return {
     ...gercek,
+    avatarHazirla: vi.fn(async (d: File | Blob, ad?: string) => {
+      gercek.turKontrol(d);
+      return { blob: d, tur: "image/webp", uzanti: "webp", boyut: 900, genislik: 256, yukseklik: 256, onizleme: "blob:avatar", ad: ad ?? "profil" };
+    }),
     ekHazirla: vi.fn(async (d: File | Blob, ad?: string) => {
       gercek.turKontrol(d);
       return { blob: d, tur: "image/webp", uzanti: "webp", boyut: 1234, genislik: 800, yukseklik: 400, onizleme: "blob:onizleme", ad: ad ?? "resim" };
@@ -78,7 +98,7 @@ vi.mock("./ekler", async (orijinal) => {
 
 import Chat from "./Chat";
 
-const ben: Uye = { id: "u1", oda_id: "o1", user_id: "x", takma_ad: "Ayşe", renk: "#E8A33D", rol: "uye", son_gorulme: "" };
+const ben: Uye = { id: "u1", oda_id: "o1", user_id: "x", takma_ad: "Ayşe", renk: "#E8A33D", rol: "uye", son_gorulme: "", avatar_yol: "o1/u1/eski.webp", hakkinda: null };
 const resim = () => new File([new Uint8Array([1, 2, 3])], "a.png", { type: "image/png" });
 
 async function hazirla() {
@@ -88,7 +108,7 @@ async function hazirla() {
 }
 
 describe("Chat resim gönderme", () => {
-  beforeEach(() => { durum.eklenen.length = 0; durum.yuklenen.length = 0; durum.silinen.length = 0; durum.yuklemeHatasi = false; durum.eklemeHatasi = false; });
+  beforeEach(() => { durum.guncellenen.length = 0; durum.profilHatasi = null; durum.eklenen.length = 0; durum.yuklenen.length = 0; durum.silinen.length = 0; durum.yuklemeHatasi = false; durum.eklemeHatasi = false; });
 
   it("yapıştırılan ekran görüntüsünü önizler, yükler, sonra ek bilgileriyle mesajı ekler", async () => {
     const kutu = await hazirla();
@@ -152,5 +172,85 @@ describe("Chat resim gönderme", () => {
     await screen.findByAltText("Eklenecek resmin önizlemesi");
     fireEvent.click(screen.getByLabelText("Resmi kaldır"));
     expect(screen.queryByAltText("Eklenecek resmin önizlemesi")).toBeNull();
+  });
+});
+
+describe("Chat profil", () => {
+  beforeEach(() => { durum.guncellenen.length = 0; durum.profilHatasi = null; durum.yuklenen.length = 0; durum.silinen.length = 0; });
+
+  async function profilimiAc() {
+    await hazirla();
+    fireEvent.click(screen.getByLabelText("Profilimi aç ve düzenle"));
+    return await screen.findByRole("dialog");
+  }
+
+  it("üye listesinden başka üyenin profilini salt okunur açar (hakkında görünür, form yok)", async () => {
+    await hazirla();
+    fireEvent.click(await screen.findByLabelText(/Mehmet profilini aç/));
+    const d = await screen.findByRole("dialog");
+    expect(within(d).getByText("Gitar çalarım")).toBeTruthy();
+    expect(within(d).queryByLabelText("Takma ad")).toBeNull();
+    expect(within(d).queryByText("Fotoğraf seç")).toBeNull();
+  });
+
+  it("kendi profilinde yalnızca değişen alanları kaydeder ve pencere kapanır", async () => {
+    const d = await profilimiAc();
+    expect((within(d).getByText("Kaydet") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(within(d).getByLabelText("Takma ad"), { target: { value: "  Ayşe K  " } });
+    fireEvent.change(within(d).getByLabelText("Hakkımda"), { target: { value: "Kahve sever" } });
+    fireEvent.click(within(d).getByLabelText("Renk #0B7A91"));
+    fireEvent.click(within(d).getByText("Kaydet"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(durum.guncellenen).toEqual([{ takma_ad: "Ayşe K", renk: "#0B7A91", hakkinda: "Kahve sever" }]);
+    expect(durum.yuklenen).toHaveLength(0);
+    expect(await screen.findAllByText("Ayşe K")).not.toHaveLength(0);
+  });
+
+  it("yeni fotoğrafı avatarlar kovasına yükler, kaydı günceller ve eskisini siler", async () => {
+    const d = await profilimiAc();
+    const girdi = within(d).getByLabelText("Profil fotoğrafı dosyası");
+    fireEvent.change(girdi, { target: { files: [resim()] } });
+    await waitFor(() => expect((within(d).getByText("Kaydet") as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(within(d).getByText("Kaydet"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(durum.yuklenen[0].yol).toMatch(/^o1\/u1\/[0-9a-f-]{36}\.webp$/);
+    expect(durum.guncellenen[0]).toEqual({ avatar_yol: durum.yuklenen[0].yol });
+    expect(durum.silinen).toContainEqual(["o1/u1/eski.webp"]);
+  });
+
+  it("'Fotoğrafı kaldır' avatar_yol alanını boşaltır ve eski dosyayı siler", async () => {
+    const d = await profilimiAc();
+    fireEvent.click(within(d).getByText("Fotoğrafı kaldır"));
+    fireEvent.click(within(d).getByText("Kaydet"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(durum.guncellenen).toEqual([{ avatar_yol: null }]);
+    expect(durum.silinen).toContainEqual(["o1/u1/eski.webp"]);
+  });
+
+  it("takma ad başkasında kullanılıyorsa anlaşılır hata verir ve yüklenen fotoğrafı geri siler", async () => {
+    durum.profilHatasi = { code: "23505" };
+    const d = await profilimiAc();
+    fireEvent.change(within(d).getByLabelText("Profil fotoğrafı dosyası"), { target: { files: [resim()] } });
+    fireEvent.change(within(d).getByLabelText("Takma ad"), { target: { value: "Mehmet" } });
+    await waitFor(() => expect((within(d).getByText("Kaydet") as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(within(d).getByText("Kaydet"));
+    expect(await within(d).findByText("Bu takma ad bu odada kullanılıyor.")).toBeTruthy();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    await waitFor(() => expect(durum.silinen).toContainEqual([durum.yuklenen[0].yol]));
+    expect(durum.silinen).not.toContainEqual(["o1/u1/eski.webp"]);
+  });
+
+  it("çok kısa takma adı göndermeden reddeder", async () => {
+    const d = await profilimiAc();
+    fireEvent.change(within(d).getByLabelText("Takma ad"), { target: { value: "A" } });
+    fireEvent.click(within(d).getByText("Kaydet"));
+    expect(await within(d).findByText(/2-24 karakter/)).toBeTruthy();
+    expect(durum.guncellenen).toHaveLength(0);
+  });
+
+  it("Esc pencereyi kapatır", async () => {
+    await profilimiAc();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 });

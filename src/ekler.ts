@@ -94,3 +94,43 @@ export async function ekHazirla(dosya: File | Blob, ad = "resim"): Promise<Hazir
     bitmap.close();
   }
 }
+
+// ---- Profil fotoğrafı ----
+export const AVATAR_BOYUT = 256;
+export const AVATAR_MAX_BAYT = 1024 * 1024; // avatarlar kovasının sınırıyla aynı
+
+/** Ortadan kare kırpma bölgesini hesaplar. */
+export function kareKirp(g: number, y: number): { sx: number; sy: number; s: number } {
+  const s = Math.min(g, y);
+  return { sx: Math.floor((g - s) / 2), sy: Math.floor((y - s) / 2), s };
+}
+
+/** Seçilen resmi ortadan kare keser, 256x256'ya küçültür ve WebP'ye çevirir (GIF ise ilk kare alınır). */
+export async function avatarHazirla(dosya: File | Blob, ad = "profil"): Promise<HazirEk> {
+  turKontrol(dosya);
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(dosya, { imageOrientation: "from-image" });
+  } catch {
+    throw new EkHatasi("Resim okunamadı. Dosya bozuk olabilir.");
+  }
+  try {
+    const { sx, sy, s } = kareKirp(bitmap.width, bitmap.height);
+    const tuval = document.createElement("canvas");
+    tuval.width = AVATAR_BOYUT; tuval.height = AVATAR_BOYUT;
+    const cz = tuval.getContext("2d");
+    if (!cz) throw new EkHatasi("Resim işlenemedi.");
+    cz.imageSmoothingQuality = "high";
+    cz.drawImage(bitmap, sx, sy, s, s, 0, 0, AVATAR_BOYUT, AVATAR_BOYUT);
+    let blob = await blobYap(tuval, "image/webp", 0.85);
+    if (!blob || blob.type !== "image/webp") {
+      cz.globalCompositeOperation = "destination-over";
+      cz.fillStyle = "#fff"; cz.fillRect(0, 0, AVATAR_BOYUT, AVATAR_BOYUT);
+      blob = await blobYap(tuval, "image/jpeg", 0.85);
+    }
+    if (!blob || blob.size > AVATAR_MAX_BAYT) throw new EkHatasi("Resim işlenemedi.");
+    return { blob, tur: blob.type, uzanti: uzantiOf(blob.type), boyut: blob.size, genislik: AVATAR_BOYUT, yukseklik: AVATAR_BOYUT, onizleme: URL.createObjectURL(blob), ad };
+  } finally {
+    bitmap.close();
+  }
+}

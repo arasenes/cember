@@ -5,7 +5,9 @@ import { useSesMotoru, type Motor } from "./sesMotoru";
 import SesCubugu from "./SesCubugu";
 import type { Kanal, Mesaj, Tepki, Uye } from "./types";
 import MessageView from "./MessageView";
-import { bas, EMOJILER, gunEtiketi } from "./util";
+import { EMOJILER, gunEtiketi } from "./util";
+import Avatar from "./Avatar";
+import ProfilDialog, { type ProfilDegisiklik } from "./ProfilDialog";
 import { boyutMetni, ekHazirla, ekYolu, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
 
 const SAYFA = 50;
@@ -34,6 +36,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [ek, setEk] = useState<HazirEk | null>(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [surukle, setSurukle] = useState(false);
+  const [profilId, setProfilId] = useState<string | null>(null);
   const dosyaRef = useRef<HTMLInputElement>(null);
   const ekRef = useRef<HazirEk | null>(null);
   ekRef.current = ek;
@@ -56,6 +59,8 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const ses = useSesMotoru(me.id, kanalDuyur, motorSor);
   const uyeHaritasi = useMemo(() => new Map(uyeler.map((u) => [u.id, u])), [uyeler]);
   const aktifKanal = kanallar.find((k) => k.id === aktif);
+  const ben = uyeHaritasi.get(me.id) ?? me;
+  const profilUyesi = profilId ? uyeHaritasi.get(profilId) : undefined;
 
   // İlk yükleme: oda, kanallar, üyeler
   useEffect(() => {
@@ -239,6 +244,34 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     setMesajlar((x) => x.map((y) => (y.id === m.id ? { ...y, silindi: true } : y)));
   }
 
+  async function profilKaydet(d: ProfilDegisiklik): Promise<string | null> {
+    const guncel = uyeHaritasi.get(me.id) ?? me;
+    const eskiYol = guncel.avatar_yol ?? null;
+    let yeniYol: string | null = null;
+    const alanlar: Record<string, unknown> = {};
+    if (d.takma_ad !== guncel.takma_ad) alanlar.takma_ad = d.takma_ad;
+    if (d.renk !== guncel.renk) alanlar.renk = d.renk;
+    if (d.hakkinda !== (guncel.hakkinda ?? "")) alanlar.hakkinda = d.hakkinda === "" ? null : d.hakkinda;
+    if (d.yeniAvatar) {
+      yeniYol = `${me.oda_id}/${me.id}/${crypto.randomUUID()}.${d.yeniAvatar.uzanti}`;
+      const { error: yErr } = await supabase.storage.from("avatarlar")
+        .upload(yeniYol, d.yeniAvatar.blob, { contentType: d.yeniAvatar.tur, cacheControl: "3600", upsert: false });
+      if (yErr) return "Fotoğraf yüklenemedi. Biraz sonra tekrar dene.";
+      alanlar.avatar_yol = yeniYol;
+    } else if (d.avatarKaldir && eskiYol) {
+      alanlar.avatar_yol = null;
+    }
+    if (!Object.keys(alanlar).length) return null;
+    const { data, error } = await supabase.from("uyeler").update(alanlar).eq("id", me.id).select().single();
+    if (error || !data) {
+      if (yeniYol) void supabase.storage.from("avatarlar").remove([yeniYol]);
+      return error?.code === "23505" ? "Bu takma ad bu odada kullanılıyor." : "Profil kaydedilemedi. Biraz sonra tekrar dene.";
+    }
+    if ("avatar_yol" in alanlar && eskiYol) void supabase.storage.from("avatarlar").remove([eskiYol]);
+    setUyeler((x) => x.map((y) => (y.id === me.id ? { ...y, ...(data as Uye) } : y)));
+    return null;
+  }
+
   async function tepkiDegistir(mesajId: string, emoji: string) {
     const var_ = tepkiler.find((t) => t.mesaj_id === mesajId && t.uye_id === me.id && t.emoji === emoji);
     if (var_) {
@@ -268,16 +301,17 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     const g = gunEtiketi(m.olusturma);
     if (g !== sonGun) { sonGun = g; satirlar.push(<div className="day" key={"g" + m.id}>{g}</div>); }
     satirlar.push(
-      <MessageView key={m.id} mesaj={m} yazar={uyeHaritasi.get(m.uye_id)} benim={me}
-        tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} />,
+      <MessageView key={m.id} mesaj={m} yazar={uyeHaritasi.get(m.uye_id)} benim={ben}
+        tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} onProfil={setProfilId} />,
     );
   }
 
-  const UyeSatiri = ({ u, acik }: { u: Uye; acik: boolean }) => (
-    <div className={"mem" + (acik ? "" : " off")}>
-      <div className="dot" style={{ background: u.renk }} aria-hidden="true">{bas(u.takma_ad)}{acik && <span className="on-dot" />}</div>
-      <div>{u.takma_ad}{u.rol === "sahip" && <small>Oda sahibi</small>}</div>
-    </div>
+  const uyeSatiri = (u: Uye, acik: boolean) => (
+    <button key={u.id} className={"mem" + (acik ? "" : " off")} onClick={() => setProfilId(u.id)}
+      aria-label={`${u.takma_ad} profilini aç${u.rol === "sahip" ? ", oda sahibi" : ""}`}>
+      <Avatar uye={u}>{acik && <span className="on-dot" />}</Avatar>
+      <div className="mem-ad">{u.takma_ad}{u.rol === "sahip" && <small>Oda sahibi</small>}{u.hakkinda && <small className="mem-hk">{u.hakkinda}</small>}</div>
+    </button>
   );
 
   return (
@@ -307,7 +341,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
                   <ul className="vlist" aria-label={`${k.ad} katılımcıları`}>
                     {icindekiler.map((u) => (
                       <li key={u.id} className="vp">
-                        <span className={"dot" + (ses.konusanlar.has(u.id) ? " speak" : "")} style={{ background: u.renk }} aria-hidden="true">{bas(u.takma_ad)}</span>
+                        <Avatar uye={u} className={ses.konusanlar.has(u.id) ? "speak" : ""} />
                         {u.takma_ad}{ses.konusanlar.has(u.id) && <span className="sr"> konuşuyor</span>}
                       </li>
                     ))}
@@ -319,8 +353,10 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         </nav>
         <SesCubugu className="vbar-side" ses={ses} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
         <div className="me">
-          <div className="dot" style={{ background: me.renk }} aria-hidden="true">{bas(me.takma_ad)}</div>
-          <div><b>{me.takma_ad}</b><span>{me.rol === "sahip" ? "Oda sahibi" : "Üye"}</span></div>
+          <button className="me-profil" onClick={() => setProfilId(me.id)} aria-label="Profilimi aç ve düzenle">
+            <Avatar uye={ben} />
+            <div><b>{ben.takma_ad}</b><span>{me.rol === "sahip" ? "Oda sahibi" : "Üye"} · Profili düzenle</span></div>
+          </button>
           <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={cikis}>Çıkış</button>
         </div>
       </section>
@@ -374,12 +410,17 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         <div className="head"><h2>Üyeler — {uyeler.length}</h2></div>
         <div className="scroll">
           <div className="sec">Çevrimiçi — {cevrimiciUyeler.length}</div>
-          {cevrimiciUyeler.map((u) => <UyeSatiri key={u.id} u={u} acik />)}
+          {cevrimiciUyeler.map((u) => uyeSatiri(u, true))}
           {cevrimdisiUyeler.length > 0 && <div className="sec">Çevrimdışı — {cevrimdisiUyeler.length}</div>}
-          {cevrimdisiUyeler.map((u) => <UyeSatiri key={u.id} u={u} acik={false} />)}
+          {cevrimdisiUyeler.map((u) => uyeSatiri(u, false))}
         </div>
       </aside>
 
+      {profilUyesi && (
+        <ProfilDialog key={profilUyesi.id} uye={profilUyesi} benim={profilUyesi.id === me.id}
+          cevrimici={cevrimici.has(profilUyesi.id) || profilUyesi.id === me.id}
+          onKapat={() => setProfilId(null)} onKaydet={profilKaydet} />
+      )}
       {ses.kabiRefleri.map((r, i) => <div key={i} ref={r} className="sr" aria-hidden="true" />)}
       <nav className="nav" aria-label="Bölme seçimi">
         <button aria-current={pane === "side"} onClick={() => setPane("side")}>Kanallar</button>

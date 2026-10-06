@@ -1,4 +1,4 @@
-import { ekHazirla, EkHatasi } from "../src/ekler";
+import { avatarHazirla, ekHazirla, EkHatasi } from "../src/ekler";
 
 function tuval(g: number, y: number, ciz: (c: CanvasRenderingContext2D) => void): HTMLCanvasElement {
   const t = document.createElement("canvas"); t.width = g; t.height = y;
@@ -38,3 +38,28 @@ async function exifliJpeg(g: number, y: number): Promise<Blob> {
   return sonuc;
 };
 (window as any).hazir = true;
+
+(window as any).testAvatar = async () => {
+  const sonuc: Record<string, unknown> = {};
+  // Sol yarı kırmızı, sağ yarı mavi, 1200x600 yatay resim: ortadan kare kesilince 600x600 olur, iki renk yarı yarıya kalmalı
+  const yatay = await blobAl(tuval(1200, 600, (c) => { c.fillStyle = "#f00"; c.fillRect(0, 0, 600, 600); c.fillStyle = "#00f"; c.fillRect(600, 0, 600, 600); c.fillStyle = "#0f0"; c.fillRect(0, 0, 200, 600); c.fillRect(1000, 0, 200, 600); }), "image/png");
+  const h = await avatarHazirla(yatay, "yatay");
+  const bmp = await createImageBitmap(h.blob);
+  const t = document.createElement("canvas"); t.width = bmp.width; t.height = bmp.height;
+  const c = t.getContext("2d")!; c.drawImage(bmp, 0, 0);
+  const px = (x: number, y: number) => Array.from(c.getImageData(x, y, 1, 1).data.slice(0, 3));
+  sonuc.yatay = { tur: h.tur, g: bmp.width, y: bmp.height, boyut: h.boyut, sol: px(20, 128), sag: px(235, 128) };
+  const dikey = await blobAl(tuval(300, 900, (c) => { c.fillStyle = "#00f"; c.fillRect(0, 0, 300, 300); c.fillStyle = "#f00"; c.fillRect(0, 300, 300, 300); c.fillStyle = "#00f"; c.fillRect(0, 600, 300, 300); }), "image/png");
+  const d = await avatarHazirla(dikey, "dikey");
+  const b2 = await createImageBitmap(d.blob);
+  const t2 = document.createElement("canvas"); t2.width = b2.width; t2.height = b2.height;
+  const c2 = t2.getContext("2d")!; c2.drawImage(b2, 0, 0);
+  sonuc.dikey = { g: b2.width, y: b2.height, orta: Array.from(c2.getImageData(128, 128, 1, 1).data.slice(0, 3)) };
+  try { await avatarHazirla(new File(["<svg/>"], "x.svg", { type: "image/svg+xml" })); sonuc.svg = "KABUL EDILDI"; } catch (e) { sonuc.svg = e instanceof EkHatasi ? e.message : String(e); }
+  try { await avatarHazirla(new File([new Uint8Array([1, 2, 3])], "x.png", { type: "image/png" })); sonuc.bozuk = "KABUL EDILDI"; } catch (e) { sonuc.bozuk = e instanceof EkHatasi ? e.message : String(e); }
+  // Büyük bir fotoğraf-benzeri gürültü resmi 1 MB sınırını aşmadan 256x256'ya inmeli
+  const gurultu = await blobAl(tuval(4000, 3000, (c) => { for (let i = 0; i < 3000; i++) { c.fillStyle = `rgb(${(i*37)%256},${(i*91)%256},${(i*13)%256})`; c.fillRect((i*131)%4000, (i*71)%3000, 90, 90); } }), "image/png");
+  const g = await avatarHazirla(gurultu, "gurultu");
+  sonuc.buyuk = { g: g.genislik, y: g.yukseklik, boyut: g.boyut, kucuk1MB: g.boyut <= 1048576 };
+  return sonuc;
+};

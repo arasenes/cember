@@ -152,3 +152,38 @@ input[type=text],textarea{width:100%;min-height:48px;padding:10px 14px;border-ra
 .ekon-bilgi span{font-size:12px;color:var(--muted)}
 .chat.surukle{outline:3px dashed var(--acc);outline-offset:-6px}
 .sq:disabled{opacity:.5}
+
+/* Profil */
+.dot{overflow:hidden;position:relative}
+.dot-img{width:100%;height:100%;object-fit:cover;display:block;border-radius:50%}
+.dot.buyuk{width:88px;height:88px;font-size:34px}
+.avatar-btn,.ad-btn,.me-profil{border:0;background:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;display:flex}
+.avatar-btn{border-radius:50%;align-self:flex-start;flex:none}
+.ad-btn:hover b{text-decoration:underline}
+.me-profil{align-items:center;gap:10px;min-height:44px;flex:1;min-width:0;border-radius:12px}
+.me-profil:hover{background:var(--hover)}
+.mem{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.mem:hover{background:var(--hover)}
+.mem-ad{min-width:0}
+.mem-hk{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mem-ad small{display:block}
+.modal-arka{position:fixed;inset:0;background:rgba(7,12,28,.55);display:grid;place-items:center;padding:16px;z-index:50}
+.modal{background:var(--bg);color:var(--fg);border:1.5px solid var(--line);border-radius:20px;width:100%;max-width:440px;max-height:calc(100dvh - 32px);overflow:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.modal-ust{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.modal-ust h2{margin:0;font:700 22px/1.1 var(--display);overflow-wrap:anywhere}
+.modal-x{position:static;width:44px;height:44px;border:1.5px solid var(--line);flex:none}
+.profil-kimlik{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+.profil-ad{font-weight:800;font-size:18px;overflow-wrap:anywhere}
+.profil-foto{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.profil-foto .ib{flex:none;padding:0 14px}
+.profil-form{display:flex;flex-direction:column;gap:6px}
+.profil-form label{margin-top:8px}
+.renkler{display:flex;flex-wrap:wrap;gap:8px}
+.renk{width:44px;height:44px;border-radius:50%;border:3px solid transparent;cursor:pointer}
+.renk[aria-checked=true]{border-color:var(--fg);box-shadow:inset 0 0 0 3px var(--bg)}
+.profil-form textarea{resize:vertical}
+.profil-form .counter{align-self:flex-end}
+.modal-alt{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+.modal-alt .ib{flex:none;padding:0 18px}
+.profil-hk p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.modal-alt{position:sticky;bottom:-20px;background:var(--bg);padding:10px 0 2px}

@@ -1,28 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "./supabase";
+import { imzaliUrlAl, onbellekTemizle } from "./imzali";
 import { gosterimBoyutu } from "./ekler";
-
-// İmzalı bağlantılar bir saat geçerli; 50 dakika önbelleğe alınır, aynı resim için tek istek atılır.
-const SURE_SN = 3600;
-const onbellek = new Map<string, { url: string; bitis: number }>();
-const bekleyen = new Map<string, Promise<string | null>>();
-
-export function imzaliUrlAl(yol: string): Promise<string | null> {
-  const var_ = onbellek.get(yol);
-  if (var_ && var_.bitis > Date.now()) return Promise.resolve(var_.url);
-  const b = bekleyen.get(yol);
-  if (b) return b;
-  const p = supabase.storage.from("ekler").createSignedUrl(yol, SURE_SN).then(({ data, error }) => {
-    bekleyen.delete(yol);
-    if (error || !data?.signedUrl) return null;
-    onbellek.set(yol, { url: data.signedUrl, bitis: Date.now() + (SURE_SN - 600) * 1000 });
-    return data.signedUrl;
-  }, () => { bekleyen.delete(yol); return null; });
-  bekleyen.set(yol, p);
-  return p;
-}
-
-export function onbellekTemizle(yol: string) { onbellek.delete(yol); }
 
 type Props = { yol: string; genislik: number; yukseklik: number; alt: string };
 
@@ -38,7 +16,7 @@ export default function EkResim({ yol, genislik, yukseklik, alt }: Props) {
   useEffect(() => {
     let iptal = false;
     setHata(false);
-    imzaliUrlAl(yol).then((u) => { if (iptal) return; if (u) setUrl(u); else setHata(true); });
+    imzaliUrlAl("ekler", yol).then((u) => { if (iptal) return; if (u) setUrl(u); else setHata(true); });
     return () => { iptal = true; };
   }, [yol, deneme]);
 
@@ -51,7 +29,7 @@ export default function EkResim({ yol, genislik, yukseklik, alt }: Props) {
     return () => window.removeEventListener("keydown", tus);
   }, [buyuk, kapat]);
 
-  function tekrarDene() { onbellekTemizle(yol); setUrl(null); setDeneme((n) => n + 1); }
+  function tekrarDene() { onbellekTemizle("ekler", yol); setUrl(null); setDeneme((n) => n + 1); }
 
   return (
     <>

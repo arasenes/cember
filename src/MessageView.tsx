@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Mesaj, Tepki, Uye } from "./types";
-import { bas, HIZLI_TEPKILER, saat } from "./util";
+import { HIZLI_TEPKILER, saat } from "./util";
+import Avatar from "./Avatar";
 import EkResim from "./EkResim";
 
 type Props = {
@@ -10,10 +11,11 @@ type Props = {
   tepkiler: Tepki[];
   onTepki: (mesajId: string, emoji: string) => void;
   onSil: (mesaj: Mesaj) => void;
+  onProfil?: (uyeId: string) => void;
 };
 
 // Metin her zaman düz metin olarak render edilir: React içeriği kaçışlar, dangerouslySetInnerHTML kullanılmaz.
-export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil }: Props) {
+export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onProfil }: Props) {
   const [sec, setSec] = useState(false);
   const benimMi = yazar?.id === benim.id;
   const silebilir = benimMi || benim.rol === "sahip";
@@ -23,10 +25,20 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
 
   return (
     <article className={"msg" + (benimMi ? " mine" : "")} data-testid="mesaj">
-      <div className="dot" style={{ background: yazar?.renk ?? "#999" }} aria-hidden="true">{bas(yazar?.takma_ad ?? "?")}</div>
+      {yazar && onProfil ? (
+        <button className="avatar-btn" onClick={() => onProfil(yazar.id)} aria-label={`${yazar.takma_ad} profilini aç`}>
+          <Avatar uye={yazar} />
+        </button>
+      ) : (
+        <Avatar uye={yazar} />
+      )}
       <div className="mb">
         <div className="mh">
-          <b>{yazar?.takma_ad ?? "Eski üye"}</b>
+          {yazar && onProfil ? (
+            <button className="ad-btn" onClick={() => onProfil(yazar.id)}><b>{yazar.takma_ad}</b></button>
+          ) : (
+            <b>{yazar?.takma_ad ?? "Eski üye"}</b>
+          )}
           <time dateTime={mesaj.olusturma}>{saat(mesaj.olusturma)}</time>
           {mesaj.duzenleme && !mesaj.silindi && <span className="hint">(düzenlendi)</span>}
           {silebilir && !mesaj.silindi && (

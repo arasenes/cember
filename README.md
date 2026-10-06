@@ -60,6 +60,15 @@ Mesaja resim eklemenin üç yolu var: 📎 düğmesiyle dosya seçmek, mesaj kut
 - Supabase ücretsiz planında depolama 1 GB; ortalama bir resim 200 KB ise yaklaşık 5.000 resme yeter.
 - Kurulum: `supabase/migrations/005_resim_ekleri.sql` dosyasını çalıştır. Test: `supabase/tests/rls.sql` artık depolama kurallarını da sınar.
 
+## Profil
+
+Sol alttaki adına (ya da üye listesinde / mesajdaki ad ve fotoğrafa) tıklayınca profil penceresi açılır. Kendi profilinde **fotoğraf, takma ad, renk ve "hakkımda"** (en fazla 120 karakter) değiştirilebilir; başkasınınkini yalnızca görürsün. Değişiklikler diğer üyelerde anında güncellenir.
+
+- Fotoğraf tarayıcıda ortadan kare kesilir, 256×256'ya küçültülür ve WebP'ye çevrilir (yaklaşık 10-40 KB; EXIF bilgisi silinir). Fotoğrafı olmayanlarda adın baş harfi gösterilir.
+- Fotoğraflar `avatarlar` adlı **özel** kovada tutulur (yol: `<oda>/<üye>/<uuid>.webp`); yalnızca o odanın üyeleri görür, herkes yalnızca kendi klasörüne yükleyebilir. Yeni fotoğraf yüklenince eskisi silinir.
+- Takma ad 2-24 karakter olmalı ve odada benzersizdir; başkasında kullanılıyorsa kayıt reddedilir. Üye kimliği, oda ve rol değiştirilemez (veritabanı tetikleyicisi korur).
+- Kurulum: `supabase/migrations/006_profil.sql`. Test: `supabase/tests/rls.sql` profil kurallarını da sınar.
+
 ## Güvenlik notları
 
 - Mesajlar düz metin olarak gösterilir (HTML enjekte edilemez); `MessageView.test.tsx` bunu sınar.

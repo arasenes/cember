@@ -5,7 +5,7 @@ do $$
 declare
   ua uuid := gen_random_uuid(); ub uuid := gen_random_uuid(); uc uuid := gen_random_uuid();
   o1 uuid; o2 uuid; k1 uuid; k2 uuid; ma uuid; mb uuid; mc uuid; msg1 uuid; msg2 uuid;
-  rapor text := ''; n int; yol1 text; yol2 text; yol3 text; yol_k2 text;
+  rapor text := ''; n int; yol1 text; yol2 text; yol3 text; yol_k2 text; yol_a text; yol_b text;
 begin
   insert into auth.users (id, instance_id, aud, role, email) values
     (ua,'00000000-0000-0000-0000-000000000000','authenticated','authenticated','a@t.invalid'),
@@ -104,6 +104,46 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub',ua,'role','authenticated')::text, true);
   set local role authenticated;
   select count(*) into n from storage.objects where bucket_id='ekler' and name = yol1; rapor := rapor||'A oda-1 resmini görür (1): '||n||E'\n';
+
+  -- Profil düzenleme (migration 006)
+  reset role;
+  yol_a := o1 || '/' || mb || '/' || gen_random_uuid() || '.webp';
+  yol_b := o1 || '/' || ma || '/' || gen_random_uuid() || '.webp';
+  perform set_config('request.jwt.claims', json_build_object('sub',ub,'role','authenticated')::text, true);
+  set local role authenticated;
+  begin insert into storage.objects(bucket_id,name,owner_id) values ('avatarlar', yol_a, ub::text); rapor := rapor||E'OK: B kendi profil fotoğrafını yükledi\n';
+  exception when others then rapor := rapor||E'FAIL: B kendi fotoğrafını yükleyemedi: '||sqlerrm||E'\n'; end;
+  begin insert into storage.objects(bucket_id,name,owner_id) values ('avatarlar', yol_b, ub::text); rapor := rapor||E'FAIL: B başkası adına fotoğraf yükledi\n';
+  exception when others then rapor := rapor||E'OK: başkasının klasörüne fotoğraf yükleme reddedildi\n'; end;
+  update uyeler set avatar_yol = yol_a where id = mb; get diagnostics n = row_count;
+  rapor := rapor||'B kendi fotoğraf yolunu kaydetti (1): '||n||E'\n';
+  begin update uyeler set avatar_yol = yol_b where id = mb; rapor := rapor||E'FAIL: başkasının fotoğraf yolu kabul edildi\n';
+  exception when others then rapor := rapor||E'OK: başkasının fotoğraf yolu reddedildi\n'; end;
+  update uyeler set takma_ad = 'Bora2', renk = '#112233', hakkinda = 'merhaba' where id = mb; get diagnostics n = row_count;
+  rapor := rapor||'B kendi adını, rengini ve hakkında metnini değiştirdi (1): '||n||E'\n';
+  begin update uyeler set takma_ad = 'ayse' where id = mb; rapor := rapor||E'FAIL: başkasının takma adı alındı\n';
+  exception when others then rapor := rapor||E'OK: kullanımdaki takma ad (büyük/küçük harf fark etmez) reddedildi\n'; end;
+  begin update uyeler set takma_ad = ' bosluklu ' where id = mb; rapor := rapor||E'FAIL: boşluklu takma ad kabul edildi\n';
+  exception when others then rapor := rapor||E'OK: boşluklu takma ad reddedildi\n'; end;
+  begin update uyeler set hakkinda = repeat('x', 121) where id = mb; rapor := rapor||E'FAIL: uzun hakkında metni kabul edildi\n';
+  exception when others then rapor := rapor||E'OK: 120 karakterden uzun hakkında metni reddedildi\n'; end;
+  begin update uyeler set renk = 'kirmizi' where id = mb; rapor := rapor||E'FAIL: geçersiz renk kabul edildi\n';
+  exception when others then rapor := rapor||E'OK: geçersiz renk reddedildi\n'; end;
+  begin update uyeler set rol = 'sahip' where id = mb; rapor := rapor||E'FAIL: B kendini oda sahibi yaptı\n';
+  exception when others then rapor := rapor||E'OK: rol değiştirilemez\n'; end;
+  update uyeler set takma_ad = 'Hacked' where id = ma; get diagnostics n = row_count;
+  rapor := rapor||'B başkasının adını değiştirdi mi (0): '||n||E'\n';
+  select count(*) into n from storage.objects where bucket_id='avatarlar' and name = yol_a; rapor := rapor||'B kendi fotoğrafını görür (1): '||n||E'\n';
+
+  reset role;
+  perform set_config('request.jwt.claims', json_build_object('sub',uc,'role','authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from storage.objects where bucket_id='avatarlar' and name = yol_a; rapor := rapor||'C başka odanın profil fotoğrafını görür (0): '||n||E'\n';
+
+  reset role;
+  perform set_config('request.jwt.claims', json_build_object('sub',ua,'role','authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from storage.objects where bucket_id='avatarlar' and name = yol_a; rapor := rapor||'Oda arkadaşı profil fotoğrafını görür (1): '||n||E'\n';
 
   -- anon hiçbir şey göremez
   reset role;
