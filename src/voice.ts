@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Room } from "livekit-client";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
-import { ekranHatasi, KALITE, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
+import { ekranHatasi, ekranPaylasilabilirTarayici, KALITE, yerelEkran, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
 
 export type SesDurumu = "kapali" | "baglaniyor" | "bagli";
 export type BaglanSonuc = { ok: boolean; neden?: "limit" | "kurulmadi" | "dolu" | "izin" | "ag" | "iptal"; mesaj?: string };
@@ -40,6 +40,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   const hedefRef = useRef<string | null>(null);
   const [izlenen, setIzlenen] = useState<Izlenen | null>(null);
   const [paylasiyorum, setPaylasiyorum] = useState(false);
+  const yerelDinleyici = useRef<{ remove: () => Promise<void> } | null>(null);
 
   const temizle = useCallback(async () => {
     if (nabizRef.current) { clearInterval(nabizRef.current); nabizRef.current = null; }
@@ -52,6 +53,10 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     if (sesKabi.current) sesKabi.current.replaceChildren();
     setKonusanlar(new Set());
     setIzlenen(null); setPaylasiyorum(false);
+    const y = yerelEkran();
+    if (y) { try { await y.durdur(); } catch { /* yoksay */ } }
+    try { await yerelDinleyici.current?.remove(); } catch { /* yoksay */ }
+    yerelDinleyici.current = null;
   }, []);
 
   const ayril = useCallback(async () => {
@@ -92,13 +97,13 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
           const el = track.attach();
           sesKabi.current?.appendChild(el);
         } else if (track.kind === Track.Kind.Video && yayin.source === Track.Source.ScreenShare) {
-          setIzlenen({ uyeId: katilimci.identity, akis: new MediaStream([track.mediaStreamTrack]) });
+          setIzlenen({ uyeId: katilimci.identity.split("~")[0], akis: new MediaStream([track.mediaStreamTrack]) });
         }
       });
       room.on(RoomEvent.TrackUnsubscribed, (track, yayin, katilimci) => {
         track.detach().forEach((el) => el.remove());
         if (yayin.source === Track.Source.ScreenShare && track.kind === Track.Kind.Video) {
-          setIzlenen((i) => (i?.uyeId === katilimci.identity ? null : i));
+          setIzlenen((i) => (i?.uyeId === katilimci.identity.split("~")[0] ? null : i));
         }
       });
       // Tarayıcının kendi "Paylaşımı durdur" düğmesine basılırsa
@@ -150,6 +155,31 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     const room = odaRef.current;
     if (!room) return { ok: false, mesaj: "Önce sesli odaya katıl." };
     const k = KALITE[kalite];
+    const yerel = yerelEkran();
+    if (yerel && !ekranPaylasilabilirTarayici()) {
+      // Android uygulaması: ekran, yerel eklenti üzerinden ayrı bir katılımcı olarak yayınlanır
+      try {
+        const kanal = hedefRef.current;
+        const { data: { session } } = await supabase.auth.getSession();
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/ses-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ""}` },
+          body: JSON.stringify({ kanal_id: kanal, ekran: true }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) return { ok: false, mesaj: j.hata ?? "Ekran paylaşımı başlatılamadı." };
+        try { await yerelDinleyici.current?.remove(); } catch { /* yoksay */ }
+        yerelDinleyici.current = await yerel.addListener("durdu", () => setPaylasiyorum(false));
+        await yerel.baslat({ url: j.url, token: j.token });
+        setPaylasiyorum(true);
+        return { ok: true };
+      } catch (e) {
+        setPaylasiyorum(false);
+        const m = String((e as { message?: string })?.message ?? "");
+        if (/iptal|cancel|denied|reddedildi/i.test(m)) return { ok: false };
+        return { ok: false, mesaj: "Ekran paylaşılamadı. " + m };
+      }
+    }
     try {
       await room.localParticipant.setScreenShareEnabled(
         true,
@@ -169,6 +199,8 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
 
   const ekranDurdur = useCallback(async () => {
     setPaylasiyorum(false);
+    const y = yerelEkran();
+    if (y && !ekranPaylasilabilirTarayici()) { try { await y.durdur(); } catch { /* yoksay */ } return; }
     try { await odaRef.current?.localParticipant.setScreenShareEnabled(false); } catch { /* yoksay */ }
   }, []);
 

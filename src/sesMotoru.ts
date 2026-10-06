@@ -74,7 +74,7 @@ export function useSesMotoru(
     // Ekran paylaşımı: izleyenin gördüğü yayın, benim paylaşıp paylaşmadığım ve başlat/durdur
     izlenen: aktif.izlenen,
     paylasiyorum: aktif.paylasiyorum,
-    ekranDestegi: ekranPaylasilabilir(),
+    ekranDestegi: ekranPaylasilabilir(motor !== "p2p"),
     ekranPaylas: async (kalite: EkranKalite): Promise<EkranSonuc> => {
       const r = await aktif.ekranPaylas(kalite);
       if (!r.ok && r.mesaj) setHata(r.mesaj);

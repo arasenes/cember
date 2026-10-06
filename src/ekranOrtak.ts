@@ -9,9 +9,25 @@ export const KALITE: Record<EkranKalite, { genislik: number; yukseklik: number; 
   "1080": { genislik: 1920, yukseklik: 1080, kare: 30, bitHizi: 3_500_000, etiket: "1080p (daha net)" },
 };
 
-/** Telefonlar ekran paylaşamaz (tarayıcı desteklemez); yalnızca izleyebilir. */
-export function ekranPaylasilabilir(): boolean {
+/** Android uygulamasındaki (APK) yerel ekran yakalama eklentisi; tarayıcıda ve iOS'ta yoktur. */
+export type YerelEkran = {
+  baslat(o: { url: string; token: string }): Promise<void>;
+  durdur(): Promise<void>;
+  addListener(ad: "durdu", f: () => void): Promise<{ remove: () => Promise<void> }> | { remove: () => Promise<void> };
+};
+export function yerelEkran(): YerelEkran | null {
+  const c = (globalThis as { Capacitor?: { Plugins?: Record<string, unknown>; isNativePlatform?: () => boolean } }).Capacitor;
+  const p = c?.Plugins?.EkranYakala as YerelEkran | undefined;
+  return p && typeof p.baslat === "function" ? p : null;
+}
+
+/** Tarayıcılar (bilgisayar) ekran paylaşabilir; telefon tarayıcısı paylaşamaz, APK ise yerel eklentiyle paylaşır (ayrıca yerelEkran). */
+export function ekranPaylasilabilirTarayici(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getDisplayMedia === "function";
+}
+/** Paylaşma düğmesi gösterilsin mi? (motor LiveKit ise telefon uygulaması da paylaşabilir) */
+export function ekranPaylasilabilir(motorLivekit = true): boolean {
+  return ekranPaylasilabilirTarayici() || (motorLivekit && yerelEkran() !== null);
 }
 
 /** Kullanıcı seçim penceresini kapatırsa (iptal) hata göstermeyiz. */
