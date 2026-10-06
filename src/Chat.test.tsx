@@ -76,7 +76,7 @@ vi.mock("./supabase", () => {
 vi.mock("./sesMotoru", () => ({
   useSesMotoru: () => ({
     durum: "kapali", kanalId: null, sessiz: false, konusanlar: new Set(), kullanilan: null, motor: null, hata: "", bilgi: "",
-    kabiRefleri: [], baglan: vi.fn(), ayril: vi.fn(), sessizDegistir: vi.fn(), hataTemizle: vi.fn(),
+    kabiRefleri: [], izlenen: null, paylasiyorum: false, ekranDestegi: true, ekranPaylas: vi.fn(), ekranDurdur: vi.fn(), baglan: vi.fn(), ayril: vi.fn(), sessizDegistir: vi.fn(), hataTemizle: vi.fn(),
   }),
 }));
 

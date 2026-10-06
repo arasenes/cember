@@ -1,8 +1,11 @@
+import { useState } from "react";
 import type { SesArayuzu } from "./sesMotoru";
+import { KALITE, type EkranKalite } from "./ekranOrtak";
 
-type Props = { ses: SesArayuzu; kanalAdi: string; className: string };
+type Props = { ses: SesArayuzu; kanalAdi: string; className: string; baskasiPaylasiyor?: string | null };
 
-export default function SesCubugu({ ses, kanalAdi, className }: Props) {
+export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor = null }: Props) {
+  const [kalite, setKalite] = useState<EkranKalite>("720");
   if (ses.durum === "kapali") return null;
   const baglaniyor = ses.durum === "baglaniyor";
   return (
@@ -14,6 +17,29 @@ export default function SesCubugu({ ses, kanalAdi, className }: Props) {
         </button>
         <button className="ib leave" onClick={ses.ayril}>Ayrıl</button>
       </div>
+      {ses.ekranDestegi && (
+        ses.paylasiyorum ? (
+          <div className="vbtns">
+            <button className="ib" aria-pressed={true} onClick={() => void ses.ekranDurdur()}>⏹ Paylaşımı durdur</button>
+          </div>
+        ) : (
+          <>
+            <div className="vbtns">
+              <select className="ekran-kalite" aria-label="Ekran paylaşım kalitesi" value={kalite} onChange={(e) => setKalite(e.target.value as EkranKalite)} disabled={baglaniyor}>
+                {(Object.keys(KALITE) as EkranKalite[]).map((k) => <option key={k} value={k}>{KALITE[k].etiket}</option>)}
+              </select>
+              <button className="ib" onClick={() => void ses.ekranPaylas(kalite)} disabled={baglaniyor || !!baskasiPaylasiyor}
+                title={baskasiPaylasiyor ? `${baskasiPaylasiyor} ekran paylaşıyor` : undefined}>
+                🖥️ Ekranı paylaş
+              </button>
+            </div>
+            {baskasiPaylasiyor
+              ? <div className="hint">{baskasiPaylasiyor} ekran paylaşıyor; bitince sen paylaşabilirsin.</div>
+              : <div className="hint">Dizi için: açılan pencerede <b>Chrome Sekmesi</b>'ni seç ve <b>Sekme sesini paylaş</b>'ı işaretle.</div>}
+          </>
+        )
+      )}
+      {ses.paylasiyorum && <div className="hint">Ekranın odadakilere gösteriliyor. Kendi ekranını burada görmezsin; ses geri dönmesin diye kulaklık kullan.</div>}
     </div>
   );
 }

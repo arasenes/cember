@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Room } from "livekit-client";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
+import { ekranHatasi, KALITE, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
 
 export type SesDurumu = "kapali" | "baglaniyor" | "bagli";
 export type BaglanSonuc = { ok: boolean; neden?: "limit" | "kurulmadi" | "dolu" | "izin" | "ag" | "iptal"; mesaj?: string };
@@ -37,6 +38,8 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   const sesKabi = useRef<HTMLDivElement | null>(null);
   const islemRef = useRef(0);
   const hedefRef = useRef<string | null>(null);
+  const [izlenen, setIzlenen] = useState<Izlenen | null>(null);
+  const [paylasiyorum, setPaylasiyorum] = useState(false);
 
   const temizle = useCallback(async () => {
     if (nabizRef.current) { clearInterval(nabizRef.current); nabizRef.current = null; }
@@ -48,6 +51,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     if (room) { try { await room.disconnect(); } catch { /* yoksay */ } }
     if (sesKabi.current) sesKabi.current.replaceChildren();
     setKonusanlar(new Set());
+    setIzlenen(null); setPaylasiyorum(false);
   }, []);
 
   const ayril = useCallback(async () => {
@@ -82,13 +86,25 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
         audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       odaRef.current = room;
-      room.on(RoomEvent.TrackSubscribed, (track) => {
+      room.on(RoomEvent.TrackSubscribed, (track, yayin, katilimci) => {
         if (track.kind === Track.Kind.Audio) {
+          // Mikrofon sesi ve paylaşılan ekranın sesi aynı yoldan çalınır
           const el = track.attach();
           sesKabi.current?.appendChild(el);
+        } else if (track.kind === Track.Kind.Video && yayin.source === Track.Source.ScreenShare) {
+          setIzlenen({ uyeId: katilimci.identity, akis: new MediaStream([track.mediaStreamTrack]) });
         }
       });
-      room.on(RoomEvent.TrackUnsubscribed, (track) => { track.detach().forEach((el) => el.remove()); });
+      room.on(RoomEvent.TrackUnsubscribed, (track, yayin, katilimci) => {
+        track.detach().forEach((el) => el.remove());
+        if (yayin.source === Track.Source.ScreenShare && track.kind === Track.Kind.Video) {
+          setIzlenen((i) => (i?.uyeId === katilimci.identity ? null : i));
+        }
+      });
+      // Tarayıcının kendi "Paylaşımı durdur" düğmesine basılırsa
+      room.on(RoomEvent.LocalTrackUnpublished, (yayin) => {
+        if (yayin.source === Track.Source.ScreenShare) setPaylasiyorum(false);
+      });
       room.on(RoomEvent.ActiveSpeakersChanged, (liste) => setKonusanlar(new Set(liste.map((p) => p.identity))));
       room.on(RoomEvent.Disconnected, () => {
         if (odaRef.current !== room) return;
@@ -130,6 +146,32 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     setSessiz(yeni);
   }, [sessiz]);
 
+  const ekranPaylas = useCallback(async (kalite: EkranKalite): Promise<EkranSonuc> => {
+    const room = odaRef.current;
+    if (!room) return { ok: false, mesaj: "Önce sesli odaya katıl." };
+    const k = KALITE[kalite];
+    try {
+      await room.localParticipant.setScreenShareEnabled(
+        true,
+        {
+          audio: true, contentHint: "motion", selfBrowserSurface: "exclude", systemAudio: "include", surfaceSwitching: "include",
+          resolution: { width: k.genislik, height: k.yukseklik, frameRate: k.kare },
+        },
+        { screenShareEncoding: { maxBitrate: k.bitHizi, maxFramerate: k.kare }, screenShareSimulcastLayers: [] },
+      );
+      setPaylasiyorum(true);
+      return { ok: true };
+    } catch (e) {
+      setPaylasiyorum(false);
+      return ekranHatasi(e);
+    }
+  }, []);
+
+  const ekranDurdur = useCallback(async () => {
+    setPaylasiyorum(false);
+    try { await odaRef.current?.localParticipant.setScreenShareEnabled(false); } catch { /* yoksay */ }
+  }, []);
+
   // Sekme kapanırken / bileşen sökülürken bağlantıyı kapat
   useEffect(() => {
     const kapat = () => { void temizle(); };
@@ -138,5 +180,5 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   }, [temizle]);
 
   void uyeId;
-  return { durum, kanalId, sessiz, konusanlar, kullanilan, sesKabi, baglan, ayril, sessizDegistir };
+  return { durum, kanalId, sessiz, konusanlar, kullanilan, sesKabi, baglan, ayril, sessizDegistir, izlenen, paylasiyorum, ekranPaylas, ekranDurdur };
 }

@@ -3,6 +3,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { useSesMotoru, type Motor } from "./sesMotoru";
 import SesCubugu from "./SesCubugu";
+import EkranPaneli from "./EkranPaneli";
 import type { Kanal, Mesaj, Tepki, Uye } from "./types";
 import MessageView from "./MessageView";
 import { EMOJILER, gunEtiketi } from "./util";
@@ -45,21 +46,32 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const altaKaydir = useRef(true);
   const metinRef = useRef<HTMLTextAreaElement>(null);
   const kanalRef = useRef<RealtimeChannel | null>(null);
-  const [sesKonum, setSesKonum] = useState<Map<string, { kanal: string; motor: Motor | null }>>(new Map());
+  const [sesKonum, setSesKonum] = useState<Map<string, { kanal: string; motor: Motor | null; ekran: boolean }>>(new Map());
   const sesKonumRef = useRef(sesKonum);
   sesKonumRef.current = sesKonum;
   const [kullanimDk, setKullanimDk] = useState<number | null>(null);
 
   aktifRef.current = aktif;
-  const kanalDuyur = useCallback((k: string | null, motor: Motor | null) => { void kanalRef.current?.track({ t: Date.now(), ses: k, motor }); }, []);
+  const duyuruRef = useRef<{ ses: string | null; motor: Motor | null }>({ ses: null, motor: null });
+  const kanalDuyur = useCallback((k: string | null, motor: Motor | null) => {
+    duyuruRef.current = { ses: k, motor };
+    void kanalRef.current?.track({ t: Date.now(), ses: k, motor, ekran: false });
+  }, []);
   const motorSor = useCallback((kanalId: string): Motor | null => {
     for (const [uid, v] of sesKonumRef.current) if (uid !== me.id && v.kanal === kanalId && v.motor) return v.motor;
     return null;
   }, [me.id]);
   const ses = useSesMotoru(me.id, kanalDuyur, motorSor);
+  // Ekran paylaşımı başlayınca/bitince odadaki herkese duyurulur ("🖥️ yayında" göstergesi ve çift paylaşımı engelleme için)
+  useEffect(() => {
+    if (!duyuruRef.current.ses) return;
+    void kanalRef.current?.track({ t: Date.now(), ...duyuruRef.current, ekran: ses.paylasiyorum });
+  }, [ses.paylasiyorum]);
   const uyeHaritasi = useMemo(() => new Map(uyeler.map((u) => [u.id, u])), [uyeler]);
   const aktifKanal = kanallar.find((k) => k.id === aktif);
   const ben = uyeHaritasi.get(me.id) ?? me;
+  const paylasanId = ses.kanalId ? [...sesKonum].find(([uid, v]) => uid !== me.id && v.kanal === ses.kanalId && v.ekran)?.[0] ?? null : null;
+  const paylasanAd = paylasanId ? uyeHaritasi.get(paylasanId)?.takma_ad ?? "Biri" : null;
   const profilUyesi = profilId ? uyeHaritasi.get(profilId) : undefined;
 
   // İlk yükleme: oda, kanallar, üyeler
@@ -149,12 +161,12 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         }
       })
       .on("presence", { event: "sync" }, () => {
-        const durum = kanal.presenceState<{ ses?: string | null; motor?: Motor | null }>();
+        const durum = kanal.presenceState<{ ses?: string | null; motor?: Motor | null; ekran?: boolean }>();
         setCevrimici(new Set(Object.keys(durum)));
-        const konum = new Map<string, { kanal: string; motor: Motor | null }>();
+        const konum = new Map<string, { kanal: string; motor: Motor | null; ekran: boolean }>();
         for (const [uyeId, metalar] of Object.entries(durum)) {
           const son = metalar[metalar.length - 1];
-          if (son?.ses) konum.set(uyeId, { kanal: son.ses, motor: son.motor ?? null });
+          if (son?.ses) konum.set(uyeId, { kanal: son.ses, motor: son.motor ?? null, ekran: !!son.ekran });
         }
         setSesKonum(konum);
       })
@@ -343,6 +355,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
                       <li key={u.id} className="vp">
                         <Avatar uye={u} className={ses.konusanlar.has(u.id) ? "speak" : ""} />
                         {u.takma_ad}{ses.konusanlar.has(u.id) && <span className="sr"> konuşuyor</span>}
+                        {sesKonum.get(u.id)?.ekran && <span className="yayin" title="Ekran paylaşıyor"><span aria-hidden="true">🖥️</span><span className="sr"> ekran paylaşıyor</span></span>}
                       </li>
                     ))}
                   </ul>
@@ -351,7 +364,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             );
           })}
         </nav>
-        <SesCubugu className="vbar-side" ses={ses} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
+        <SesCubugu className="vbar-side" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
         <div className="me">
           <button className="me-profil" onClick={() => setProfilId(me.id)} aria-label="Profilimi aç ve düzenle">
             <Avatar uye={ben} />
@@ -366,7 +379,8 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         onDragLeave={(e) => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setSurukle(false); }}
         onDrop={(e) => { e.preventDefault(); setSurukle(false); const f = resimBul(e.dataTransfer.files); if (f) void ekSec(f); else if (e.dataTransfer.files.length) setHata("Yalnızca resim dosyaları gönderilebilir."); }}>
         <div className="head"><h2># {aktifKanal?.ad ?? "…"}</h2></div>
-        <SesCubugu className="vbar-chat" ses={ses} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
+        <SesCubugu className="vbar-chat" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
+        {ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
         {hata && <div className="banner" role="alert">{hata}</div>}
         {ses.hata && <div className="banner" role="alert">{ses.hata} <button className="linkbtn" onClick={ses.hataTemizle}>Kapat</button></div>}
         {ses.bilgi && !ses.hata && <div className="banner info" role="status">{ses.bilgi} <button className="linkbtn" onClick={ses.hataTemizle}>Tamam</button></div>}

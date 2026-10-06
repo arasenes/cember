@@ -69,6 +69,17 @@ Sol alttaki adına (ya da üye listesinde / mesajdaki ad ve fotoğrafa) tıklay�
 - Takma ad 2-24 karakter olmalı ve odada benzersizdir; başkasında kullanılıyorsa kayıt reddedilir. Üye kimliği, oda ve rol değiştirilemez (veritabanı tetikleyicisi korur).
 - Kurulum: `supabase/migrations/006_profil.sql`. Test: `supabase/tests/rls.sql` profil kurallarını da sınar.
 
+## Ekran paylaşımı (dizi/film birlikte izleme)
+
+Sesli odaya katılınca ses çubuğunda **🖥️ Ekranı paylaş** düğmesi çıkar. Kalite seçilir (720p tasarruflu, varsayılan; ya da 1080p), tarayıcı hangi sekme/pencere/ekranın paylaşılacağını sorar. Odadaki herkes yayını sohbetin üstünde bir video paneliyle izler; ses, tam ekran ve ses düzeyi için tarayıcının kendi video denetimleri kullanılır. Yayın yapan kişi, üye listesinde ve sesli oda listesinde 🖥️ ile görünür. Aynı anda tek kişi paylaşabilir.
+
+- **Ses:** Chrome/Edge'de paylaşım penceresinde **Chrome Sekmesi**'ni seçip **Sekme sesini paylaş**'ı işaretle; yoksa izleyenler görüntüyü sessiz görür. Windows'ta "Tüm ekran" seçilirse sistem sesi de paylaşılabilir. Echo olmaması için kulaklık kullan.
+- **Telefon:** tarayıcılar telefondan ekran paylaşmaya izin vermez; telefon yalnızca **izleyebilir** (düğme görünmez). Paylaşım için bilgisayar gerekir.
+- **Netflix, Disney+, Prime gibi korumalı (DRM) siteler** tarayıcıdan paylaşılınca görüntü siyah gelebilir ve bu hizmetlerin kullanım şartlarına aykırı olabilir; kendi dosyaların ya da korumasız kaynaklar sorunsuz çalışır.
+- **Motorlar:** LiveKit modunda yayın LiveKit üzerinden gider. Ücretsiz planda aylık **50 GB indirme** sınırı var (720p'de izleyici başına saatte yaklaşık 0,8 GB; yani iki izleyiciyle kabaca 30 saat). Sınır dolunca ya da LiveKit yoksa otomatik **doğrudan (P2P) mod** devreye girer: kotasız ve ücretsizdir, ama paylaşan kişinin internet yüklemesi izleyici sayısıyla çarpılır (720p'de izleyici başına ~1,8 Mbps; 1080p'de ~3,5 Mbps).
+- Doğrudan modda ekran için ses bağlantılarından ayrı, paylaşanın başlattığı bağlantılar kurulur (`ekran-*` sinyalleri); ekran paylaşımı bilmeyen eski sürümler bunları yok sayar. LiveKit tarafında ek bir sunucu değişikliği gerekmez (jeton zaten yayın yetkisi taşır).
+- Test: `harness/motor.html` ile iki-üç sekmeli gerçek tarayıcı denemesi yapıldı (doğrudan mod); LiveKit yolu gerçek bir LiveKit sunucusu olmadan bu ortamda sınanamadı, iki cihazla elle denemek gerekir.
+
 ## Güvenlik notları
 
 - Mesajlar düz metin olarak gösterilir (HTML enjekte edilemez); `MessageView.test.tsx` bunu sınar.
