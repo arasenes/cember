@@ -25,6 +25,59 @@ if "RECORD_AUDIO" not in m:
         sys.exit("AndroidManifest.xml içinde INTERNET izni satırı bulunamadı")
     manifest.write_text(m, encoding="utf-8")
 
+# 1b) Telefondan ekran paylaşımı: izinler ve ekran yakalama servisi (LiveKit Android SDK'nın hazır servisi)
+m = manifest.read_text(encoding="utf-8")
+if "FOREGROUND_SERVICE_MEDIA_PROJECTION" not in m:
+    ek = """    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+"""
+    m, n = re.subn(r'(\s*<uses-permission android:name="android.permission.INTERNET" />)', r"\1\n" + ek.rstrip("\n"), m)
+    if n != 1:
+        sys.exit("AndroidManifest.xml içinde INTERNET izni satırı bulunamadı (ekran izinleri)")
+    servis = '        <service android:name="io.livekit.android.room.track.screencapture.ScreenCaptureService" android:exported="false" android:foregroundServiceType="mediaProjection" />\n'
+    m, n = re.subn(r"(\s*)</application>", "\n" + servis.rstrip("\n") + r"\1</application>", m, count=1)
+    if n != 1:
+        sys.exit("AndroidManifest.xml içinde </application> bulunamadı")
+    manifest.write_text(m, encoding="utf-8")
+
+# Yerel eklenti (Kotlin) ve MainActivity kaydı
+paket = android / "app/src/main/java/com/cember/chat"
+paket.mkdir(parents=True, exist_ok=True)
+shutil.copy(ayar / "yerel/EkranYakalaPlugin.kt", paket / "EkranYakalaPlugin.kt")
+(paket / "MainActivity.java").write_text("""package com.cember.chat;
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(EkranYakalaPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+""", encoding="utf-8")
+
+# Kotlin eklentisi + LiveKit Android SDK
+kok_gradle = android / "build.gradle"
+kg = kok_gradle.read_text(encoding="utf-8")
+if "kotlin-gradle-plugin" not in kg:
+    kg, n = re.subn(r"(classpath ['\"]com\.android\.tools\.build:gradle:[^'\"]+['\"])", r"\1\n        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20'", kg, count=1)
+    if n != 1:
+        sys.exit("android/build.gradle içinde AGP classpath satırı bulunamadı")
+    kok_gradle.write_text(kg, encoding="utf-8")
+uyg = android / "app/build.gradle"
+ug = uyg.read_text(encoding="utf-8")
+if "kotlin-android" not in ug:
+    ug, n = re.subn(r"(apply plugin: ['\"]com\.android\.application['\"])", r"\1\napply plugin: 'kotlin-android'", ug, count=1)
+    if n != 1:
+        sys.exit("app/build.gradle içinde application eklentisi satırı bulunamadı")
+    ug, n = re.subn(r"\ndependencies \{", '\ndependencies {\n    implementation "io.livekit:livekit-android:2.29.0"', ug, count=1)
+    if n != 1:
+        sys.exit("app/build.gradle içinde dependencies bloğu bulunamadı")
+    uyg.write_text(ug, encoding="utf-8")
+
 # 2) Simge, açılış ekranı ve renkler
 shutil.copytree(ayar / "res", android / "app/src/main/res", dirs_exist_ok=True)
 
