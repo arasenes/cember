@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import { avatarHazirla, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
-import type { Uye } from "./types";
-import { rolEtiketi } from "./util";
+import type { Durum, Uye } from "./types";
+import { DURUM_BILGI, rolEtiketi } from "./util";
 
 // Seçici renkleri, üzerindeki baş harfin kontrastı en az 4.5 olacak şekilde seçildi (profil.test.tsx denetler).
 export const PROFIL_RENKLERI = ["#E8A33D", "#1F7A4D", "#0B7A91", "#B3261E", "#6B4FA0", "#B04680", "#3C6FB5", "#8A6D3B", "#287878", "#68761F", "#B5563C", "#4F5BA0"];
@@ -17,6 +17,8 @@ type Props = {
   onKapat: () => void;
   /** Hata varsa mesajını, başarılıysa null döndürür. */
   onKaydet: (d: ProfilDegisiklik) => Promise<string | null>;
+  /** Yalnızca kendi profilinde: durumu hemen değiştirir. */
+  onDurum?: (d: Durum) => void;
 };
 
 export function adGecerli(ad: string): string | null {
@@ -27,7 +29,7 @@ export function adGecerli(ad: string): string | null {
   return null;
 }
 
-export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet }: Props) {
+export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet, onDurum }: Props) {
   const [ad, setAd] = useState(uye.takma_ad);
   const [renk, setRenk] = useState(uye.renk);
   const [hakkinda, setHakkinda] = useState(uye.hakkinda ?? "");
@@ -108,7 +110,7 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet 
           <Avatar uye={gosterilenUye} onizleme={yeni?.onizleme ?? null} className="buyuk" />
           <div>
             {!benim && <div className="profil-ad">{uye.takma_ad}</div>}
-            <div className="hint">{rolEtiketi(uye.rol)} · {cevrimici ? "Çevrimiçi" : "Çevrimdışı"}</div>
+            <div className="hint">{rolEtiketi(uye.rol)} · {!cevrimici ? "Çevrimdışı" : DURUM_BILGI[uye.durum ?? "cevrimici"].ad}</div>
             {benim && (
               <div className="profil-foto">
                 <button className="ib" onClick={() => dosyaRef.current?.click()} disabled={kaydediliyor}>Fotoğraf seç</button>
@@ -119,6 +121,16 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet 
             )}
           </div>
         </div>
+
+        {benim && onDurum && (
+          <div className="profil-durum" role="radiogroup" aria-label="Durumum">
+            {(Object.keys(DURUM_BILGI) as Durum[]).map((d) => (
+              <button type="button" key={d} role="radio" aria-checked={(uye.durum ?? "cevrimici") === d} onClick={() => onDurum(d)}>
+                <i style={{ background: DURUM_BILGI[d].renk }} aria-hidden="true" />{DURUM_BILGI[d].ad}
+              </button>
+            ))}
+          </div>
+        )}
 
         {benim ? (
           <form className="profil-form" onSubmit={(e) => { e.preventDefault(); void kaydet(); }}>

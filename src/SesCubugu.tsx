@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { SesArayuzu } from "./sesMotoru";
-import { ekranPaylasilabilirTarayici, KALITE, uygulamaIci, yerelEkran, type EkranKalite } from "./ekranOrtak";
+import { ekranPaylasilabilirTarayici, KALITE, yerelEkran, type EkranKalite } from "./ekranOrtak";
 
 type Props = { ses: SesArayuzu; kanalAdi: string; className: string; baskasiPaylasiyor?: string | null };
 
@@ -9,6 +9,26 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
   if (ses.durum === "kapali") return null;
   const baglaniyor = ses.durum === "baglaniyor";
   const dock = className.includes("vbar-dock");
+  if (dock) {
+    // Telefonda tek satır: ikonlu düğmeler (uyarılar Chat'te kısa bildirim olarak çıkar)
+    const engel = !!baskasiPaylasiyor;
+    return (
+      <div className={`voicebar on ${className} vbar-kompakt`} role="region" aria-label="Sesli oda kontrolleri">
+        <div className="vk-durum"><i aria-hidden="true" /><span>{baglaniyor ? "Bağlanılıyor…" : kanalAdi || "Sesli bağlı"}</span></div>
+        <div className="vk-dugmeler">
+          <button className="ik mik" aria-pressed={ses.sessiz} onClick={ses.sessizDegistir} disabled={baglaniyor}
+            aria-label={ses.sessiz ? "Mikrofonu aç" : "Mikrofonu sessize al"} title={ses.sessiz ? "Mikrofon kapalı" : "Mikrofon açık"}>{ses.sessiz ? "🔇" : "🎙️"}</button>
+          {ses.ekranDestegi && (ses.paylasiyorum
+            ? <button className="ik mik" aria-pressed={true} onClick={() => void ses.ekranDurdur()} aria-label="Paylaşımı durdur" title="Paylaşımı durdur">⏹</button>
+            : <button className="ik" onClick={() => void ses.ekranPaylas(kalite)} disabled={baglaniyor || engel} aria-label="Ekranı paylaş"
+                title={engel ? `${baskasiPaylasiyor} ekran paylaşıyor` : "Ekranı paylaş"}>🖥️</button>)}
+          <button className="ik" aria-pressed={ses.gurultu} onClick={() => void ses.gurultuDegistir()} disabled={baglaniyor}
+            aria-label={ses.gurultu ? "Gürültü engellemeyi kapat" : "Gürültü engellemeyi aç"} title="Gürültü engelleme">🔕</button>
+          <button className="ik leave" onClick={ses.ayril} aria-label="Sesli odadan ayrıl" title="Ayrıl">✕</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`voicebar on ${className}`} role="region" aria-label="Sesli oda kontrolleri">
       <div className="vstat"><i aria-hidden="true" />{baglaniyor ? "Bağlanılıyor…" : "Sesli bağlı"}{!baglaniyor && ses.motor === "p2p" && <span className="hint" title="Ücretsiz doğrudan bağlantı modu"> (doğrudan)</span>}<span className="hint" style={{ marginLeft: "auto" }}>{kanalAdi}</span></div>
@@ -16,12 +36,6 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
         <button className="ib" aria-pressed={ses.sessiz} onClick={ses.sessizDegistir} disabled={baglaniyor}>
           {ses.sessiz ? "🔇 Sessiz" : "🎙️ Sessize al"}
         </button>
-        {dock && ses.ekranDestegi && (
-          ses.paylasiyorum
-            ? <button className="ib" aria-pressed={true} onClick={() => void ses.ekranDurdur()}>⏹ Durdur</button>
-            : <button className="ib" onClick={() => void ses.ekranPaylas(kalite)} disabled={baglaniyor || !!baskasiPaylasiyor}
-                title={baskasiPaylasiyor ? `${baskasiPaylasiyor} ekran paylaşıyor` : undefined}>🖥️ Ekranı paylaş</button>
-        )}
         <button className="ib leave" onClick={ses.ayril}>Ayrıl</button>
       </div>
       <div className="vbtns">
@@ -30,7 +44,7 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
           {ses.gurultu ? "🔕 Gürültü engelleme: açık" : "🔔 Gürültü engelleme: kapalı"}
         </button>
       </div>
-      {!dock && ses.ekranDestegi && (
+      {ses.ekranDestegi && (
         ses.paylasiyorum ? (
           <div className="vbtns">
             <button className="ib" aria-pressed={true} onClick={() => void ses.ekranDurdur()}>⏹ Paylaşımı durdur</button>
@@ -56,11 +70,6 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
           </>
         )
       )}
-      {dock && ses.ekranDestegi && !ses.paylasiyorum && (
-        <div className="vbar-dbg">uygulama: {uygulamaIci() ? "evet" : "hayır"} · eklenti: {yerelEkran() ? "var" : "yok"} · {(globalThis as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? "tarayıcı"}</div>
-      )}
-      {dock && ses.bilgi && !ses.hata && <div className="vbar-dbg" role="status">{ses.bilgi}</div>}
-      {dock && ses.hata && <div className="vbar-hata" role="alert">{ses.hata} <button className="linkbtn" onClick={ses.hataTemizle}>Kapat</button></div>}
       {ses.paylasiyorum && <div className="hint">Ekranın odadakilere gösteriliyor. Kendi ekranını burada görmezsin; ses geri dönmesin diye kulaklık kullan.</div>}
     </div>
   );

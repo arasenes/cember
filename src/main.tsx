@@ -4,8 +4,10 @@ import App from "./App";
 import "./styles.css";
 import "./guvenli-alan.css";
 import { temaTercihi, temaUygula } from "./tema";
+import { yaziBoyutuOku, yaziBoyutuUygula } from "./yerel";
 
 temaUygula(temaTercihi());
+yaziBoyutuUygula(yaziBoyutuOku());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

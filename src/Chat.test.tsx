@@ -15,7 +15,7 @@ const durum = vi.hoisted(() => ({
 vi.mock("./supabase", () => {
   const sonucOlustur = (veri: unknown) => {
     const o: Record<string, unknown> = {};
-    for (const ad of ["select", "eq", "order", "limit", "lt", "in", "is", "not", "update", "delete"]) o[ad] = () => o;
+    for (const ad of ["select", "eq", "order", "limit", "lt", "in", "is", "not", "gt", "neq", "update", "delete"]) o[ad] = () => o;
     o.maybeSingle = async () => ({ data: veri, error: null });
     o.then = (res: (v: unknown) => unknown) => res({ data: veri, error: null });
     return o;

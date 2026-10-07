@@ -18,3 +18,8 @@ export function bas(ad: string): string {
 export function rolEtiketi(rol: "sahip" | "moderator" | "uye"): string {
   return rol === "sahip" ? "Oda sahibi" : rol === "moderator" ? "Moderatör" : "Üye";
 }
+export const DURUM_BILGI = {
+  cevrimici: { ad: "Çevrimiçi", renk: "var(--live)" },
+  mesgul: { ad: "Meşgul", renk: "var(--acc)" },
+  rahatsiz: { ad: "Rahatsız etmeyin", renk: "var(--danger)" },
+} as const;
