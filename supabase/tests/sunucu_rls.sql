@@ -5,7 +5,7 @@ do $$
 declare
   ua uuid := gen_random_uuid(); ub uuid := gen_random_uuid(); uc uuid := gen_random_uuid(); ud uuid := gen_random_uuid(); ug uuid := gen_random_uuid(); ux uuid := gen_random_uuid();
   o1 uuid; o2 uuid; k1 uuid; k2 uuid; ma uuid; mb uuid; mc uuid; md uuid; mg uuid;
-  msg_c uuid; msg_a uuid; rol1 uuid; kat uuid; kanal_yeni uuid; dkod text; n int; t text; v bigint; rapor text := ''; wh record; yeni_oda uuid; mesaj_sayisi int;
+  msg_c uuid; msg_a uuid; rol1 uuid; kat uuid; kanal_yeni uuid; dkod text; n int; t text; v bigint; rapor text := ''; wh record; yeni_oda uuid; dmx uuid; mesaj_sayisi int;
 begin
   insert into auth.users (id, instance_id, aud, role, email) values
     (ua,'00000000-0000-0000-0000-000000000000','authenticated','authenticated','a@t.invalid'),
@@ -149,6 +149,14 @@ begin
   begin perform sunucu_sil(o1); rapor := rapor||E'FAIL: varsayılan sunucu silindi\n'; exception when others then rapor := rapor||E'OK: varsayılan sunucu silinemez\n'; end;
   select count(*) into n from odalar; rapor := rapor||'Sahip yalnızca kendi sunucusunu görür (1): '||n||E'\n';
 
+  -- ===== DM çoklu sunucuda: üye kimliği hedefin sunucusundan türetilir =====
+  reset role; perform set_config('request.jwt.claims', json_build_object('sub',ud,'role','authenticated')::text, true); set local role authenticated;
+  dmx := dm_ac(mb);
+  rapor := rapor||'D, B ile DM açtı; DM sunucusu S1 ('||((select oda_id from dm_kanallari where id = dmx) = o1)||E')
+';
+  rapor := rapor||'D, kendi ikinci sunucusundaki kişiyle de DM açabilir: '||(dm_ac((select id from uyeler where oda_id = o2 and user_id = ux)) is not null)||E'
+';
+  reset role; perform set_config('request.jwt.claims', json_build_object('sub',ua,'role','authenticated')::text, true); set local role authenticated;
   -- ===== yavaş mod =====
   reset role; perform set_config('request.jwt.claims', json_build_object('sub',ub,'role','authenticated')::text, true); set local role authenticated;
   perform kanal_yavas_mod_ayarla(k1, 60);
