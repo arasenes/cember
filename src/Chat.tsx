@@ -1145,7 +1145,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             </button>
           );
         })}
-        {onSunucularYenile && <button type="button" className="sr-dugme sr-ekle" aria-label={t("Sunucu oluştur veya katıl")} title={t("Sunucu oluştur veya katıl")} onClick={() => setSunucuDialogAcik(true)}>+</button>}
+        {onSunucularYenile && <button type="button" className="sr-dugme sr-ekle" aria-label={t("Davetle sunucuya katıl")} title={t("Davetle sunucuya katıl")} onClick={() => setSunucuDialogAcik(true)}>+</button>}
         <span className="sr-ayrac" aria-hidden="true" />
         <button type="button" className={"sr-dugme" + (gorunum === "dm" ? " aktif" : "")} aria-current={gorunum === "dm"}
           onClick={() => { setGorunum("dm"); setDmMobil("liste"); setDmSayfa(aktifDm ? "sohbet" : "arkadaslar"); }}

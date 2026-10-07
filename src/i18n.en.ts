@@ -33,7 +33,7 @@ export const EN_METIN: Record<string, string> = {
   "Kanal ekle": "Add channel",
   "Buradan sonrası yeni mesajlar": "New messages below",
   "Sunucular": "Servers",
-  "Sunucu oluştur veya katıl": "Create or join a server",
+  "Davetle sunucuya katıl": "Join a server with an invite",
   "Kanallar": "Channels",
   "Kanal listesi": "Channel list",
   "Kanalları sırala ve sessize al": "Reorder and mute channels",
