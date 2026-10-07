@@ -84,6 +84,7 @@ begin
   return new;
 end $$;
 drop trigger if exists kelime_filtresi_tr on public.mesajlar;
+drop trigger if exists kelime_filtresi_tr on public.mesajlar;
 create trigger kelime_filtresi_tr before insert or update of metin on public.mesajlar for each row execute function public.kelime_filtresi();
 
 -- Yeni üye gelince hoş geldin mesajı: sunucu sahibi adına, seçili ya da ilk yazılı kanala
@@ -101,6 +102,7 @@ begin
   return new;
 end $$;
 drop trigger if exists hosgeldin_tr on public.uyeler;
+drop trigger if exists hosgeldin_tr on public.uyeler;
 create trigger hosgeldin_tr after insert on public.uyeler for each row execute function public.hosgeldin_mesaji_yaz();
 
 -- ===== Webhook =====
@@ -116,6 +118,7 @@ create table if not exists public.webhooklar (
 alter table public.webhooklar enable row level security;
 revoke select on public.webhooklar from authenticated, anon;
 grant select (id, oda_id, kanal_id, ad, olusturma) on public.webhooklar to authenticated;
+drop policy if exists webhooklar_oku on public.webhooklar;
 create policy webhooklar_oku on public.webhooklar for select to authenticated using (izin_var(oda_id, 'kanal_yonet'));
 
 -- Dönen şifre yalnızca burada bir kez görünür (veritabanında özeti saklanır)

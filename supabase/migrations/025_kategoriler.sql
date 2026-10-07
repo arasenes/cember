@@ -7,6 +7,7 @@ create table if not exists public.kategoriler (
 );
 create index if not exists kategoriler_oda on public.kategoriler (oda_id, sira);
 alter table public.kategoriler enable row level security;
+drop policy if exists kategoriler_oku on public.kategoriler;
 create policy kategoriler_oku on public.kategoriler for select to authenticated using (uye_mi(oda_id));
 
 alter table public.kanallar add column if not exists kategori_id uuid references public.kategoriler(id) on delete set null;

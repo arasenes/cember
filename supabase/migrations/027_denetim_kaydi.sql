@@ -12,6 +12,7 @@ create table if not exists public.denetim_kaydi (
 create index if not exists denetim_kaydi_oda_zaman on public.denetim_kaydi (oda_id, zaman desc);
 alter table public.denetim_kaydi enable row level security;
 -- Okuma: mesaj_yonet (16) | sustur (32) | yasakla (64) | kanal_yonet (128) izinlerinden biri
+drop policy if exists denetim_kaydi_oku on public.denetim_kaydi;
 create policy denetim_kaydi_oku on public.denetim_kaydi for select to authenticated using ((izinlerim(oda_id) & 240) <> 0);
 
 -- Şu anki kullanıcının bu sunucudaki üye kimliği
@@ -41,6 +42,7 @@ begin
   return new;
 end $$;
 drop trigger if exists denetim_mesaj_tr on public.mesajlar;
+drop trigger if exists denetim_mesaj_tr on public.mesajlar;
 create trigger denetim_mesaj_tr after update of silindi on public.mesajlar for each row execute function public.denetim_mesaj();
 
 -- Susturma ve rol değişikliği
@@ -58,6 +60,7 @@ begin
   return new;
 end $$;
 drop trigger if exists denetim_uye_tr on public.uyeler;
+drop trigger if exists denetim_uye_tr on public.uyeler;
 create trigger denetim_uye_tr after update of susturma_bitis, rol on public.uyeler for each row execute function public.denetim_uye();
 
 create or replace function public.denetim_uye_rolu() returns trigger language plpgsql security definer set search_path to 'public' as
@@ -72,6 +75,7 @@ begin
   return coalesce(new, old);
 end $$;
 drop trigger if exists denetim_uye_rolu_tr on public.uye_rolleri;
+drop trigger if exists denetim_uye_rolu_tr on public.uye_rolleri;
 create trigger denetim_uye_rolu_tr after insert or delete on public.uye_rolleri for each row execute function public.denetim_uye_rolu();
 
 create or replace function public.denetim_rol() returns trigger language plpgsql security definer set search_path to 'public' as
@@ -85,6 +89,7 @@ begin
   return coalesce(new, old);
 end $$;
 drop trigger if exists denetim_rol_tr on public.roller;
+drop trigger if exists denetim_rol_tr on public.roller;
 create trigger denetim_rol_tr after insert or update or delete on public.roller for each row execute function public.denetim_rol();
 
 create or replace function public.denetim_kanal() returns trigger language plpgsql security definer set search_path to 'public' as
@@ -97,6 +102,7 @@ begin
   return coalesce(new, old);
 end $$;
 drop trigger if exists denetim_kanal_tr on public.kanallar;
+drop trigger if exists denetim_kanal_tr on public.kanallar;
 create trigger denetim_kanal_tr after insert or delete on public.kanallar for each row execute function public.denetim_kanal();
 
 create or replace function public.denetim_davet() returns trigger language plpgsql security definer set search_path to 'public' as
@@ -105,6 +111,7 @@ begin
   if auth.uid() is not null then perform public.denetim_yaz(new.oda_id, 'davet_olustur', new.kod, jsonb_build_object('bitis', new.bitis, 'limit', new.kullanim_limiti)); end if;
   return new;
 end $$;
+drop trigger if exists denetim_davet_tr on public.davetler;
 drop trigger if exists denetim_davet_tr on public.davetler;
 create trigger denetim_davet_tr after insert on public.davetler for each row execute function public.denetim_davet();
 
@@ -116,6 +123,7 @@ begin
   end if;
   return new;
 end $$;
+drop trigger if exists denetim_oda_tr on public.odalar;
 drop trigger if exists denetim_oda_tr on public.odalar;
 create trigger denetim_oda_tr after update on public.odalar for each row execute function public.denetim_oda();
 

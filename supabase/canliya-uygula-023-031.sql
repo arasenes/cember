@@ -1,4 +1,4 @@
--- Canlı veritabanına 023-031 sırayla uygular (022 zaten uygulandı). Supabase SQL editöründe parça parça çalıştır; her parçadan sonra hata olmadığını kontrol et.
+-- Canlı veritabanına 023-031 sırayla uygular (022 zaten uygulandı). Tüm parçalar yeniden çalıştırılabilir (idempotent).
 
 -- ===================== 023_arama_ifade_dizini.sql =====================
 -- Canlı veritabanını 016'nın son haline getirir: üretilmiş `arama` sütunu kalkar, ifade dizini gelir.
@@ -92,7 +92,9 @@ create or replace function public.izin_var(p_oda uuid, p_ad text) returns boolea
 $$ select coalesce((public.izinlerim(p_oda) & public.izin_maske(p_ad)) <> 0, false); $$;
 
 -- Okuma politikaları: sunucunun üyeleri rolleri görür
+drop policy if exists roller_oku on public.roller;
 create policy roller_oku on public.roller for select to authenticated using (uye_mi(oda_id));
+drop policy if exists uye_rolleri_oku on public.uye_rolleri;
 create policy uye_rolleri_oku on public.uye_rolleri for select to authenticated using (uye_mi(uye_oda(uye_id)));
 
 -- ===== Rol yönetimi (yalnızca sunucu sahibi) =====
@@ -329,6 +331,7 @@ create table if not exists public.kategoriler (
 );
 create index if not exists kategoriler_oda on public.kategoriler (oda_id, sira);
 alter table public.kategoriler enable row level security;
+drop policy if exists kategoriler_oku on public.kategoriler;
 create policy kategoriler_oku on public.kategoriler for select to authenticated using (uye_mi(oda_id));
 
 alter table public.kanallar add column if not exists kategori_id uuid references public.kategoriler(id) on delete set null;
@@ -418,6 +421,7 @@ create table if not exists public.davetler (
 );
 create index if not exists davetler_oda on public.davetler (oda_id);
 alter table public.davetler enable row level security;
+drop policy if exists davetler_oku on public.davetler;
 create policy davetler_oku on public.davetler for select to authenticated using (izin_var(oda_id, 'davet'));
 
 create or replace function public.davet_olustur(p_oda uuid, p_gun integer default 7, p_limit integer default null) returns text
@@ -545,6 +549,7 @@ create table if not exists public.denetim_kaydi (
 create index if not exists denetim_kaydi_oda_zaman on public.denetim_kaydi (oda_id, zaman desc);
 alter table public.denetim_kaydi enable row level security;
 -- Okuma: mesaj_yonet (16) | sustur (32) | yasakla (64) | kanal_yonet (128) izinlerinden biri
+drop policy if exists denetim_kaydi_oku on public.denetim_kaydi;
 create policy denetim_kaydi_oku on public.denetim_kaydi for select to authenticated using ((izinlerim(oda_id) & 240) <> 0);
 
 -- Şu anki kullanıcının bu sunucudaki üye kimliği
@@ -574,6 +579,7 @@ begin
   return new;
 end $$;
 drop trigger if exists denetim_mesaj_tr on public.mesajlar;
+drop trigger if exists denetim_mesaj_tr on public.mesajlar;
 create trigger denetim_mesaj_tr after update of silindi on public.mesajlar for each row execute function public.denetim_mesaj();
 
 -- Susturma ve rol değişikliği
@@ -591,6 +597,7 @@ begin
   return new;
 end $$;
 drop trigger if exists denetim_uye_tr on public.uyeler;
+drop trigger if exists denetim_uye_tr on public.uyeler;
 create trigger denetim_uye_tr after update of susturma_bitis, rol on public.uyeler for each row execute function public.denetim_uye();
 
 create or replace function public.denetim_uye_rolu() returns trigger language plpgsql security definer set search_path to 'public' as
@@ -605,6 +612,7 @@ begin
   return coalesce(new, old);
 end $$;
 drop trigger if exists denetim_uye_rolu_tr on public.uye_rolleri;
+drop trigger if exists denetim_uye_rolu_tr on public.uye_rolleri;
 create trigger denetim_uye_rolu_tr after insert or delete on public.uye_rolleri for each row execute function public.denetim_uye_rolu();
 
 create or replace function public.denetim_rol() returns trigger language plpgsql security definer set search_path to 'public' as
@@ -618,6 +626,7 @@ begin
   return coalesce(new, old);
 end $$;
 drop trigger if exists denetim_rol_tr on public.roller;
+drop trigger if exists denetim_rol_tr on public.roller;
 create trigger denetim_rol_tr after insert or update or delete on public.roller for each row execute function public.denetim_rol();
 
 create or replace function public.denetim_kanal() returns trigger language plpgsql security definer set search_path to 'public' as
@@ -630,6 +639,7 @@ begin
   return coalesce(new, old);
 end $$;
 drop trigger if exists denetim_kanal_tr on public.kanallar;
+drop trigger if exists denetim_kanal_tr on public.kanallar;
 create trigger denetim_kanal_tr after insert or delete on public.kanallar for each row execute function public.denetim_kanal();
 
 create or replace function public.denetim_davet() returns trigger language plpgsql security definer set search_path to 'public' as
@@ -638,6 +648,7 @@ begin
   if auth.uid() is not null then perform public.denetim_yaz(new.oda_id, 'davet_olustur', new.kod, jsonb_build_object('bitis', new.bitis, 'limit', new.kullanim_limiti)); end if;
   return new;
 end $$;
+drop trigger if exists denetim_davet_tr on public.davetler;
 drop trigger if exists denetim_davet_tr on public.davetler;
 create trigger denetim_davet_tr after insert on public.davetler for each row execute function public.denetim_davet();
 
@@ -649,6 +660,7 @@ begin
   end if;
   return new;
 end $$;
+drop trigger if exists denetim_oda_tr on public.odalar;
 drop trigger if exists denetim_oda_tr on public.odalar;
 create trigger denetim_oda_tr after update on public.odalar for each row execute function public.denetim_oda();
 
@@ -743,6 +755,7 @@ begin
   return new;
 end $$;
 drop trigger if exists kelime_filtresi_tr on public.mesajlar;
+drop trigger if exists kelime_filtresi_tr on public.mesajlar;
 create trigger kelime_filtresi_tr before insert or update of metin on public.mesajlar for each row execute function public.kelime_filtresi();
 
 -- Yeni üye gelince hoş geldin mesajı: sunucu sahibi adına, seçili ya da ilk yazılı kanala
@@ -760,6 +773,7 @@ begin
   return new;
 end $$;
 drop trigger if exists hosgeldin_tr on public.uyeler;
+drop trigger if exists hosgeldin_tr on public.uyeler;
 create trigger hosgeldin_tr after insert on public.uyeler for each row execute function public.hosgeldin_mesaji_yaz();
 
 -- ===== Webhook =====
@@ -775,6 +789,7 @@ create table if not exists public.webhooklar (
 alter table public.webhooklar enable row level security;
 revoke select on public.webhooklar from authenticated, anon;
 grant select (id, oda_id, kanal_id, ad, olusturma) on public.webhooklar to authenticated;
+drop policy if exists webhooklar_oku on public.webhooklar;
 create policy webhooklar_oku on public.webhooklar for select to authenticated using (izin_var(oda_id, 'kanal_yonet'));
 
 -- Dönen şifre yalnızca burada bir kez görünür (veritabanında özeti saklanır)
@@ -980,6 +995,7 @@ create table if not exists public.kanal_izinleri (
 );
 create unique index if not exists kanal_izinleri_hedef on public.kanal_izinleri (kanal_id, hedef, coalesce(rol_id, '00000000-0000-0000-0000-000000000000'::uuid));
 alter table public.kanal_izinleri enable row level security;
+drop policy if exists kanal_izinleri_oku on public.kanal_izinleri;
 create policy kanal_izinleri_oku on public.kanal_izinleri for select to authenticated using (uye_mi(kanal_odasi(kanal_id)));
 
 -- Bir üyenin bir kanaldaki etkin izin maskesi

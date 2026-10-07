@@ -13,6 +13,7 @@ create table if not exists public.kanal_izinleri (
 );
 create unique index if not exists kanal_izinleri_hedef on public.kanal_izinleri (kanal_id, hedef, coalesce(rol_id, '00000000-0000-0000-0000-000000000000'::uuid));
 alter table public.kanal_izinleri enable row level security;
+drop policy if exists kanal_izinleri_oku on public.kanal_izinleri;
 create policy kanal_izinleri_oku on public.kanal_izinleri for select to authenticated using (uye_mi(kanal_odasi(kanal_id)));
 
 -- Bir üyenin bir kanaldaki etkin izin maskesi

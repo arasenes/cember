@@ -53,7 +53,9 @@ create or replace function public.izin_var(p_oda uuid, p_ad text) returns boolea
 $$ select coalesce((public.izinlerim(p_oda) & public.izin_maske(p_ad)) <> 0, false); $$;
 
 -- Okuma politikaları: sunucunun üyeleri rolleri görür
+drop policy if exists roller_oku on public.roller;
 create policy roller_oku on public.roller for select to authenticated using (uye_mi(oda_id));
+drop policy if exists uye_rolleri_oku on public.uye_rolleri;
 create policy uye_rolleri_oku on public.uye_rolleri for select to authenticated using (uye_mi(uye_oda(uye_id)));
 
 -- ===== Rol yönetimi (yalnızca sunucu sahibi) =====

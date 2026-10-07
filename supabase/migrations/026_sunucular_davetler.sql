@@ -17,6 +17,7 @@ create table if not exists public.davetler (
 );
 create index if not exists davetler_oda on public.davetler (oda_id);
 alter table public.davetler enable row level security;
+drop policy if exists davetler_oku on public.davetler;
 create policy davetler_oku on public.davetler for select to authenticated using (izin_var(oda_id, 'davet'));
 
 create or replace function public.davet_olustur(p_oda uuid, p_gun integer default 7, p_limit integer default null) returns text
