@@ -66,7 +66,7 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
       <form className="gatecard" onSubmit={gonder} noValidate>
         <div className="logo">
           <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
-            <circle cx="22" cy="22" r="16" fill="none" stroke="#E8A33D" strokeWidth="7" />
+            <circle cx="22" cy="22" r="16" fill="none" stroke="#4fd1a5" strokeWidth="7" />
             <circle cx="22" cy="22" r="4" fill="currentColor" />
           </svg>
           <b>Çember</b>

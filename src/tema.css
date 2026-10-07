@@ -1,0 +1,72 @@
+/* Çember teması — tasarım dosyalarındaki (tasarim/*.dc.html) renk, yazı ve ölçü değerleri.
+   Kullanım: src/tema.css olarak ekle, main.tsx'te import et; mevcut styles.css değişkenlerini bunlara eşle. */
+/* Yazı tipleri (Bricolage Grotesque, Figtree) index.html içinden yüklenir. */
+
+:root {
+  /* zeminler (koyu → açık) */
+  --zemin-serit: #0f1116;   /* sunucu şeridi, sayfa arkası */
+  --zemin-panel: #161920;   /* kanal listesi, üye listesi, kartlar */
+  --zemin-girdi: #12151b;   /* yazı kutuları, kullanıcı çubuğu, kod */
+  --zemin-ana: #1c2029;     /* sohbet alanı */
+  --zemin-vurgulu: #222733; /* yanıtlı mesaj, hover */
+  --zemin-yuzey: #252a35;   /* düğme, seçili kanal, composer */
+  --cizgi: #2c3240;
+  --cizgi-ince: #232834;
+
+  /* yazı */
+  --yazi: #e8eaf0;
+  --yazi-2: #c3c9d6;
+  --soluk: #9aa3b5;
+
+  /* vurgu (mint) */
+  --vurgu: #4fd1a5;
+  --vurgu-yazi: #07261c;    /* vurgu zemini üstündeki yazı */
+  --vurgu-zemin: #12362c;   /* seçili/benim tepkim, anket seçili */
+  --vurgu-orta: #1b4a3c;    /* anket doluluk çubuğu */
+  --vurgu-acik: #bff3e0;
+
+  /* ek renkler (kullanıcı/rol renkleri, durumlar) */
+  --bahsetme: #f5b94a;
+  --bahsetme-zemin: #3a3217;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+
+  /* durum noktaları */
+  --durum-cevrimici: var(--vurgu);
+  --durum-bosta: var(--bahsetme);
+  --durum-mesgul: var(--uyari);
+  --durum-cevrimdisi: #5a6275;
+
+  /* yazı tipleri */
+  --yazi-baslik: "Bricolage Grotesque", system-ui, sans-serif; /* 600–700 */
+  --yazi-metin: "Figtree", system-ui, sans-serif;               /* 400–700 */
+
+  /* ölçüler */
+  --serit-genislik: 72px;
+  --kanal-genislik: 264px;
+  --uye-genislik: 248px;
+  --ust-yukseklik: 56px;
+  --dokunma: 44px;          /* en küçük tıklanabilir alan */
+  --yaricap-s: 8px;
+  --yaricap-m: 10px;
+  --yaricap-b: 14px;
+}
+
+
+/* küçük yardımcılar (tasarımdaki ortak parçalar) */
+.cb-ikon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.cb-ibtn { display: flex; align-items: center; justify-content: center; width: var(--dokunma); height: var(--dokunma); border: 0; border-radius: var(--yaricap-m); background: transparent; color: var(--soluk); cursor: pointer; font-family: inherit; }
+.cb-ibtn:hover { background: var(--zemin-yuzey); color: var(--yazi); }
+.cb-ibtn:focus-visible, .cb-chip:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.cb-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--zemin-serit); flex: none; }
+.cb-chip { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px; background: var(--zemin-yuzey); border: 1px solid var(--cizgi); color: var(--yazi); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.cb-chip.ben { background: var(--vurgu-zemin); border-color: var(--vurgu); color: var(--vurgu-acik); }
+.cb-kart { border: 1px solid var(--cizgi); background: var(--zemin-panel); border-radius: var(--yaricap-b); padding: 18px; }
+.cb-ana-dugme { height: var(--dokunma); padding: 0 16px; border: 0; border-radius: var(--yaricap-m); background: var(--vurgu); color: var(--vurgu-yazi); font-family: inherit; font-weight: 700; cursor: pointer; }
+.cb-anahtar { width: 44px; height: 26px; border-radius: 13px; background: #3a4252; position: relative; flex: none; }
+.cb-anahtar::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--yazi); }
+.cb-anahtar.acik { background: var(--vurgu); }
+.cb-anahtar.acik::after { left: 21px; background: var(--vurgu-yazi); }

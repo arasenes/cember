@@ -1,10 +1,10 @@
-// Tema seçimi: otomatik (cihazı izler) | gündüz (Kâğıt) | gece. Tercih bu cihazda saklanır.
+// Tema seçimi: gece (varsayılan, tasarımdaki koyu tema) | gündüz (Kâğıt) | otomatik (cihazı izler). Tercih bu cihazda saklanır.
 export type Tema = "otomatik" | "gunduz" | "gece";
 const ANAHTAR = "cember-tema";
 const SIRA: Tema[] = ["otomatik", "gunduz", "gece"];
 
 export function temaTercihi(): Tema {
-  try { const v = localStorage.getItem(ANAHTAR); return v === "gunduz" || v === "gece" ? v : "otomatik"; } catch { return "otomatik"; }
+  try { const v = localStorage.getItem(ANAHTAR); return v === "gunduz" || v === "otomatik" ? v : "gece"; } catch { return "gece"; }
 }
 export function temaUygula(t: Tema): void {
   const el = document.documentElement;

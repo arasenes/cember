@@ -3,7 +3,7 @@ import { sonrakiTema, temaKaydet, temaTercihi, temaUygula } from "./tema";
 
 describe("tema", () => {
   beforeEach(() => { localStorage.clear(); document.documentElement.removeAttribute("data-theme"); });
-  it("varsayılan otomatik", () => expect(temaTercihi()).toBe("otomatik"));
+  it("varsayılan gece (tasarımdaki koyu tema)", () => expect(temaTercihi()).toBe("gece"));
   it("gündüz ve gece öznitelik koyar, otomatik kaldırır", () => {
     temaUygula("gunduz"); expect(document.documentElement.getAttribute("data-theme")).toBe("light");
     temaUygula("gece"); expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
