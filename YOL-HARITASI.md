@@ -20,12 +20,12 @@ Teknoloji: React + Supabase (RLS + realtime) + LiveKit. Yeni her tablo RLS ile g
 
 ## 2. Özel mesaj ve sosyal
 - [x] Profil, avatar, hakkında, durum (çevrimiçi/meşgul/rahatsız etme)
-- [ ] **Özel mesajlar (DM)**: `dm_kanallari(id, tur 'ikili'|'grup')`, `dm_uyeleri`, mesajlar için `mesajlar.kanal_id` yerine ayrı `dm_mesajlari` ya da `kanallar.tur='dm'`; RLS yalnızca üyelere
-- [ ] **Grup DM** (en fazla 10 kişi)
-- [ ] **Arkadaş listesi**: `arkadasliklar(a, b, durum 'bekliyor'|'kabul')`, istek gönder/kabul/engelle
-- [ ] **Engelleme / susturma** (kişi bazlı)
-- [ ] Özel durum metni ve "Boşta" otomatik durumu (5 dk hareketsiz)
-- [ ] Profil bannerı ve rozetler
+- [x] **Özel mesajlar (DM)**: `dm_kanallari(id, tur 'ikili'|'grup')`, `dm_uyeleri`, mesajlar için `mesajlar.kanal_id` yerine ayrı `dm_mesajlari` ya da `kanallar.tur='dm'`; RLS yalnızca üyelere
+- [x] **Grup DM** (en fazla 10 kişi)
+- [x] **Arkadaş listesi**: `arkadasliklar(a, b, durum 'bekliyor'|'kabul')`, istek gönder/kabul/engelle
+- [x] **Engelleme / susturma** (kişi bazlı) (engelleme tamam; kişi bazlı susturma yok)
+- [x] Özel durum metni ve "Boşta" otomatik durumu (5 dk hareketsiz)
+- [x] Profil bannerı ve rozetler (banner üye renginden türetilir, rozetler rol/misafir; yüklenebilir banner yok)
 
 ## 3. Sunucu yönetimi
 - [x] Roller: sahip / moderatör / üye; susturma, yasaklama (ad + IP), kanal şifresi

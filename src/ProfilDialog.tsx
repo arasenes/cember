@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Avatar from "./Avatar";
 import { avatarHazirla, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
 import type { Durum, Uye } from "./types";
@@ -8,7 +8,8 @@ import { DURUM_BILGI, rolEtiketi } from "./util";
 export const PROFIL_RENKLERI = ["#E8A33D", "#1F7A4D", "#0B7A91", "#B3261E", "#6B4FA0", "#B04680", "#3C6FB5", "#8A6D3B", "#287878", "#68761F", "#B5563C", "#4F5BA0"];
 export const AD_MIN = 2, AD_MAX = 24, HAKKINDA_MAX = 120;
 
-export type ProfilDegisiklik = { takma_ad: string; renk: string; hakkinda: string; yeniAvatar: HazirEk | null; avatarKaldir: boolean };
+export type ProfilDegisiklik = { takma_ad: string; renk: string; hakkinda: string; durum_metin: string; yeniAvatar: HazirEk | null; avatarKaldir: boolean };
+export const DURUM_METNI_MAX = 60;
 
 type Props = {
   uye: Uye;
@@ -19,6 +20,8 @@ type Props = {
   onKaydet: (d: ProfilDegisiklik) => Promise<string | null>;
   /** Yalnızca kendi profilinde: durumu hemen değiştirir. */
   onDurum?: (d: Durum) => void;
+  /** Başkasının profilinde gösterilecek eylemler (mesaj gönder, arkadaş ekle…). */
+  eylemler?: ReactNode;
 };
 
 export function adGecerli(ad: string): string | null {
@@ -29,10 +32,11 @@ export function adGecerli(ad: string): string | null {
   return null;
 }
 
-export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet, onDurum }: Props) {
+export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet, onDurum, eylemler }: Props) {
   const [ad, setAd] = useState(uye.takma_ad);
   const [renk, setRenk] = useState(uye.renk);
   const [hakkinda, setHakkinda] = useState(uye.hakkinda ?? "");
+  const [durumMetin, setDurumMetin] = useState(uye.durum_metin ?? "");
   const [yeni, setYeni] = useState<HazirEk | null>(null);
   const [kaldir, setKaldir] = useState(false);
   const [hata, setHata] = useState("");
@@ -82,7 +86,7 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
 
   const gosterilenUye = { takma_ad: benim ? ad.trim() || uye.takma_ad : uye.takma_ad, renk: benim ? renk : uye.renk, avatar_yol: kaldir ? null : uye.avatar_yol };
   const fotoVar = !!yeni || (!kaldir && !!uye.avatar_yol);
-  const degisti = ad.trim() !== uye.takma_ad || renk !== uye.renk || hakkinda.trim() !== (uye.hakkinda ?? "") || !!yeni || kaldir;
+  const degisti = ad.trim() !== uye.takma_ad || renk !== uye.renk || hakkinda.trim() !== (uye.hakkinda ?? "") || durumMetin.trim() !== (uye.durum_metin ?? "") || !!yeni || kaldir;
 
   async function kaydet() {
     const adHata = adGecerli(ad);
@@ -90,7 +94,7 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
     if (hakkinda.length > HAKKINDA_MAX) return setHata(`Hakkımda en fazla ${HAKKINDA_MAX} karakter olabilir.`);
     setHata(""); setKaydediliyor(true);
     try {
-      const sonuc = await onKaydet({ takma_ad: ad.trim(), renk, hakkinda: hakkinda.trim(), yeniAvatar: yeni, avatarKaldir: kaldir });
+      const sonuc = await onKaydet({ takma_ad: ad.trim(), renk, hakkinda: hakkinda.trim(), durum_metin: durumMetin.trim(), yeniAvatar: yeni, avatarKaldir: kaldir });
       if (sonuc) setHata(sonuc); else onKapat();
     } finally {
       setKaydediliyor(false);
@@ -150,6 +154,9 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
               placeholder="Kendinden kısaca bahset" />
             <div className="counter" aria-live="off">{hakkinda.length}/{HAKKINDA_MAX}</div>
 
+            <label htmlFor="pf-dm">Durum metni</label>
+            <input id="pf-dm" type="text" value={durumMetin} maxLength={DURUM_METNI_MAX} onChange={(e) => setDurumMetin(e.target.value)} placeholder="Ne yapıyorsun? (örn. Oyundayım)" autoComplete="off" />
+
             <div className="err" role="alert">{hata}</div>
             <div className="modal-alt">
               <button type="button" className="ib" onClick={onKapat} disabled={kaydediliyor}>Vazgeç</button>
@@ -158,7 +165,9 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
           </form>
         ) : (
           <div className="profil-hk">
+            {uye.durum_metin && <p className="profil-durum-metin">“{uye.durum_metin}”</p>}
             {uye.hakkinda ? <p>{uye.hakkinda}</p> : <p className="hint">Henüz bir şey yazmamış.</p>}
+            {eylemler && <div className="pk-eylemler">{eylemler}</div>}
           </div>
         )}
       </div>

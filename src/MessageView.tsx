@@ -40,10 +40,12 @@ type Props = {
   devam?: boolean;
   /** Arama/alıntıdan gidilen mesajı kısa süre vurgular. */
   vurgu?: boolean;
+  /** Tepki gerektirmeyen akışlarda (DM) tepki düğmesini gizler. */
+  tepkisiz?: boolean;
 };
 
 // Metin her zaman düz metin olarak render edilir: React içeriği kaçışlar, dangerouslySetInnerHTML kullanılmaz.
-export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onDuzenle, onSabitle, onProfil, yanitSayisi, onKonu, devam = false, vurgu = false, zengin }: Props) {
+export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onDuzenle, onSabitle, onProfil, yanitSayisi, onKonu, devam = false, vurgu = false, tepkisiz = false, zengin }: Props) {
   const [sec, setSec] = useState(false);
   const [tum, setTum] = useState(false);
   const [arac, setArac] = useState(false);
@@ -162,7 +164,7 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
       </div>
       {aracVar && (
         <div className="arac" role="toolbar" aria-label="Mesaj eylemleri">
-          <button onClick={() => setSec(!sec)} aria-expanded={sec} aria-label="Tepki ekle" title="Tepki ekle">😀</button>
+          {!tepkisiz && <button onClick={() => setSec(!sec)} aria-expanded={sec} aria-label="Tepki ekle" title="Tepki ekle">😀</button>}
           {zengin?.onYanitla && <button onClick={() => zengin.onYanitla!(mesaj)} aria-label="Yanıtla" title="Yanıtla"><Ikon ad="yanit" /></button>}
           {onKonu && !yanitSayisi && <button onClick={() => onKonu(mesaj)} aria-label="Konu aç ve yanıtla" title="Yanıtla (konu aç)">💬</button>}
           {pinGoster && (

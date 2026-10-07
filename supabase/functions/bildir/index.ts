@@ -1,4 +1,5 @@
 // Yeni mesaj için bildirim gönderir (tarayıcı web push + Android FCM). Yalnızca veritabanı tetikleyicisi çağırır (x-gizli).
+// Gövde: { mesaj_id } kanal mesajı için, { dm_mesaj_id } özel mesaj için (yalnızca DM üyelerine gider).
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
@@ -30,6 +31,9 @@ async function fcmErisim(sa: { client_email: string; private_key: string }): Pro
   return fcmJeton.t;
 }
 
+type Abone = { id: string; uye_id: string; tur: string; uc: string; p256dh: string | null; auth: string | null; sadece_etiket: boolean };
+const kisalt = (s: string) => (s.length > 140 ? s.slice(0, 137) + "…" : s);
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ hata: "Geçersiz istek" }, 405);
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -40,41 +44,73 @@ Deno.serve(async (req) => {
   if (!ayar.bildir_gizli || req.headers.get("x-gizli") !== ayar.bildir_gizli) return json({ hata: "Yetkisiz" }, 401);
 
   let mesajId = "";
-  try { mesajId = String((await req.json()).mesaj_id ?? ""); } catch { /* yoksay */ }
-  if (!mesajId) return json({ hata: "mesaj_id gerekli" }, 400);
+  let dmMesajId = "";
+  try {
+    const g = await req.json();
+    mesajId = String(g.mesaj_id ?? "");
+    dmMesajId = String(g.dm_mesaj_id ?? "");
+  } catch { /* yoksay */ }
+  if (!mesajId && !dmMesajId) return json({ hata: "mesaj_id gerekli" }, 400);
 
-  const { data: m } = await admin.from("mesajlar").select("id, kanal_id, uye_id, metin, ek_tur, silindi").eq("id", mesajId).maybeSingle();
-  if (!m || m.silindi) return json({ ok: true, gonderilen: 0 });
-  const [{ data: gonderen }, { data: kanal }] = await Promise.all([
-    admin.from("uyeler").select("takma_ad").eq("id", m.uye_id).maybeSingle(),
-    admin.from("kanallar").select("ad, sifreli").eq("id", m.kanal_id).maybeSingle(),
-  ]);
-  const ad = gonderen?.takma_ad ?? "Biri";
-  const sifreli = !!kanal?.sifreli;
-  const metin = String(m.metin ?? "").replace(/\s+/g, " ").trim();
-  const govde = sifreli ? "Yeni mesaj" : metin ? (metin.length > 140 ? metin.slice(0, 137) + "…" : metin) : m.ek_tur?.startsWith("image/") ? "📷 Resim" : "📎 Dosya";
-  const baslik = `${ad} · #${kanal?.ad ?? "sohbet"}`;
+  let baslik = "";
+  let govde = "";
+  let veri: Record<string, string> = {};
+  let etiketMetni = "";
+  let hedefler: Abone[] = [];
 
-  const { data: abonelikler } = await admin.from("push_abonelikleri").select("id, uye_id, tur, uc, p256dh, auth, sadece_etiket").neq("uye_id", m.uye_id);
-  const adlar = new Map<string, string>();
-  const uyeIdler = [...new Set((abonelikler ?? []).map((a: { uye_id: string }) => a.uye_id))];
-  if (uyeIdler.length) {
-    const { data: uy } = await admin.from("uyeler").select("id, takma_ad").in("id", uyeIdler);
-    for (const u of uy ?? []) adlar.set(u.id, u.takma_ad);
+  if (dmMesajId) {
+    // --- Özel mesaj: yalnızca DM üyeleri (gönderen hariç) ---
+    const { data: d } = await admin.from("dm_mesajlari").select("id, dm_id, uye_id, metin, silindi").eq("id", dmMesajId).maybeSingle();
+    if (!d || d.silindi) return json({ ok: true, gonderilen: 0 });
+    const [{ data: gonderen }, { data: dm }, { data: uyeler }] = await Promise.all([
+      admin.from("uyeler").select("takma_ad").eq("id", d.uye_id).maybeSingle(),
+      admin.from("dm_kanallari").select("tur, ad").eq("id", d.dm_id).maybeSingle(),
+      admin.from("dm_uyeleri").select("uye_id").eq("dm_id", d.dm_id),
+    ]);
+    const ad = gonderen?.takma_ad ?? "Biri";
+    baslik = dm?.tur === "grup" ? `${ad} · ${dm.ad ?? "Grup"}` : ad;
+    govde = kisalt(String(d.metin ?? "").replace(/\s+/g, " ").trim()) || "Yeni mesaj";
+    veri = { dm_id: d.dm_id, mesaj_id: d.id };
+    const alicilar = (uyeler ?? []).map((u: { uye_id: string }) => u.uye_id).filter((id: string) => id !== d.uye_id);
+    if (!alicilar.length) return json({ ok: true, gonderilen: 0 });
+    const { data: ab } = await admin.from("push_abonelikleri").select("id, uye_id, tur, uc, p256dh, auth, sadece_etiket").in("uye_id", alicilar);
+    hedefler = (ab ?? []) as Abone[];
+  } else {
+    // --- Kanal mesajı ---
+    const { data: m } = await admin.from("mesajlar").select("id, kanal_id, uye_id, metin, ek_tur, silindi").eq("id", mesajId).maybeSingle();
+    if (!m || m.silindi) return json({ ok: true, gonderilen: 0 });
+    const [{ data: gonderen }, { data: kanal }] = await Promise.all([
+      admin.from("uyeler").select("takma_ad").eq("id", m.uye_id).maybeSingle(),
+      admin.from("kanallar").select("ad, sifreli").eq("id", m.kanal_id).maybeSingle(),
+    ]);
+    const ad = gonderen?.takma_ad ?? "Biri";
+    const sifreli = !!kanal?.sifreli;
+    const metin = String(m.metin ?? "").replace(/\s+/g, " ").trim();
+    etiketMetni = metin.toLowerCase();
+    govde = sifreli ? "Yeni mesaj" : metin ? kisalt(metin) : m.ek_tur?.startsWith("image/") ? "📷 Resim" : "📎 Dosya";
+    baslik = `${ad} · #${kanal?.ad ?? "sohbet"}`;
+    veri = { kanal_id: m.kanal_id, mesaj_id: m.id };
+
+    const { data: abonelikler } = await admin.from("push_abonelikleri").select("id, uye_id, tur, uc, p256dh, auth, sadece_etiket").neq("uye_id", m.uye_id);
+    const adlar = new Map<string, string>();
+    const uyeIdler = [...new Set((abonelikler ?? []).map((a: { uye_id: string }) => a.uye_id))];
+    if (uyeIdler.length) {
+      const { data: uy } = await admin.from("uyeler").select("id, takma_ad").in("id", uyeIdler);
+      for (const u of uy ?? []) adlar.set(u.id, u.takma_ad);
+    }
+    hedefler = ((abonelikler ?? []) as Abone[]).filter((a) => !a.sadece_etiket || etiketMetni.includes("@" + (adlar.get(a.uye_id) ?? "\u0000").toLowerCase()));
   }
-  const kucuk = metin.toLowerCase();
-  const hedefler = (abonelikler ?? []).filter((a: { uye_id: string; sadece_etiket: boolean }) => !a.sadece_etiket || kucuk.includes("@" + (adlar.get(a.uye_id) ?? "\u0000").toLowerCase()));
 
-  const veri = { kanal_id: m.kanal_id, mesaj_id: m.id };
   let vapidHazir = false;
   if (ayar.vapid_public && ayar.vapid_private) { webpush.setVapidDetails(KONU, ayar.vapid_public, ayar.vapid_private); vapidHazir = true; }
   let sa: { client_email: string; private_key: string } | null = null;
   try { const h = Deno.env.get("FCM_SERVICE_ACCOUNT"); if (h) sa = JSON.parse(h); } catch { /* yoksay */ }
   const fcmProje = sa ? (sa as unknown as { project_id: string }).project_id : "";
+  const etiketKanal = veri.dm_id ?? veri.kanal_id;
 
   const olu: string[] = [];
   let gidenSayi = 0;
-  await Promise.allSettled(hedefler.map(async (a: { id: string; tur: string; uc: string; p256dh: string | null; auth: string | null }) => {
+  await Promise.allSettled(hedefler.map(async (a) => {
     try {
       if (a.tur === "web" && vapidHazir && a.p256dh && a.auth) {
         await webpush.sendNotification({ endpoint: a.uc, keys: { p256dh: a.p256dh, auth: a.auth } }, JSON.stringify({ baslik, govde, ...veri }), { TTL: 3600, urgency: "high" });
@@ -84,7 +120,7 @@ Deno.serve(async (req) => {
         const r = await fetch(`https://fcm.googleapis.com/v1/projects/${fcmProje}/messages:send`, {
           method: "POST",
           headers: { Authorization: `Bearer ${jeton}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ message: { token: a.uc, notification: { title: baslik, body: govde }, data: { kanal_id: String(m.kanal_id), mesaj_id: String(m.id) }, android: { priority: "HIGH", notification: { channel_id: "mesajlar", tag: String(m.kanal_id) } } } }),
+          body: JSON.stringify({ message: { token: a.uc, notification: { title: baslik, body: govde }, data: veri, android: { priority: "HIGH", notification: { channel_id: "mesajlar", tag: String(etiketKanal) } } } }),
         });
         if (r.ok) gidenSayi++;
         else {

@@ -8,6 +8,11 @@ const yollar: Record<string, string> = {
   kapat: "M6 6l12 12M18 6 6 18",
   artir: "M12 5v14M5 12h14",
   tamam: "m5 12 5 5L20 7",
+  gonder: "M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z",
+  kullanici: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z",
+  grup: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+  geri: "m15 18-6-6 6-6",
+  sohbet: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z",
 };
 
 export type IkonAd = keyof typeof yollar;

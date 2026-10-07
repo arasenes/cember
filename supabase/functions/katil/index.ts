@@ -27,6 +27,8 @@ async function misafirSil(admin: any, uye: { id: string; user_id: string | null 
   await admin.from("kanal_acik").delete().eq("uye_id", uye.id);
   await admin.from("ses_oturumlari").delete().eq("uye_id", uye.id);
   await admin.from("kanal_okuma").delete().eq("uye_id", uye.id);
+  await admin.from("dm_uyeleri").delete().eq("uye_id", uye.id);
+  await admin.from("arkadasliklar").delete().or(`a.eq.${uye.id},b.eq.${uye.id}`);
   if (uye.user_id) await admin.auth.admin.deleteUser(uye.user_id);
 }
 
