@@ -1,8 +1,8 @@
 # Çember
 
-Arkadaşlara özel, davet kodlu yazılı sohbet (ve ileride sesli oda) uygulaması. Vite + React + TypeScript, arka uç Supabase.
+Arkadaşlara özel yazılı + sesli sohbet uygulaması (Google ya da misafir girişi). Vite + React + TypeScript, arka uç Supabase.
 
-Durum: **Aşama 1** (iskelet, davet kodlu giriş, yazılı sohbet), **Aşama 3** (sesli oda: LiveKit + otomatik yedek P2P) ve **Aşama 2'nin resim kısmı** (resim ve ekran görüntüsü gönderme) hazır. Genel dosya gönderme ve cila (Aşama 4) sonra.
+Durum ve devir bilgisi için **DEVIR-NOTU.md** dosyasına bak.
 
 ## Kurulum
 
@@ -23,9 +23,9 @@ Ortam değişkenleri (yalnızca adlar, değerler `.env` içinde, commit edilmez)
 
 ## Supabase
 
-Migration'lar `supabase/migrations/` içinde, sırayla çalıştırılır (001, 002). Başlangıç odası için `supabase/seed.sql`. Davet kodunu görmek için SQL editöründe `select davet_kodu from odalar;`.
+Migration'lar `supabase/migrations/` içinde, sırayla çalıştırılır (001-007; canlı veritabanında bunlardan sonra eklenenler için DEVIR-NOTU.md'ye bak). Başlangıç odası için `supabase/seed.sql`. 
 
-`supabase/functions/katil` giriş fonksiyonudur: davet kodunu ve takma adı doğrular (yanlış kodda IP başına 10 dakikada 10 deneme sınırı), arka planda anonim bir kullanıcı oluşturur ve oturum döner. JWT doğrulaması kapalı yayınlanır (`verify_jwt: false`) çünkü henüz oturumu olmayan kişi çağırır; kendi doğrulamasını kendisi yapar.
+`supabase/functions/katil` giriş fonksiyonudur: misafir girişi (`misafir`), misafir çıkışı (`misafir_sil`) ve Google ile kayıt (`google`) işlemlerini yapar; arka planda geçici hesap açar, IP başına deneme sınırı uygular. JWT doğrulaması kapalı yayınlanır (`verify_jwt: false`) çünkü henüz oturumu olmayan kişi çağırır.
 
 Yetki testi: `supabase/tests/rls.sql` dosyasını SQL editöründe çalıştır. Sonunda bilerek hata verip her şeyi geri alır; hata metni raporu içerir ("FAIL" satırı olmamalı).
 

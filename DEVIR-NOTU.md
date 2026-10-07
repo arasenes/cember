@@ -47,3 +47,10 @@ Arkadaşlar için Discord benzeri sohbet + sesli oda uygulaması. Yönetici: Ara
 - LiveKit Android SDK 2.29.0; kaynağı https://raw.githubusercontent.com/livekit/client-sdk-android/v2.29.0/ altında okunabilir.
 - Supabase auth tanısı: `auth.sessions`, `auth.users` tablolarını SQL ile sorgulayarak giriş sorunları incelenebilir.
 - Gizli bilgiler (VAPID özel anahtarı, `bildir_gizli`) Supabase `push_ayar` tablosunda; bu nota yazılmadı.
+
+## Ek: depo/canlı karşılaştırması (sonraki oturum, 7 Ekim 2026)
+- `supabase/functions/katil` ve `bildir` canlıdaki (v13 / v1) kodla eşitlendi; `yonet`, `ses-token`, `turn-bilgi` zaten canlıyla aynıydı. Edge Function'lar depodan otomatik yayınlanmaz, değişince elle yayınla.
+- Canlıda ayrıca işi bitmiş `tani` fonksiyonu var (410 döner); silinebilir.
+- Canlı veritabanında depoda migration karşılığı olmayan tablolar: `kanal_sifreleri`, `kanal_acik`, `kanal_deneme`, `tepkiler`, `push_abonelikleri`, `push_ayar`. `list_migrations` yalnızca 001-004 ve `012_uye_durumu` gösteriyor; 008-014 `supabase db dump` ile çıkarılıp eklenmeli.
+- README güncellendi (davet kodu anlatımları kaldırıldı).
+- Güvenlik notları: `katil`'de CORS `*` ve deneme sınırı `x-forwarded-for`'a güveniyor; APK `android-ayar/debug.keystore` ile imzalanıyor (değişirse uygulama silinip yeniden kurulmalı).
