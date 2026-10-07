@@ -436,3 +436,10 @@ body{transition:background-color .2s,color .2s}
 .ch-sohbet[aria-current=true]{background:var(--card);color:var(--fg);opacity:1;box-shadow:inset 0 0 0 1px var(--acc)}
 .cta.ikincil{background:transparent;color:var(--fg);border:1px solid var(--line)}
 .cta.ikincil:hover:not(:disabled){background:var(--hover)}
+
+.duzenle-kutu{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.duzenle-kutu textarea{width:100%;resize:vertical;min-height:44px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:inherit;font:inherit}
+.duzenle-alt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.duzenle-alt button{padding:5px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--card);color:inherit;font:inherit;cursor:pointer}
+.duzenle-alt button:first-child{background:var(--accent,#E8A33D);border-color:transparent;color:#1a1a1a;font-weight:600}
+.duzenle-alt button:disabled{opacity:.5;cursor:default}

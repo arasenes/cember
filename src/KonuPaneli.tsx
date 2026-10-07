@@ -11,13 +11,14 @@ type Props = {
   yazamaz: boolean;
   onTepki: (mesajId: string, emoji: string) => void;
   onSil: (mesaj: Mesaj) => void;
+  onDuzenle?: (mesaj: Mesaj, metin: string) => Promise<boolean> | boolean;
   onProfil: (uyeId: string) => void;
   onGonder: (metin: string) => Promise<boolean>;
   onKapat: () => void;
 };
 
 /** Bir mesajın altındaki konu (alt sohbet): ana mesaj + yanıtlar + yazma kutusu. */
-export default function KonuPaneli({ ana, yanitlar, uyeHaritasi, ben, tepkiler, yazamaz, onTepki, onSil, onProfil, onGonder, onKapat }: Props) {
+export default function KonuPaneli({ ana, yanitlar, uyeHaritasi, ben, tepkiler, yazamaz, onTepki, onSil, onDuzenle, onProfil, onGonder, onKapat }: Props) {
   const [metin, setMetin] = useState("");
   const [mesgul, setMesgul] = useState(false);
   const akisRef = useRef<HTMLDivElement>(null);
@@ -45,7 +46,7 @@ export default function KonuPaneli({ ana, yanitlar, uyeHaritasi, ben, tepkiler, 
 
   const goster = (m: Mesaj) => (
     <MessageView key={m.id} mesaj={m} yazar={uyeHaritasi.get(m.uye_id)} benim={ben}
-      tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={onTepki} onSil={onSil} onProfil={onProfil} />
+      tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={onTepki} onSil={onSil} onDuzenle={onDuzenle} onProfil={onProfil} />
   );
 
   return (

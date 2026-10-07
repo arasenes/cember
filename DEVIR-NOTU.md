@@ -54,3 +54,12 @@ Arkadaşlar için Discord benzeri sohbet + sesli oda uygulaması. Yönetici: Ara
 - Canlı veritabanında depoda migration karşılığı olmayan tablolar: `kanal_sifreleri`, `kanal_acik`, `kanal_deneme`, `tepkiler`, `push_abonelikleri`, `push_ayar`. `list_migrations` yalnızca 001-004 ve `012_uye_durumu` gösteriyor; 008-014 `supabase db dump` ile çıkarılıp eklenmeli.
 - README güncellendi (davet kodu anlatımları kaldırıldı).
 - Güvenlik notları: `katil`'de CORS `*` ve deneme sınırı `x-forwarded-for`'a güveniyor; APK `android-ayar/debug.keystore` ile imzalanıyor (değişirse uygulama silinip yeniden kurulmalı).
+
+### Bu turda eklenenler (henüz yayınlanmadı: push + Supabase yayını bekliyor)
+- `supabase/migrations/008_canli_sema_tamamlama.sql`: canlıdan çıkarılan eksik şema (tablolar, sütunlar, işlevler, tetikleyiciler, politikalar). **Canlı veritabanında sınanmadı**; boş bir Supabase projesinde 001-008 sırayla denenmeli. Canlıda hâlâ duran kullanılmayan işlevler: `davet_kodu_getir`, `yonet_kod_yenile`, `ses_kullanim`.
+- `katil`: CORS yalnızca `https://cember.onrender.com` ve `http://localhost:5173`; IP için önce `cf-connecting-ip`. **Edge Function'ı Supabase'e elle yayınla** (depodaki dosya canlıya otomatik gitmez).
+- `apk.yml`: `@capacitor/push-notifications` eklendi (önceki notta "yüklenmemiş yerel değişiklik" denen madde).
+- Mesaj düzenleme arayüzü (kendi mesajında ✏️, Enter kaydeder / Esc iptal); veritabanı tetikleyicisi "(düzenlendi)" zamanını yazar. 2 yeni test.
+- Web bildirimine dokununca ilgili kanal açılıyor (`sw.js` → `postMessage` / `?kanal=`). APK'da FCM tarafı Firebase kurulunca ayrıca bağlanmalı.
+- Düzeltme: `livekit-client` zaten ayrı (lazy) parça olarak yükleniyor; "kod bölme yapılmadı" notu yanlıştı.
+- Yapılmadı (gerçek cihaz/Firebase gerekir): telefon ses paylaşımı doğrulaması, FCM, sesli odada arka plan servisi, resim dışı dosya gönderme, P2P'de yalnızca dinleyici.

@@ -84,4 +84,27 @@ describe("konu düğmesi", () => {
     b.click();
     expect(onKonu).toHaveBeenCalled();
   });
+  it("kendi mesajını düzenler; başkasının mesajında düzenle düğmesi çıkmaz", async () => {
+    const onDuzenle = vi.fn(async () => true);
+    const baskasi: Uye = { ...uye, id: "u9", takma_ad: "Mehmet" };
+    const { rerender } = render(<MessageView mesaj={mesaj("eski")} yazar={uye} benim={baskasi} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} onDuzenle={onDuzenle} />);
+    expect(screen.queryByRole("button", { name: "Mesajı düzenle" })).toBeNull();
+    rerender(<MessageView mesaj={mesaj("eski")} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} onDuzenle={onDuzenle} />);
+    fireEvent.click(screen.getByRole("button", { name: "Mesajı düzenle" }));
+    const kutu = screen.getByRole("textbox", { name: "Mesajı düzenle" }) as HTMLTextAreaElement;
+    expect(kutu.value).toBe("eski");
+    fireEvent.change(kutu, { target: { value: "  yeni  " } });
+    fireEvent.keyDown(kutu, { key: "Enter" });
+    await vi.waitFor(() => expect(onDuzenle).toHaveBeenCalledWith(expect.objectContaining({ id: "m1" }), "yeni"));
+    await vi.waitFor(() => expect(screen.queryByRole("textbox", { name: "Mesajı düzenle" })).toBeNull());
+  });
+
+  it("düzenleme Esc ile iptal edilir ve kaydetme çağrılmaz", () => {
+    const onDuzenle = vi.fn(async () => true);
+    render(<MessageView mesaj={mesaj("eski")} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} onDuzenle={onDuzenle} />);
+    fireEvent.click(screen.getByRole("button", { name: "Mesajı düzenle" }));
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Mesajı düzenle" }), { key: "Escape" });
+    expect(screen.queryByRole("textbox", { name: "Mesajı düzenle" })).toBeNull();
+    expect(onDuzenle).not.toHaveBeenCalled();
+  });
 });

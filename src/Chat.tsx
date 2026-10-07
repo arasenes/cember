@@ -212,6 +212,27 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     else setSifreKanal({ kanal: k, sonra });
   }
 
+  // Bildirime dokunulunca (servis işçisi mesajı ya da ?kanal= adresi) ilgili yazılı kanala geç
+  const kanalIstegi = useRef<string | null>(null);
+  const bildirimKanalinaGit = useRef<(id: string) => void>(() => {});
+  bildirimKanalinaGit.current = (id: string) => {
+    const k = kanallar.find((x) => x.id === id && x.tur === "yazili");
+    if (!k) { kanalIstegi.current = id; return; }
+    kanalIstegi.current = null;
+    kanalaGir(k, () => { setAktif(k.id); setPane("chat"); });
+  };
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("kanal");
+    if (id) { kanalIstegi.current = id; url.searchParams.delete("kanal"); window.history.replaceState(null, "", url.pathname + url.search + url.hash); }
+    const sw = navigator.serviceWorker;
+    if (!sw) return;
+    const dinle = (e: MessageEvent) => { if (e.data?.tip === "kanal-ac" && typeof e.data.kanal_id === "string") bildirimKanalinaGit.current(e.data.kanal_id); };
+    sw.addEventListener("message", dinle);
+    return () => sw.removeEventListener("message", dinle);
+  }, []);
+  useEffect(() => { if (kanalIstegi.current && kanallar.length) bildirimKanalinaGit.current(kanalIstegi.current); }, [kanallar]);
+
   // Susturma süresi dolunca yazma kutusu kendiliğinden açılır
   useEffect(() => {
     if (!ben.susturma_bitis) return;
@@ -519,6 +540,17 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     setMesajlar((x) => x.map((y) => (y.id === m.id ? { ...y, silindi: true } : y)));
   }
 
+  async function mesajDuzenle(m: Mesaj, metin: string): Promise<boolean> {
+    const t = metin.trim();
+    if (!t || t.length > 4000) { setHata("Mesaj 1-4000 karakter olmalı."); return false; }
+    const { data, error } = await supabase.from("mesajlar").update({ metin: t }).eq("id", m.id).select().single();
+    if (error || !data) { setHata("Mesaj düzenlenemedi."); return false; }
+    const yeni = data as Mesaj;
+    setMesajlar((x) => x.map((y) => (y.id === m.id ? yeni : y)));
+    setYanitlar((x) => x.map((y) => (y.id === m.id ? yeni : y)));
+    return true;
+  }
+
   async function profilKaydet(d: ProfilDegisiklik): Promise<string | null> {
     const guncel = uyeHaritasi.get(me.id) ?? me;
     const eskiYol = guncel.avatar_yol ?? null;
@@ -667,7 +699,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     onceki = m;
     satirlar.push(
       <MessageView key={m.id} devam={devam} mesaj={m} yazar={uyeHaritasi.get(m.uye_id)} benim={ben}
-        tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} onSabitle={sabitle} onProfil={setProfilId}
+        tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} onDuzenle={mesajDuzenle} onSabitle={sabitle} onProfil={setProfilId}
         yanitSayisi={yanitlar.filter((y) => y.ust_mesaj_id === m.id && !y.silindi).length} onKonu={(x) => setKonuId(x.id)} />,
     );
   }
@@ -876,7 +908,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         return (
           <KonuPaneli ana={ana} yanitlar={liste} uyeHaritasi={uyeHaritasi} ben={ben} yazamaz={benSusturuldu}
             tepkiler={tepkiler.filter((t) => t.mesaj_id === ana.id || liste.some((y) => y.id === t.mesaj_id))}
-            onTepki={tepkiDegistir} onSil={sil} onProfil={setProfilId} onGonder={yanitGonder} onKapat={() => setKonuId(null)} />
+            onTepki={tepkiDegistir} onSil={sil} onDuzenle={mesajDuzenle} onProfil={setProfilId} onGonder={yanitGonder} onKapat={() => setKonuId(null)} />
         );
       })()}
       {yonetimAcik && yonetici && (

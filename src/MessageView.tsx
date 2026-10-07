@@ -13,6 +13,8 @@ type Props = {
   tepkiler: Tepki[];
   onTepki: (mesajId: string, emoji: string) => void;
   onSil: (mesaj: Mesaj) => void;
+  /** Kendi mesajını düzenleme; false dönerse düzenleme kutusu açık kalır. */
+  onDuzenle?: (mesaj: Mesaj, metin: string) => Promise<boolean> | boolean;
   onSabitle?: (mesaj: Mesaj, sabit: boolean) => void;
   onProfil?: (uyeId: string) => void;
   yanitSayisi?: number;
@@ -22,10 +24,12 @@ type Props = {
 };
 
 // Metin her zaman düz metin olarak render edilir: React içeriği kaçışlar, dangerouslySetInnerHTML kullanılmaz.
-export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onSabitle, onProfil, yanitSayisi, onKonu, devam = false }: Props) {
+export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onDuzenle, onSabitle, onProfil, yanitSayisi, onKonu, devam = false }: Props) {
   const [sec, setSec] = useState(false);
   const [tum, setTum] = useState(false);
   const [arac, setArac] = useState(false);
+  const [duzenle, setDuzenle] = useState(false);
+  const [taslak, setTaslak] = useState("");
   const benimMi = yazar?.id === benim.id;
   const silebilir = benimMi || benim.rol !== "uye";
 
@@ -34,6 +38,14 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
 
   const pinGoster = !!onSabitle && benim.rol !== "uye" && !mesaj.silindi;
   const aracVar = !mesaj.silindi;
+  const duzenlenebilir = !!onDuzenle && benimMi && !mesaj.silindi && !!mesaj.metin;
+
+  async function kaydet() {
+    const t = taslak.trim();
+    if (!t || t.length > 4000) return;
+    if (t === mesaj.metin) return setDuzenle(false);
+    if (await onDuzenle!(mesaj, t)) setDuzenle(false);
+  }
 
   return (
     <article className={"msg" + (benimMi ? " mine" : "") + (devam ? " devam" : "") + (arac ? " arac-ac" : "")} data-testid="mesaj"
@@ -62,7 +74,21 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
           <div className="txt silindi">Bu mesaj silindi.</div>
         ) : (
           <>
-            {mesaj.metin && <div className="txt">{etiketParcala(mesaj.metin, benim.takma_ad).map((p, i) => (p.etiket ? <mark key={i} className="etiket-ben">{p.m}</mark> : p.m))}</div>}
+            {duzenle ? (
+              <div className="duzenle-kutu">
+                <textarea autoFocus value={taslak} maxLength={4000} rows={2} aria-label="Mesajı düzenle"
+                  onChange={(e) => setTaslak(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setDuzenle(false);
+                    else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void kaydet(); }
+                  }} />
+                <div className="duzenle-alt">
+                  <button type="button" onClick={() => void kaydet()} disabled={!taslak.trim()}>Kaydet</button>
+                  <button type="button" onClick={() => setDuzenle(false)}>İptal</button>
+                  <span className="hint">Enter kaydeder, Esc iptal eder</span>
+                </div>
+              </div>
+            ) : mesaj.metin && <div className="txt">{etiketParcala(mesaj.metin, benim.takma_ad).map((p, i) => (p.etiket ? <mark key={i} className="etiket-ben">{p.m}</mark> : p.m))}</div>}
             {mesaj.ek_yol && mesaj.ek_genislik && mesaj.ek_yukseklik && (
               <EkResim yol={mesaj.ek_yol} genislik={mesaj.ek_genislik} yukseklik={mesaj.ek_yukseklik}
                 alt={`${yazar?.takma_ad ?? "Eski üye"} tarafından gönderilen resim`} />
@@ -102,6 +128,7 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
             <button className="pin-btn" onClick={() => onSabitle!(mesaj, !mesaj.sabit)} title={mesaj.sabit ? "Sabitlemeyi kaldır" : "Sabitle"}
               aria-label={mesaj.sabit ? "Sabitlemeyi kaldır" : "Mesajı sabitle"}>{mesaj.sabit ? "📍" : "📌"}</button>
           )}
+          {duzenlenebilir && <button onClick={() => { setTaslak(mesaj.metin); setDuzenle(true); setArac(false); }} aria-label="Mesajı düzenle" title="Düzenle">✏️</button>}
           {silebilir && <button className="del" onClick={() => onSil(mesaj)} aria-label="Mesajı sil" title="Sil">🗑️</button>}
         </div>
       )}

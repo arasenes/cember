@@ -22,11 +22,15 @@ self.addEventListener("push", (e) => {
 
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
+  const kanal = (e.notification.data && e.notification.data.kanal_id) || null;
   e.waitUntil((async () => {
     const pencereler = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const c of pencereler) {
-      if ("focus" in c) return c.focus();
+      if ("focus" in c) {
+        if (kanal) c.postMessage({ tip: "kanal-ac", kanal_id: kanal });
+        return c.focus();
+      }
     }
-    return self.clients.openWindow("/");
+    return self.clients.openWindow(kanal ? "/?kanal=" + encodeURIComponent(kanal) : "/");
   })());
 });

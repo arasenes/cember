@@ -1,10 +1,16 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+// Yalnızca kendi sitemizden gelen tarayıcı isteklerine izin ver (Android uygulaması da bu siteyi açar)
+const IZINLI_KAYNAKLAR = ["https://cember.onrender.com", "http://localhost:5173"];
+function corsHazirla(req: Request): Record<string, string> {
+  const k = req.headers.get("origin") ?? "";
+  return {
+    "Access-Control-Allow-Origin": IZINLI_KAYNAKLAR.includes(k) ? k : IZINLI_KAYNAKLAR[0],
+    "Vary": "Origin",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
 const RENKLER = ["#E8A33D", "#1F7A4D", "#0B7A91", "#B3261E", "#6B4FA0", "#C2548A", "#3C6FB5", "#8A6D3B", "#2E8B8B", "#7A8B2E", "#B5563C", "#4F5BA0"];
 const MAX_UYE = 50;
 const YONETICI_EPOSTA = "bronzaras@gmail.com";
@@ -23,11 +29,10 @@ async function misafirSil(admin: any, uye: { id: string; user_id: string | null 
   if (uye.user_id) await admin.auth.admin.deleteUser(uye.user_id);
 }
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
-}
-
 Deno.serve(async (req) => {
+  const CORS = corsHazirla(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return json({ hata: "Geçersiz istek" }, 405);
 
@@ -38,7 +43,8 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-  const ip = (req.headers.get("x-forwarded-for") ?? "bilinmiyor").split(",")[0].trim();
+  // Önce Cloudflare'in doğruladığı adres; istemcinin kendi gönderebildiği x-forwarded-for yalnızca yedek
+  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "bilinmiyor").split(",")[0].trim();
 
   // Basit deneme sınırı
   const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
