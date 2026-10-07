@@ -46,8 +46,6 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
   const [mesgul, setMesgul] = useState(false);
   const [onay, setOnay] = useState<Onay | null>(null);
   const [yasaklar, setYasaklar] = useState<Yasak[]>([]);
-  const [kod, setKod] = useState<string | null>(null);
-  const [kodOnay, setKodOnay] = useState(false);
   const kutuRef = useRef<HTMLDivElement>(null);
   const [yeniAd, setYeniAd] = useState("");
   const [yeniTur, setYeniTur] = useState<"yazili" | "sesli">("yazili");
@@ -121,23 +119,9 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
   });
   const kanalSil = (k: Kanal) => calistir(`"${k.ad}" silindi.`, () => rpc("kanal_sil", { p_kanal: k.id }));
 
-  async function kodGoster() {
-    const { data } = await supabase.rpc("davet_kodu_getir", { p_oda: ben.oda_id });
-    if (typeof data === "string") setKod(data); else setBildirim({ metin: "Davet kodu alınamadı.", hata: true });
-  }
-  async function kodYenile() {
-    setKodOnay(false);
-    await calistir("Davet kodu yenilendi. Eski kod artık çalışmaz.", async () => {
-      const { data, error } = await supabase.rpc("yonet_kod_yenile", { p_oda: ben.oda_id });
-      if (error || typeof data !== "string") return error?.message ?? "Kod yenilenemedi.";
-      setKod(data);
-      return null;
-    });
-  }
-
   const liste = uyeler.filter((u) => u.id !== ben.id).sort((a, b) => a.takma_ad.localeCompare(b.takma_ad, "tr"));
   const onayMetni: Record<Onay["islem"], string> = {
-    at: "Odadan atılsın mı? Mesajları da silinir; davet koduyla tekrar girebilir.",
+    at: "Odadan atılsın mı? Mesajları da silinir; Google ya da misafir olarak tekrar girebilir.",
     ban: "Banlansın mı? Mesajları silinir; aynı takma ad veya aynı internet bağlantısıyla bu odaya giremez.",
     mesaj: "Tüm mesajları silinsin mi?",
   };
@@ -270,20 +254,6 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
                 </li>
               ))}
             </ul>
-
-            <h3 className="yon-baslik">Davet kodu</h3>
-            <div className="yon-kod">
-              {kod ? <code>{kod}</code> : <button className="ib" onClick={() => void kodGoster()}>Kodu göster</button>}
-              {!kodOnay
-                ? <button className="ib" disabled={mesgul} onClick={() => setKodOnay(true)}>Kodu yenile</button>
-                : <span className="yon-onay">Eski kod çalışmaz olur, yenisini arkadaşlarına sen vereceksin.
-                    <span className="yon-eylemler">
-                      <button className="ib tehlike" disabled={mesgul} onClick={() => void kodYenile()}>Evet, yenile</button>
-                      <button className="ib" onClick={() => setKodOnay(false)}>Vazgeç</button>
-                    </span>
-                  </span>}
-            </div>
-            <div className="hint">Banladığın biri farklı bir internetten ve farklı bir adla girmeye çalışabilir; bunu kesin engellemek için davet kodunu yenile.</div>
           </>
         )}
       </div>

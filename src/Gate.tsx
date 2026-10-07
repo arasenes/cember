@@ -3,12 +3,10 @@ import { supabase, SUPABASE_KEY, SUPABASE_URL } from "./supabase";
 import { googleAcikMi, googleIleGir } from "./google";
 
 export default function Gate({ onJoined }: { onJoined: () => void }) {
-  const [kod, setKod] = useState("");
   const [ad, setAd] = useState("");
   const [hata, setHata] = useState("");
   const [bekle, setBekle] = useState(false);
   const [google, setGoogle] = useState(false);
-  const [yonetici, setYonetici] = useState(false);
 
   useEffect(() => { let iptal = false; googleAcikMi().then((a) => { if (!iptal) setGoogle(a); }); return () => { iptal = true; }; }, []);
 
@@ -19,17 +17,16 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
     if (h) { setHata(h); setBekle(false); }
   }
 
-  async function gonder(e: React.FormEvent, misafir = false) {
+  async function gonder(e: React.FormEvent) {
     e.preventDefault();
     setHata("");
     if (ad.trim().length < 2) return setHata("Takma ad en az 2 harf olmalı.");
-    if (!misafir && !kod.trim()) return setHata("Davet kodunu yaz.");
     setBekle(true);
     try {
       const r = await fetch(`${SUPABASE_URL}/functions/v1/katil`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY },
-        body: JSON.stringify(misafir ? { misafir: true, takma_ad: ad } : { kod, takma_ad: ad }),
+        body: JSON.stringify({ misafir: true, takma_ad: ad }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -51,7 +48,7 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
 
   return (
     <main className="gate-wrap" id="gate">
-      <form className="gatecard" onSubmit={(e) => gonder(e, !yonetici)} noValidate>
+      <form className="gatecard" onSubmit={gonder} noValidate>
         <div className="logo">
           <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
             <circle cx="22" cy="22" r="16" fill="none" stroke="#E8A33D" strokeWidth="7" />
@@ -69,20 +66,13 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
             <div className="gate-ayrac"><span>ya da misafir olarak</span></div>
           </>
         )}
-        {yonetici && (
-          <div className="field">
-            <label htmlFor="kod">Yönetici kodu</label>
-            <input id="kod" type="text" value={kod} onChange={(e) => setKod(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="Yönetici kodu" />
-          </div>
-        )}
         <div className="field">
           <label htmlFor="ad">Takma ad</label>
           <input id="ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder="Örn. Aras" />
         </div>
         <div className="err" role="alert">{hata}</div>
-        <button className="cta" type="submit" disabled={bekle}>{bekle ? "Giriliyor…" : yonetici ? "Yönetici olarak gir" : "Misafir olarak gir"}</button>
-        {!yonetici && <p className="hint">Misafir hesabı Çıkış'a basınca silinir; mesajların "Silinmiş üye" adıyla kalır.</p>}
-        <button className="gate-link" type="button" onClick={() => { setYonetici(!yonetici); setHata(""); }}>{yonetici ? "Misafir girişine dön" : "Yönetici girişi"}</button>
+        <button className="cta" type="submit" disabled={bekle}>{bekle ? "Giriliyor…" : "Misafir olarak gir"}</button>
+        <p className="hint">Misafir hesabı Çıkış'a basınca silinir; mesajların "Silinmiş üye" adıyla kalır.</p>
       </form>
     </main>
   );

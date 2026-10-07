@@ -40,7 +40,7 @@ describe("YonetimPaneli", () => {
   const uyeler = [u("a", "sahip", "Ben"), u("b", "uye", "Ayşe"), u("c", "moderator", "Can")];
   const konum = new Map([["b", { kanal: "s1" }]]);
 
-  it("sahip: banla, moderatör yap, ban listesi ve davet kodu görünür", async () => {
+  it("sahip: banla, moderatör yap, ban listesi görünür", async () => {
     render(<YonetimPaneli ben={uyeler[0]} uyeler={uyeler} kanallar={kanallar} sesKonum={konum} cevrimici={new Set(["b"])} onKapat={() => {}} />);
     expect(screen.getAllByRole("button", { name: "Banla" })).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Moderatör yap" })).toBeTruthy();
@@ -48,10 +48,10 @@ describe("YonetimPaneli", () => {
     expect(screen.getByRole("button", { name: "Sesten at" })).toBeTruthy();
     expect(screen.getByLabelText("Ayşe kişisini başka sesli odaya taşı")).toBeTruthy();
     expect(await screen.findByText("Kötü")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Kodu yenile" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Kodu yenile" })).toBeNull();
   });
 
-  it("moderatör: banlama, rol verme ve davet kodu yok; moderatöre işlem yok", () => {
+  it("moderatör: banlama ve rol verme yok; moderatöre işlem yok", () => {
     render(<YonetimPaneli ben={uyeler[2]} uyeler={uyeler} kanallar={kanallar} sesKonum={konum} cevrimici={new Set()} onKapat={() => {}} />);
     expect(screen.queryByRole("button", { name: "Banla" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Moderatör/ })).toBeNull();
