@@ -32,6 +32,25 @@ export function sesHatasiMetni(e: unknown): string {
  * onKanal: bağlanılan/ayrılan kanalı (presence ile) odadaki herkese duyurmak için çağrılır.
  * onKoptu: bağlantı beklenmedik şekilde koparsa (kota dolması dahil) çağrılır, üst katman yedek moda geçer.
  */
+/** ses-token'dan jeton ister; oturum sunucuda sona ermişse (başka cihazdan çıkış gibi) önce yeniler, olmazsa girişe döner. */
+async function tokenIste(govde: Record<string, unknown>): Promise<Response> {
+  const dene = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return fetch(`${SUPABASE_URL}/functions/v1/ses-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ""}` },
+      body: JSON.stringify(govde),
+    });
+  };
+  let r = await dene();
+  if (r.status !== 401) return r;
+  const { error } = await supabase.auth.refreshSession();
+  if (!error) { r = await dene(); if (r.status !== 401) return r; }
+  await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  window.location.reload();
+  return r;
+}
+
 export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void, onKoptu?: (kanalId: string) => void) {
   const [durum, setDurum] = useState<SesDurumu>("kapali");
   const [kanalId, setKanalId] = useState<string | null>(null);
@@ -81,12 +100,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     hedefRef.current = hedef;
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error("güvensiz"), { name: "GuvensizBaglanti" });
-      const { data: { session } } = await supabase.auth.getSession();
-      const r = await fetch(`${SUPABASE_URL}/functions/v1/ses-token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ""}` },
-        body: JSON.stringify({ kanal_id: hedef }),
-      });
+      const r = await tokenIste({ kanal_id: hedef });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw Object.assign(new Error(j.hata ?? "token"), { kullaniciMesaji: j.hata ?? "Sese bağlanılamadı.", kod: j.kod });
       if (islem !== islemRef.current) return { ok: false, neden: "iptal" };
@@ -186,12 +200,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       // Android uygulaması: ekran, yerel eklenti üzerinden ayrı bir katılımcı olarak yayınlanır
       try {
         const kanal = hedefRef.current;
-        const { data: { session } } = await supabase.auth.getSession();
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/ses-token`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ""}` },
-          body: JSON.stringify({ kanal_id: kanal, ekran: true }),
-        });
+        const r = await tokenIste({ kanal_id: kanal, ekran: true });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) return { ok: false, mesaj: j.hata ?? "Ekran paylaşımı başlatılamadı." };
         try { await yerelDinleyici.current?.remove(); } catch { /* yoksay */ }
