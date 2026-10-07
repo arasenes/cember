@@ -43,6 +43,12 @@ export function uygulamaIci(): boolean {
   const c = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
   return !!c?.isNativePlatform?.();
 }
+/** iPhone/iPad (Safari ve ana ekran uygulaması): Apple tarayıcıdan ekran paylaşımına izin vermez. */
+export function iosMu(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/i.test(navigator.userAgent) && (navigator.maxTouchPoints ?? 0) > 1);
+}
+export const IOS_PAYLASIM_MESAJI = "iPhone/iPad ekran paylaşımını desteklemiyor (Apple tarayıcıdan izin vermiyor). Başkasının paylaşımını izleyebilirsin; paylaşmak için bilgisayardan ya da Android'den gir.";
 function telefonMu(): boolean {
   return typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
