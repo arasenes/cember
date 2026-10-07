@@ -1,11 +1,11 @@
 # Çember — Discord özellikleri: Claude Code komutu
 
-Bu dosyayı VS Code'da Claude Code'a şöyle ver: `KOMUT.md ve DEVIR-NOTU.md ve YOL-HARITASI.md dosyalarını oku, KOMUT.md'deki 1. aşamadan başla.`
+Bu dosyayı VS Code'da Claude Code'a şöyle ver: `KOMUT.md, TEMA.md, DEVIR-NOTU.md ve YOL-HARITASI.md dosyalarını oku, KOMUT.md'deki 1. aşamadan başla.`
 
 ## Bağlam
 - Proje: Çember, arkadaşlar için Discord benzeri sohbet + sesli oda uygulaması. Repo: `arasenes/cember` (main → Render ~20 sn'de yayınlar). Yönetici: Aras. Kullanıcı kısa Türkçe yanıt ister; arayüz metinleri **Türkçe**.
 - Teknoloji: Vite + React 19 + TypeScript, supabase-js (RLS + realtime), livekit-client, vitest. Supabase proje `ehjslrbgazmakeucvquk`. Altyapı ve geçmiş: `DEVIR-NOTU.md`. Özellik listesi: `YOL-HARITASI.md`.
-- **Tasarım (birebir referans):** https://claude.ai/artifact/JjYXyqpkGVjzFm2EX6xhDv — 5 ekran: sohbet, DM/arkadaşlar, sesli oda, sunucu ayarları, telefon. Koyu tema; renkler: zemin `#1c2029`, paneller `#161920`/`#12151b`, şerit `#0f1116`, çizgi `#2c3240`, yazı `#e8eaf0`, soluk `#9aa3b5`, vurgu `#4fd1a5` (üstünde koyu yazı `#07261c`), bahsetme `#f5b94a`, mavi `#7aa8ff`, uyarı `#ff8a80`. Yazı tipleri: Bricolage Grotesque (başlık), Figtree (metin). Dokunma hedefleri ≥44 px, ikonlar çizgi (stroke) SVG, emoji ikon yerine kullanılmaz. Mevcut `src/styles.css` değişkenlerini önce incele; yeni renkleri bunlara eşle, tüm uygulamayı yeniden boyama.
+- **Tema ve tasarım (birebir referans):** `TEMA.md` ve `tema.css` (renk, yazı, ölçü değişkenleri — önce bunları oku) ve `tasarim/` klasöründeki 5 ekran (`Main`, `DM`, `Ses`, `Yonetim`, `Telefon` `.dc.html`; tarayıcıda açılır, düzen inline stillerde). Önce `tema.css`'i `src/tema.css` olarak ekle, `src/styles.css` renklerini değişkenlere bağla; tüm uygulamayı yeniden yazma, ekran ekran taşı.
 
 ## Çalışma kuralları
 1. Her aşama ayrı dal/commit dizisi; bitince `npx tsc --noEmit` ve `npx vitest run` **temiz** olmalı. Yeni mantığa test yaz.
