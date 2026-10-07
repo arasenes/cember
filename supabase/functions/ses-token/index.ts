@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
   if (!uye) return json({ hata: "Bu odanın üyesi değilsin" }, 403);
 
   // İzinler: 4 sesli odada konuş · 8 ekran ve kamera paylaş (024_roller_izinler.sql)
-  const { data: maskeVeri } = await admin.rpc("uye_izni", { p_uye: uye.id });
+  const { data: maskeVeri } = await admin.rpc("uye_kanal_izni", { p_uye: uye.id, p_kanal: kanalId });
   const maske = Number(maskeVeri ?? 0);
   const TS = (lksdk as unknown as { TrackSource?: Record<string, number> }).TrackSource;
   const yayinKaynaklari = (): { canPublish: boolean; canPublishSources?: number[] } => {

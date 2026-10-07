@@ -259,6 +259,23 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const ayarAc = (b: Bolum) => { setAyarBolum(b); setYonetimAcik(true); };
   const seciliSunucu = sunucular.find((x) => x.oda_id === me.oda_id);
   const benSusturuldu = susturulmus(ben, simdi);
+  // Kanal bazlı izin: bu kanalda yazabilir miyim / dosya ekleyebilir miyim (sunucu RLS ile zorlar; burası yalnızca arayüz)
+  const [kanalMaske, setKanalMaske] = useState<number | null>(null);
+  useEffect(() => {
+    if (!aktif) return;
+    let iptal = false;
+    const getir = () => supabase.rpc("kanal_izni", { p_kanal: aktif }).then(({ data }) => { if (!iptal && typeof data === "number") setKanalMaske(data); });
+    setKanalMaske(null);
+    void getir();
+    const k = supabase.channel(`kanal-izin-${aktif}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "kanal_izinleri" }, () => void getir())
+      .on("postgres_changes", { event: "*", schema: "public", table: "uye_rolleri" }, () => void getir())
+      .subscribe();
+    return () => { iptal = true; void supabase.removeChannel(k); };
+  }, [aktif, izinler.maske]);
+  const kanalYazabilir = kanalMaske === null || (kanalMaske & IZIN.MESAJ_YAZ) !== 0;
+  const kanalDosyaEkleyebilir = kanalMaske === null || (kanalMaske & IZIN.DOSYA) !== 0;
+  const yazamaz = benSusturuldu || !kanalYazabilir;
 
   // Okunmamış göstergesi: kanal açılınca / sekme görünür olunca okundu say
   useEffect(() => {
@@ -1099,7 +1116,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         zengin={{
           alinti: m.yanit_id ? { mesaj: alintilanan, yazar: alintilanan ? uyeHaritasi.get(alintilanan.uye_id) : undefined } : undefined,
           onAlintiGit: (id) => void alintiyaGit(id),
-          onYanitla: benSusturuldu ? undefined : (x) => { setYanitlanan(x); metinRef.current?.focus(); },
+          onYanitla: yazamaz ? undefined : (x) => { setYanitlanan(x); metinRef.current?.focus(); },
           onIlet: (x) => setIletMesaj(x),
           anket: anketler.get(m.id), onOyla: anketOyla, onHata: (h) => toastAt(h, "hata"),
         }} yazar={uyeHaritasi.get(m.uye_id)} benim={ben}
@@ -1263,14 +1280,14 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           {emojiAcik && (
             <EmojiDeposu className="deposu-yazi" onSec={(e) => { setMetin((m) => m + e); metinRef.current?.focus(); }} />
           )}
-          <button className="sq" onClick={() => dosyaRef.current?.click()} aria-label="Resim ekle" disabled={gonderiliyor || benSusturuldu}><Ikon ad="ek" /></button>
-          <button className="sq" onClick={() => setAnketAcik(true)} aria-label="Anket oluştur" disabled={benSusturuldu || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
-          <button className="sq" onClick={() => setGifAcik((x) => !x)} aria-label="GIF seç" aria-expanded={gifAcik} disabled={benSusturuldu || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
+          <button className="sq" onClick={() => dosyaRef.current?.click()} aria-label="Resim ekle" disabled={gonderiliyor || yazamaz || !kanalDosyaEkleyebilir}><Ikon ad="ek" /></button>
+          <button className="sq" onClick={() => setAnketAcik(true)} aria-label="Anket oluştur" disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
+          <button className="sq" onClick={() => setGifAcik((x) => !x)} aria-label="GIF seç" aria-expanded={gifAcik} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
           {gifAcik && <GifSecici onSec={(u) => void gifGonder(u)} onKapat={() => setGifAcik(false)} />}
           <input ref={dosyaRef} type="file" accept={IZINLI_TURLER.join(",")} hidden
             onChange={(e) => { void ekSec(e.target.files?.[0]); e.target.value = ""; }} />
-          <textarea ref={metinRef} rows={1} value={metin} maxLength={4000} aria-label="Mesaj yaz" disabled={benSusturuldu}
-            placeholder={benSusturuldu ? `Susturuldun; ${new Date(ben.susturma_bitis!).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}'e kadar yazamazsın` : `#${aktifKanal?.ad ?? ""} kanalına yaz`}
+          <textarea ref={metinRef} rows={1} value={metin} maxLength={4000} aria-label="Mesaj yaz" disabled={yazamaz}
+            placeholder={!kanalYazabilir && !benSusturuldu ? "Bu kanalda mesaj yazma iznin yok" : benSusturuldu ? `Susturuldun; ${new Date(ben.susturma_bitis!).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}'e kadar yazamazsın` : `#${aktifKanal?.ad ?? ""} kanalına yaz`}
             onChange={(e) => { setMetin(e.target.value); if (e.target.value.trim()) yaziyorYayinla(); }}
             onPaste={(e) => { const f = resimBul(e.clipboardData.files); if (f) { e.preventDefault(); void ekSec(f, "Ekran görüntüsü"); } }}
             onKeyDown={(e) => {
@@ -1278,7 +1295,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
               else if (e.key === "Escape" && yanitlanan) setYanitlanan(null);
             }} />
           <button className="sq" onClick={() => setEmojiAcik(!emojiAcik)} aria-label="Emoji seçici" aria-expanded={emojiAcik}><Ikon ad="gulen" /></button>
-          <button className="sq send" onClick={gonder} aria-label="Gönder" disabled={(!metin.trim() && !ek) || gonderiliyor || benSusturuldu}>{gonderiliyor ? "…" : <Ikon ad="gonder" />}</button>
+          <button className="sq send" onClick={gonder} aria-label="Gönder" disabled={(!metin.trim() && !ek) || gonderiliyor || yazamaz}>{gonderiliyor ? "…" : <Ikon ad="gonder" />}</button>
         </div>
         </>)}
       </section>
@@ -1288,7 +1305,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <SesYani ben={ben} digerleri={uyeler.filter((u) => u.id !== me.id && sesKonum.get(u.id)?.kanal === aktifKanal.id)}
             paylasanlar={new Set([...sesKonum].filter(([, v]) => v.kanal === aktifKanal.id && v.ekran).map(([id]) => id))}
             uyeHaritasi={uyeHaritasi} yonetici={mesajYonet} islemYapabilir={(u) => islemYapabilir(ben, u)} susturulanlar={susturulanlar}
-            onSustur={sesSustur} onAt={sesAt} mesajlar={mesajlar} onGonder={sesSohbetGonder} yazamaz={benSusturuldu} onHata={(m) => toastAt(m, "hata")} />
+            onSustur={sesSustur} onAt={sesAt} mesajlar={mesajlar} onGonder={sesSohbetGonder} yazamaz={yazamaz} onHata={(m) => toastAt(m, "hata")} />
         ) : (<>
         <div className="head"><h2>Üyeler — {aktifUyeler.length}</h2></div>
         <div className="scroll">
@@ -1341,7 +1358,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         if (!ana) return null;
         const liste = yanitlar.filter((y) => y.ust_mesaj_id === konuId);
         return (
-          <KonuPaneli ana={ana} yanitlar={liste} uyeHaritasi={uyeHaritasi} ben={ben} yazamaz={benSusturuldu}
+          <KonuPaneli ana={ana} yanitlar={liste} uyeHaritasi={uyeHaritasi} ben={ben} yazamaz={yazamaz}
             tepkiler={tepkiler.filter((t) => t.mesaj_id === ana.id || liste.some((y) => y.id === t.mesaj_id))}
             onTepki={tepkiDegistir} onSil={sil} onDuzenle={mesajDuzenle} onProfil={setProfilId} onGonder={yanitGonder} onKapat={() => setKonuId(null)} />
         );

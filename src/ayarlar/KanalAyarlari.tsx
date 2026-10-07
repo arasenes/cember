@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "../supabase";
 import Ikon from "../mesaj/Ikon";
 import type { Kanal, Kategori } from "../types";
 import { duzenle, gruplariKur, YAVAS_MOD_SECENEKLERI, type Tasima } from "../sunucu/siralama";
+import { IZIN } from "../sunucu/izin";
 import { BildirimSatiri, rpcCagir, SayfaBasligi, useBildirim } from "./ortak";
 
 type Props = {
@@ -11,6 +13,65 @@ type Props = {
   /** Kanal/kategori verisi değişti: üst bileşen yeniden yüklesin. */
   onDegisti: () => void;
 };
+
+
+type IzinSatir = { hedef: "herkes" | "moderator" | "rol"; rol_id: string | null; ver: number; yasak: number };
+type RolKisa = { id: string; ad: string };
+const KANAL_IZINLERI: { bit: number; ad: string }[] = [
+  { bit: IZIN.MESAJ_YAZ, ad: "Mesaj yaz" }, { bit: IZIN.DOSYA, ad: "Dosya ekle" }, { bit: IZIN.SES_KONUS, ad: "Sesli konuş" }, { bit: IZIN.EKRAN_KAMERA, ad: "Ekran/kamera" },
+];
+
+/** Bir kanalın izinlerini Herkes / Moderatör / özel rol için "varsayılan · izin ver · yasakla" olarak ayarlar. */
+function KanalIzinleri({ kanal, onBildir }: { kanal: Kanal; onBildir: (b: { ok: boolean; metin: string }) => void }) {
+  const [satirlar, setSatirlar] = useState<IzinSatir[]>([]);
+  const [roller, setRoller] = useState<RolKisa[]>([]);
+  const yukle = useCallback(async () => {
+    const [a, r] = await Promise.all([
+      supabase.from("kanal_izinleri").select("hedef, rol_id, ver, yasak").eq("kanal_id", kanal.id),
+      supabase.from("roller").select("id, ad").eq("oda_id", kanal.oda_id).order("sira"),
+    ]);
+    if (a.data) setSatirlar(a.data as IzinSatir[]);
+    if (r.data) setRoller(r.data as RolKisa[]);
+  }, [kanal.id, kanal.oda_id]);
+  useEffect(() => { void yukle(); }, [yukle]);
+
+  const durum = (hedef: IzinSatir["hedef"], rolId: string | null, bit: number): "varsayilan" | "ver" | "yasak" => {
+    const x = satirlar.find((s) => s.hedef === hedef && s.rol_id === rolId);
+    return x && (x.ver & bit) ? "ver" : x && (x.yasak & bit) ? "yasak" : "varsayilan";
+  };
+  async function degistir(hedef: IzinSatir["hedef"], rolId: string | null, bit: number, yeni: "varsayilan" | "ver" | "yasak") {
+    const x = satirlar.find((s) => s.hedef === hedef && s.rol_id === rolId);
+    let ver = (x?.ver ?? 0) & ~bit, yasak = (x?.yasak ?? 0) & ~bit;
+    if (yeni === "ver") ver |= bit; else if (yeni === "yasak") yasak |= bit;
+    const r = await rpcCagir("kanal_izin_ayarla", { p_kanal: kanal.id, p_hedef: hedef, p_rol: rolId, p_ver: ver, p_yasak: yasak });
+    onBildir(r.hata ? { ok: false, metin: r.hata } : { ok: true, metin: "Kanal izni kaydedildi." });
+    if (!r.hata) await yukle();
+  }
+  const hedefler: { hedef: IzinSatir["hedef"]; rolId: string | null; ad: string }[] = [
+    { hedef: "herkes", rolId: null, ad: "Herkes" }, { hedef: "moderator", rolId: null, ad: "Moderatör" },
+    ...roller.map((r) => ({ hedef: "rol" as const, rolId: r.id, ad: r.ad })),
+  ];
+  const bitler = KANAL_IZINLERI.filter((b) => ((b.bit === IZIN.MESAJ_YAZ || b.bit === IZIN.DOSYA) ? kanal.tur === "yazili" : kanal.tur === "sesli"));
+  return (
+    <div className="kanal-izin kart" role="group" aria-label={`${kanal.ad} kanal izinleri`}>
+      <p className="hint">“Varsayılan”: sunucu izni geçerli. Sahip her zaman her şeyi yapabilir.</p>
+      {hedefler.map((h) => (
+        <div key={h.hedef + (h.rolId ?? "")} className="izin">
+          <div>{h.ad}</div>
+          <div className="yon-eylemler">
+            {bitler.map((b) => (
+              <label key={b.bit} className="kanal-izin-alan">{b.ad}
+                <select value={durum(h.hedef, h.rolId, b.bit)} aria-label={`${h.ad}: ${b.ad}`} onChange={(e) => void degistir(h.hedef, h.rolId, b.bit, e.target.value as "varsayilan" | "ver" | "yasak")}>
+                  <option value="varsayilan">Varsayılan</option><option value="ver">İzin ver</option><option value="yasak">Yasakla</option>
+                </select>
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 type Surukleme = { tur: "kanal" | "kategori"; id: string } | null;
 
@@ -26,6 +87,7 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
   const [sifreKanal, setSifreKanal] = useState<string | null>(null);
   const [sifre, setSifre] = useState("");
   const [surukle, setSurukle] = useState<Surukleme>(null);
+  const [izinKanal, setIzinKanal] = useState<string | null>(null);
   const gruplar = gruplariKur(kanallar, kategoriler);
 
   const calistirVeYenile = async (basari: string, is: () => Promise<string | null>) => {
@@ -183,8 +245,10 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
                       {k.sifreli && <button className="pk-btn" disabled={mesgul} onClick={() => sifreKaydet(k, "")}>Şifreyi kaldır</button>}
                     </>
                   )}
+                  <button className="pk-btn" aria-expanded={izinKanal === k.id} disabled={mesgul} onClick={() => setIzinKanal(izinKanal === k.id ? null : k.id)}>İzinler</button>
                   <button className="pk-btn tehlike" disabled={mesgul} onClick={() => kanalSil(k)}>Sil</button>
                 </div>
+                {izinKanal === k.id && <KanalIzinleri kanal={k} onBildir={(b) => void calistir(b.metin, async () => (b.ok ? null : b.metin))} />}
               </li>
             ))}
             {!g.kanallar.length && <li className="hint">Bu grupta kanal yok.</li>}

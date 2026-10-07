@@ -336,3 +336,6 @@
 .palet-oge small{color:var(--muted);font-weight:600}
 .palet-bos{padding:16px;text-align:center}
 .palet-alt{padding:8px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+.kanal-izin{width:100%;margin-top:8px}
+.kanal-izin-alan{display:flex;flex-direction:column;gap:2px;font:600 12px var(--ui);color:var(--muted)}
+.yon-kanal{flex-wrap:wrap}

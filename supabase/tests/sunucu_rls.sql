@@ -194,5 +194,23 @@ begin
   perform webhook_sil(wh.id);
   select count(*) into n from (select id from webhooklar) x; rapor := rapor||'Silinen webhook (0): '||n||E'\n';
 
+  -- ===== kanal bazlı izinler (030) =====
+  reset role; perform set_config('request.jwt.claims', json_build_object('sub',ua,'role','authenticated')::text, true); set local role authenticated;
+  perform kanal_izin_ayarla(k1, 'herkes', null, 0, 1);       -- Herkes: mesaj yazamaz (duyuru kanalı)
+  perform kanal_izin_ayarla(k1, 'moderator', null, 1, 0);    -- Moderatör: yazabilir
+  reset role; perform set_config('request.jwt.claims', json_build_object('sub',uc,'role','authenticated')::text, true); set local role authenticated;
+  rapor := rapor||'Üyenin kanal izni (14): '||kanal_izni(k1)||E'\n';
+  begin insert into mesajlar(kanal_id, uye_id, metin) values (k1, mc, 'duyuruda yazma denemesi'); rapor := rapor||E'FAIL: kısıtlı kanalda üye yazdı\n'; exception when others then rapor := rapor||E'OK: kanal kısıtı üyenin yazmasını engeller\n'; end;
+  begin perform kanal_izin_ayarla(k1, 'herkes', null, 1, 0); rapor := rapor||E'FAIL: üye kanal iznini değiştirdi\n'; exception when others then rapor := rapor||E'OK: kanal_yonet izni olmayan değiştiremez\n'; end;
+  reset role; perform set_config('request.jwt.claims', json_build_object('sub',ub,'role','authenticated')::text, true); set local role authenticated;
+  insert into mesajlar(kanal_id, uye_id, metin) values (k1, mb, 'moderatör duyuru');
+  rapor := rapor||E'OK: moderatör geçersiz kılması yazmaya izin verir\n';
+  reset role; perform set_config('request.jwt.claims', json_build_object('sub',ua,'role','authenticated')::text, true); set local role authenticated;
+  perform kanal_izin_ayarla(k1, 'herkes', null, 0, 0);
+  select count(*) into n from kanal_izinleri where kanal_id = k1; rapor := rapor||'Herkes satırı silindi, moderatör kalır (1): '||n||E'\n';
+  reset role; perform set_config('request.jwt.claims', json_build_object('sub',uc,'role','authenticated')::text, true); set local role authenticated;
+  insert into mesajlar(kanal_id, uye_id, metin) values (k1, mc, 'kısıt kalkınca yazabilir');
+  rapor := rapor||E'OK: kısıt kaldırılınca üye yazar\n';
+
   raise exception E'\n=== SUNUCU RLS RAPORU ===\n%', rapor;
 end $$;
