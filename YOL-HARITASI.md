@@ -30,32 +30,32 @@ Teknoloji: React + Supabase (RLS + realtime) + LiveKit. Yeni her tablo RLS ile g
 ## 3. Sunucu yönetimi
 - [x] Roller: sahip / moderatör / üye; susturma, yasaklama (ad + IP), kanal şifresi
 - [x] Kanal ekle/sil/sırala, kanal açıklaması
-- [ ] **Kanal kategorileri**: `kategoriler(oda_id, ad, sira)`, `kanallar.kategori_id`, daraltılabilir gruplar
-- [ ] **Özel roller ve izinler**: `roller(oda_id, ad, renk, izinler bigint)`, `uye_rolleri`; izin bitleri (mesaj yaz, dosya, yönet, yasakla, ses konuş…); kanal bazlı izin geçersiz kılma
-- [ ] **Çoklu sunucu**: bugün tek oda (`odalar` 1 satır, `katil` ilk odayı alıyor). `oda_id` zaten tablolarda var; arayüzde sunucu listesi ve sunucu oluşturma gerek
-- [ ] **Davet bağlantıları**: `davetler(kod, oda_id, bitis, kullanim_limiti)`, `/davet/<kod>` sayfası
-- [ ] **Denetim kaydı**: `denetim_kaydi(oda_id, eyleyen, eylem, hedef, zaman)`
-- [ ] Yavaş mod (kanal başına saniye), otomatik moderasyon (yasaklı kelime), zaman aşımı
-- [ ] Hoş geldin mesajı, sunucu simgesi, sunucu bannerı
-- [ ] Bot/webhook: kanala gelen webhook adresi (edge function)
+- [x] **Kanal kategorileri**: `kategoriler(oda_id, ad, sira)`, `kanallar.kategori_id`, daraltılabilir gruplar
+- [x] **Özel roller ve izinler** (kanal bazlı izin geçersiz kılma yok): `roller(oda_id, ad, renk, izinler bigint)`, `uye_rolleri`; izin bitleri (mesaj yaz, dosya, yönet, yasakla, ses konuş…); kanal bazlı izin geçersiz kılma
+- [x] **Çoklu sunucu**: bugün tek oda (`odalar` 1 satır, `katil` ilk odayı alıyor). `oda_id` zaten tablolarda var; arayüzde sunucu listesi ve sunucu oluşturma gerek
+- [x] **Davet bağlantıları** (`/?davet=KOD`; Render'da SPA yönlendirmesi olmadığı için `/davet/KOD` yalnızca 404.html ile çalışır): `davetler(kod, oda_id, bitis, kullanim_limiti)`, `/davet/<kod>` sayfası
+- [x] **Denetim kaydı**: `denetim_kaydi(oda_id, eyleyen, eylem, hedef, zaman)`
+- [x] Yavaş mod (kanal başına saniye), otomatik moderasyon (yasaklı kelime), zaman aşımı
+- [x] Hoş geldin mesajı, sunucu simgesi (banner yok)
+- [x] Bot/webhook: kanala gelen webhook adresi (edge function)
 
 ## 4. Ses ve video
 - [x] Sesli kanallar (LiveKit), mikrofon aç/kapat, gürültü engelleme, ekran paylaşımı (web + Android)
 - [x] Telefon sesi ekran paylaşımıyla (APK 1.0.8, test bekliyor)
-- [ ] **Bas-konuş (push-to-talk)** ve tuş atama
-- [ ] **Kişi başı ses düzeyi** (sağ tık/uzun bas): izleyici tarafında `audio.volume`
-- [ ] **Kamera paylaşımı** (`setCameraEnabled`), kamera ızgarası
-- [ ] **Sağırlaştır** (kendi çıkışını kapat) ve sunucu susturma
-- [ ] Sesli kanalda metin sohbeti, "konuşuyor" halkası (kısmen var: `konusanlar`)
+- [x] **Bas-konuş (push-to-talk)** ve tuş atama
+- [x] **Kişi başı ses düzeyi** (sağ tık/uzun bas): izleyici tarafında `audio.volume`
+- [x] **Kamera paylaşımı** (yalnızca LiveKit modunda) (`setCameraEnabled`), kamera ızgarası
+- [x] **Sağırlaştır** (kendi çıkışını kapat) ve sunucu susturma
+- [x] Sesli kanalda metin sohbeti, "konuşuyor" halkası (kısmen var: `konusanlar`)
 - [ ] Sahne kanalı (konuşmacı/dinleyici), davet-ile-bağlan
 - [ ] Müzik botu (LiveKit agent ya da ingress)
 
 ## 5. Uygulama / altyapı
 - [x] Web push, APK, güncelleme uyarısı, tema, yazı boyutu
 - [ ] APK bildirimleri (Firebase; bkz. DEVIR-NOTU.md)
-- [ ] Klavye kısayolları, komut paleti (Ctrl+K)
-- [ ] Çeviri (TR/EN), erişilebilirlik denetimi
-- [ ] Kullanım limitleri ve LiveKit maliyet izleme
+- [x] Klavye kısayolları, komut paleti (Ctrl+K, Alt+↑/↓)
+- [ ] Çeviri (TR/EN): altyapı ve palet/sekmeler hazır, diğer ekranlar Türkçe; erişilebilirlik denetimi yapılmadı
+- [x] Kullanım limitleri ve LiveKit maliyet izleme (yönetici göstergesi)
 
 ## Önerilen sıra
 1. Alıntılı yanıt, yazıyor göstergesi, mesaj arama, Markdown (küçük, hızlı kazanç)
