@@ -28,6 +28,23 @@ class EkranYakalaPlugin : Plugin() {
     private val kapsam = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var oda: Room? = null
 
+    /** Kurulu uygulamanın sürümü (güncelleme uyarısı için). */
+    @PluginMethod
+    fun surum(call: PluginCall) {
+        val sonuc = JSObject()
+        try {
+            val bilgi = context.packageManager.getPackageInfo(context.packageName, 0)
+            @Suppress("DEPRECATION")
+            val kod = if (Build.VERSION.SDK_INT >= 28) bilgi.longVersionCode else bilgi.versionCode.toLong()
+            sonuc.put("kod", kod)
+            sonuc.put("ad", bilgi.versionName ?: "")
+        } catch (e: Exception) {
+            call.reject("surum okunamadi")
+            return
+        }
+        call.resolve(sonuc)
+    }
+
     @PluginMethod
     fun baslat(call: PluginCall) {
         if (call.getString("url").isNullOrEmpty() || call.getString("token").isNullOrEmpty()) {
