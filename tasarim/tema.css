@@ -1,0 +1,75 @@
+/* Çember teması — tasarım dosyalarındaki (tasarim/*.dc.html) renk, yazı ve ölçü değerleri.
+   Kullanım: src/tema.css olarak ekle, main.tsx'te import et; mevcut styles.css değişkenlerini bunlara eşle. */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap");
+
+:root {
+  /* zeminler (koyu → açık), nötr kömür */
+  --zemin-serit: #0c0c0c;   /* sunucu şeridi, sayfa arkası */
+  --zemin-panel: #141414;   /* kanal listesi, üye listesi, kartlar */
+  --zemin-girdi: #101010;   /* yazı kutuları, kullanıcı çubuğu, kod */
+  --zemin-ana: #1b1b1b;     /* sohbet alanı */
+  --zemin-vurgulu: #222222; /* yanıtlı mesaj, hover */
+  --zemin-yuzey: #282828;   /* düğme, seçili kanal, composer */
+  --cizgi: #333333;
+  --cizgi-ince: #2b2b2b;
+
+  /* yazı */
+  --yazi: #efefef;
+  --yazi-2: #cfcfcf;
+  --soluk: #a3a3a3;
+
+  /* vurgu (turuncu) */
+  --vurgu: #ff9f1c;
+  --vurgu-yazi: #2b1900;    /* vurgu zemini üstündeki yazı */
+  --vurgu-zemin: #3d2a08;   /* seçili/benim tepkim, anket seçili */
+  --vurgu-orta: #5a3b0a;    /* anket doluluk çubuğu */
+  --vurgu-acik: #ffe0b0;
+
+  /* ek renkler (bahsetme/çevrimiçi = turkuaz, kullanıcı/rol renkleri) */
+  --bahsetme: #5ee0c1;
+  --altin: #ffd166;           /* sahip rolü, boşta */
+  --bahsetme-zemin: #0f3a31;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+
+  /* durum noktaları */
+  --durum-cevrimici: #5ee0c1;
+  --durum-bosta: #ffd166;
+  --durum-mesgul: var(--uyari);
+  --durum-cevrimdisi: #5c5c5c;
+
+  /* yazı tipleri */
+  --yazi-baslik: "Bricolage Grotesque", system-ui, sans-serif; /* 600–700 */
+  --yazi-metin: "Figtree", system-ui, sans-serif;               /* 400–700 */
+
+  /* ölçüler */
+  --serit-genislik: 72px;
+  --kanal-genislik: 264px;
+  --uye-genislik: 248px;
+  --ust-yukseklik: 56px;
+  --dokunma: 44px;          /* en küçük tıklanabilir alan */
+  --yaricap-s: 8px;
+  --yaricap-m: 10px;
+  --yaricap-b: 14px;
+}
+
+body { background: var(--zemin-serit); color: var(--yazi); font-family: var(--yazi-metin); }
+h1, h2, h3 { font-family: var(--yazi-baslik); }
+
+/* küçük yardımcılar (tasarımdaki ortak parçalar) */
+.cb-ikon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.cb-ibtn { display: flex; align-items: center; justify-content: center; width: var(--dokunma); height: var(--dokunma); border: 0; border-radius: var(--yaricap-m); background: transparent; color: var(--soluk); cursor: pointer; font-family: inherit; }
+.cb-ibtn:hover { background: var(--zemin-yuzey); color: var(--yazi); }
+.cb-ibtn:focus-visible, .cb-chip:focus-visible { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.cb-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--zemin-serit); flex: none; }
+.cb-chip { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px; background: var(--zemin-yuzey); border: 1px solid var(--cizgi); color: var(--yazi); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.cb-chip.ben { background: var(--vurgu-zemin); border-color: var(--vurgu); color: var(--vurgu-acik); }
+.cb-kart { border: 1px solid var(--cizgi); background: var(--zemin-panel); border-radius: var(--yaricap-b); padding: 18px; }
+.cb-ana-dugme { height: var(--dokunma); padding: 0 16px; border: 0; border-radius: var(--yaricap-m); background: var(--vurgu); color: var(--vurgu-yazi); font-family: inherit; font-weight: 700; cursor: pointer; }
+.cb-anahtar { width: 44px; height: 26px; border-radius: 13px; background: #444444; position: relative; flex: none; }
+.cb-anahtar::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--yazi); }
+.cb-anahtar.acik { background: var(--vurgu); }
+.cb-anahtar.acik::after { left: 21px; background: var(--vurgu-yazi); }
