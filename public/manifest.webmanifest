@@ -1,0 +1,11 @@
+{
+  "name": "Çember",
+  "short_name": "Çember",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0E1730",
+  "theme_color": "#0E1730",
+  "icons": [
+    { "src": "/ikon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
