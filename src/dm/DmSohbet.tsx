@@ -36,6 +36,8 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [eklenecek, setEklenecek] = useState("");
   const akisRef = useRef<HTMLDivElement>(null);
+  // "Yeni mesaj" çizgisi: sohbet açılırken kayıtlı son okuma zamanı (açılınca okundu sayıldığı için bir kez alınır)
+  const okumaRef = useRef<{ dm: string; zaman: string | null } | null>(null);
   const altaKaydir = useRef(true);
   const girdiRef = useRef<HTMLTextAreaElement>(null);
   const harita = useMemo(() => new Map(uyeler.map((u) => [u.id, u])), [uyeler]);
@@ -45,6 +47,12 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   const iliski = karsi ? dm.iliski(karsi) : "yok";
   const baslik = kanal ? dmBasligi(kanal, dm.uyeleri, harita, me.id) : "Mesaj";
   const grupUyeleri = kanal?.tur === "grup" ? dm.uyeleri.filter((u) => u.dm_id === dmId) : [];
+  if (okumaRef.current?.dm !== dmId) {
+    const benimki = dm.uyeleri.find((u) => u.dm_id === dmId && u.uye_id === me.id);
+    if (benimki) okumaRef.current = { dm: dmId, zaman: benimki.son_okuma || null };
+  }
+  const sonOkuma = okumaRef.current?.dm === dmId ? okumaRef.current.zaman : null;
+  const yeniSayisi = sonOkuma ? mesajlar.filter((m) => m.olusturma > sonOkuma && m.uye_id !== me.id && !m.silindi).length : 0;
 
   // Mesajları yükle
   useEffect(() => {
@@ -138,11 +146,16 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   const satirlar: React.ReactNode[] = [];
   let sonGun = "";
   let onceki: DmMesaj | null = null;
+  let cizgiYazildi = false;
   for (const m of mesajlar) {
     const g = gunEtiketi(m.olusturma);
     if (g !== sonGun) { sonGun = g; onceki = null; satirlar.push(<div className="day" key={"g" + m.id}>{g}</div>); }
     const devam = !!onceki && onceki.uye_id === m.uye_id && !onceki.silindi && !m.silindi && new Date(m.olusturma).getTime() - new Date(onceki.olusturma).getTime() < 5 * 60000;
     onceki = m;
+    if (!cizgiYazildi && sonOkuma && yeniSayisi > 0 && m.olusturma > sonOkuma && m.uye_id !== me.id) {
+      cizgiYazildi = true;
+      satirlar.push(<div className="yeni-cizgi" role="separator" aria-label={`${yeniSayisi} yeni mesaj`} key={"yeni" + m.id}><span>{yeniSayisi} yeni mesaj</span></div>);
+    }
     satirlar.push(
       <MessageView key={m.id} devam={devam} mesaj={mesajaCevir(m)} yazar={harita.get(m.uye_id)} benim={me} tepkiler={[]} tepkisiz
         onTepki={() => {}} onSil={() => void sil(m)} onDuzenle={(x, t) => duzenle(x, t)} onProfil={onProfil} />,
@@ -153,12 +166,12 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
     <section className="col chat dm-sohbet" aria-label={`${baslik} ile mesajlaşma`}>
       <div className="head">
         {onGeri && <button type="button" className="sq dm-geri" onClick={onGeri} aria-label="Mesaj listesine dön"><Ikon ad="geri" /></button>}
-        {kanal?.tur === "ikili" && karsiUyesi && <Avatar uye={karsiUyesi} />}
-        <div className="dm-baslik">
-          <h2>{baslik}</h2>
-          {kanal?.tur === "ikili" && karsiUyesi && <span className="hint">{durumMetni(karsiUyesi, cevrimici.has(karsiUyesi.id))}</span>}
-          {kanal?.tur === "grup" && <span className="hint">{grupUyeleri.length} kişi</span>}
-        </div>
+        {kanal?.tur === "ikili" && karsiUyesi && <span className="dm-avatar"><Avatar uye={karsiUyesi} className="dm-ust-avatar" /></span>}
+        <h2 className="dm-ad-baslik">{baslik}</h2>
+        <span className="dm-durum-metni">
+          {kanal?.tur === "ikili" && karsiUyesi && [durumMetni(karsiUyesi, cevrimici.has(karsiUyesi.id)), karsiUyesi.durum_metin].filter(Boolean).join(" · ")}
+          {kanal?.tur === "grup" && `${grupUyeleri.length} kişi`}
+        </span>
         {kanal?.tur === "grup" && <button type="button" className="head-dugme" onClick={() => void ayril()}>Gruptan ayrıl</button>}
       </div>
 
@@ -180,6 +193,13 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
 
       <div className="msgs" ref={akisRef} role="log" aria-live="polite" aria-label="Özel mesajlar">
         {dahaVar && <button className="more" onClick={() => void eskileriYukle()}>Eski mesajları yükle</button>}
+        {!dahaVar && (
+          <div className="dm-giris">
+            {kanal?.tur === "ikili" && karsiUyesi ? <Avatar uye={karsiUyesi} className="dm-giris-avatar" /> : <span className="dm-ikon dm-giris-avatar dm-grup-ikon">{grupUyeleri.length}+</span>}
+            <div className="dm-giris-ad">{baslik}</div>
+            <div className="dm-giris-metin">{kanal?.tur === "grup" ? `${baslik} grubunun başlangıcı.` : `${baslik} ile özel mesajlaşmanın başlangıcı.`}</div>
+          </div>
+        )}
         {!mesajlar.length && <div className="empty">Henüz mesaj yok. İlk mesajı sen yaz.</div>}
         {satirlar}
       </div>

@@ -1,4 +1,4 @@
-import Avatar, { yaziRengi } from "../Avatar";
+import Avatar from "../Avatar";
 import type { Uye } from "../types";
 import { DURUM_BILGI, rolEtiketi } from "../util";
 import type { Iliski } from "./tipler";
@@ -40,12 +40,12 @@ export default function ProfilKarti({ uye, benimMi, cevrimici, bosta, iliski, on
         {uye.durum_metin && !silindi && <p className="pk-metin">“{uye.durum_metin}”</p>}
         {!silindi && (
           <ul className="pk-rozetler" aria-label="Rozetler">
-            <li style={{ background: uye.renk, color: yaziRengi(uye.renk) }}>{rolEtiketi(uye.rol)}</li>
+            <li className={"pk-rozet rol-" + uye.rol}>{rolEtiketi(uye.rol)}</li>
             {uye.misafir && <li className="pk-misafir">Misafir</li>}
           </ul>
         )}
         {uye.hakkinda && !silindi && (<><h3 className="pk-baslik">Hakkında</h3><p className="pk-hakkinda">{uye.hakkinda}</p></>)}
-        {!silindi && (<><h3 className="pk-baslik">Ortak sunucular</h3><p className="pk-hakkinda">Çember</p></>)}
+        {!silindi && (<><h3 className="pk-baslik">Ortak sunucular</h3><ul className="pk-sunucular" aria-label="Ortak sunucular"><li title="Çember" className="pk-sunucu">Ç</li></ul></>)}
         {!benimMi && !silindi && (
           <div className="pk-eylemler">
             {onMesaj && iliski !== "engelli" && <button type="button" className="cta" onClick={onMesaj}>Mesaj gönder</button>}

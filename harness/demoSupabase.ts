@@ -42,6 +42,12 @@ const tepkiler = [
   { id: "t1", mesaj_id: "m2", uye_id: "u-aras", emoji: "👍" }, { id: "t2", mesaj_id: "m2", uye_id: "u-can", emoji: "👍" }, { id: "t3", mesaj_id: "m2", uye_id: "u-elif", emoji: "👍" },
   { id: "t4", mesaj_id: "m2", uye_id: "u-enes", emoji: "🎉" }, { id: "t5", mesaj_id: "m2", uye_id: "u-can", emoji: "🎉" },
 ];
+const dmMesajlari = [
+  { id: "dm-1", dm_id: "d1", uye_id: "u-elif", metin: "notları atabilir misin? yarın sabah bakacağım", olusturma: dk(140), duzenleme: null, silindi: false },
+  { id: "dm-2", dm_id: "d1", uye_id: "u-aras", metin: "tabii, hemen atıyorum", olusturma: dk(137), duzenleme: null, silindi: false },
+  { id: "dm-3", dm_id: "d1", uye_id: "u-elif", metin: "çok sağ ol, hayat kurtardın", olusturma: dk(20), duzenleme: null, silindi: false },
+  { id: "dm-4", dm_id: "d1", uye_id: "u-elif", metin: "Cuma ekibine de ekleyebilir misin beni?", olusturma: dk(19), duzenleme: null, silindi: false },
+];
 const anketler = [{ id: "a1", mesaj_id: "m3", soru: "Cuma akşamı ne oynayalım?", bitis: new Date(simdi + 23 * 3600000).toISOString(), coklu: false }];
 const secenekler = [
   { id: "s1", anket_id: "a1", metin: "Valorant", sira: 1 }, { id: "s2", anket_id: "a1", metin: "Minecraft", sira: 2 }, { id: "s3", anket_id: "a1", metin: "Film izleyelim", sira: 3 },
@@ -61,6 +67,7 @@ function veri(tablo: string, f: { not: boolean; in_: boolean; eqs: Record<string
       if (f.not || f.eqs.sabit === true) return [];
       return [...mesajlar].reverse();
     case "tepkiler": return f.in_ ? tepkiler : [];
+    case "dm_mesajlari": return [...dmMesajlari].reverse();
     case "anketler": return anketler;
     case "anket_secenekleri": return secenekler;
     case "anket_oylari": return oylar;
@@ -107,3 +114,5 @@ export const supabase = {
   auth: { signOut: async () => {}, getSession: async () => ({ data: { session: { access_token: "t" } } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
 };
 export const demoBen = uyeler[0];
+export const demoUyeler = uyeler;
+export const demoCevrimici = new Set(cevrimiciIdler);
