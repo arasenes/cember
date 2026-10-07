@@ -3,7 +3,7 @@ import type { Mesaj, Tepki, Uye } from "./types";
 import { HIZLI_TEPKILER, saat } from "./util";
 import Avatar from "./Avatar";
 import EkResim from "./EkResim";
-import { etiketParcala } from "./uyari";
+import { metinOge } from "./mesaj/markdown";
 import EmojiDeposu from "./EmojiDeposu";
 
 type Props = {
@@ -88,7 +88,7 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
                   <span className="hint">Enter kaydeder, Esc iptal eder</span>
                 </div>
               </div>
-            ) : mesaj.metin && <div className="txt">{etiketParcala(mesaj.metin, benim.takma_ad).map((p, i) => (p.etiket ? <mark key={i} className="etiket-ben">{p.m}</mark> : p.m))}</div>}
+            ) : mesaj.metin && <div className="txt">{metinOge(mesaj.metin, benim.takma_ad)}</div>}
             {mesaj.ek_yol && mesaj.ek_genislik && mesaj.ek_yukseklik && (
               <EkResim yol={mesaj.ek_yol} genislik={mesaj.ek_genislik} yukseklik={mesaj.ek_yukseklik}
                 alt={`${yazar?.takma_ad ?? "Eski üye"} tarafından gönderilen resim`} />

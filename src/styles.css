@@ -443,3 +443,14 @@ body{transition:background-color .2s,color .2s}
 .duzenle-alt button{padding:5px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--card);color:inherit;font:inherit;cursor:pointer}
 .duzenle-alt button:first-child{background:var(--accent,#E8A33D);border-color:transparent;color:#1a1a1a;font-weight:600}
 .duzenle-alt button:disabled{opacity:.5;cursor:default}
+
+/* Markdown (Aşama 1) */
+.md-kod{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;padding:1px 6px;border-radius:6px;background:color-mix(in srgb,var(--fg) 12%,transparent)}
+.md-blok{margin:6px 0;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--fg) 10%,transparent);border:1px solid var(--line);overflow-x:auto;white-space:pre;max-width:100%}
+.md-blok code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em}
+.md-alinti{margin:4px 0;padding:2px 0 2px 12px;border-left:3px solid var(--acc);color:var(--muted)}
+.md-link{color:#7aa8ff;text-decoration:underline;overflow-wrap:anywhere}
+.spoiler{display:inline;min-height:0;padding:0 4px;border:0;border-radius:5px;font:inherit;cursor:pointer;background:var(--fg);color:transparent}
+.spoiler>span{opacity:0}
+.spoiler.acik{background:color-mix(in srgb,var(--fg) 14%,transparent);color:inherit}
+.spoiler.acik>span{opacity:1}
