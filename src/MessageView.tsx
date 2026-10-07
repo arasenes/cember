@@ -14,10 +14,12 @@ type Props = {
   onSil: (mesaj: Mesaj) => void;
   onSabitle?: (mesaj: Mesaj, sabit: boolean) => void;
   onProfil?: (uyeId: string) => void;
+  yanitSayisi?: number;
+  onKonu?: (mesaj: Mesaj) => void;
 };
 
 // Metin her zaman düz metin olarak render edilir: React içeriği kaçışlar, dangerouslySetInnerHTML kullanılmaz.
-export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onSabitle, onProfil }: Props) {
+export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onSabitle, onProfil, yanitSayisi, onKonu }: Props) {
   const [sec, setSec] = useState(false);
   const benimMi = yazar?.id === benim.id;
   const silebilir = benimMi || benim.rol !== "uye";
@@ -80,6 +82,10 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
               </div>
             )}
           </>
+        )}
+        {onKonu && (!mesaj.silindi || !!yanitSayisi) && (
+          <button className="konu-btn" onClick={() => onKonu(mesaj)}
+            aria-label={yanitSayisi ? `Konuyu aç, ${yanitSayisi} yanıt` : "Konu aç ve yanıtla"}>💬 {yanitSayisi ? `${yanitSayisi} yanıt` : "Yanıtla"}</button>
         )}
       </div>
     </article>

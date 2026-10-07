@@ -8,7 +8,7 @@ vi.mock("./supabase", () => ({
 import type { Mesaj, Uye } from "./types";
 
 const uye: Uye = { id: "u1", oda_id: "o", user_id: "x", takma_ad: "Ayşe", renk: "#E8A33D", rol: "uye", son_gorulme: "" };
-const mesaj = (metin: string): Mesaj => ({ id: "m1", kanal_id: "k", uye_id: "u1", metin, olusturma: new Date().toISOString(), duzenleme: null, silindi: false, ek_yol: null, ek_tur: null, ek_boyut: null, ek_genislik: null, ek_yukseklik: null, sabit: false, sabit_zaman: null });
+const mesaj = (metin: string): Mesaj => ({ id: "m1", kanal_id: "k", uye_id: "u1", metin, olusturma: new Date().toISOString(), duzenleme: null, silindi: false, ek_yol: null, ek_tur: null, ek_boyut: null, ek_genislik: null, ek_yukseklik: null, sabit: false, sabit_zaman: null, ust_mesaj_id: null });
 
 describe("MessageView", () => {
   it("<script> metnini düz metin olarak gösterir, DOM'a script eklemez", () => {
@@ -73,5 +73,15 @@ describe("MessageView", () => {
     const { container } = render(<MessageView mesaj={resimli({ silindi: true })} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} />);
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("Bu mesaj silindi.")).toBeTruthy();
+  });
+});
+
+describe("konu düğmesi", () => {
+  it("yanıt sayısını gösterir ve tıklanınca konuyu açar", () => {
+    const onKonu = vi.fn();
+    render(<MessageView mesaj={mesaj("selam")} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} onKonu={onKonu} yanitSayisi={3} />);
+    const b = screen.getByRole("button", { name: /Konuyu aç, 3 yanıt/ });
+    b.click();
+    expect(onKonu).toHaveBeenCalled();
   });
 });

@@ -12,6 +12,7 @@ import YonetimPaneli, { susturulmus } from "./YonetimPaneli";
 import Avatar from "./Avatar";
 import KanalSifre from "./KanalSifre";
 import SabitlerDialog from "./SabitlerDialog";
+import KonuPaneli from "./KonuPaneli";
 import ProfilDialog, { type ProfilDegisiklik } from "./ProfilDialog";
 import { boyutMetni, ekHazirla, ekYolu, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
 
@@ -50,11 +51,14 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [acik, setAcik] = useState<Set<string>>(new Set());
   const [sifreKanal, setSifreKanal] = useState<{ kanal: Kanal; sonra: () => void } | null>(null);
   const [simdi, setSimdi] = useState(() => Date.now());
+  const [yanitlar, setYanitlar] = useState<Mesaj[]>([]);
+  const [konuId, setKonuId] = useState<string | null>(null);
   const [sesler, setSesler] = useState(seslerAcik);
   const [sesOlay, setSesOlay] = useState("");
   const olayZamanRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const oncekiKonumRef = useRef<{ kanal: string | null; konum: Map<string, string> }>({ kanal: null, konum: new Map() });
   const uyelerRef = useRef<Uye[]>([]);
+  const mesajlarRef = useRef<Mesaj[]>([]);
   const dosyaRef = useRef<HTMLInputElement>(null);
   const ekRef = useRef<HazirEk | null>(null);
   ekRef.current = ek;
@@ -87,6 +91,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     void kanalRef.current?.track({ t: Date.now(), ...duyuruRef.current, ekran: ses.paylasiyorum });
   }, [ses.paylasiyorum]);
   uyelerRef.current = uyeler;
+  mesajlarRef.current = mesajlar;
   useEffect(() => sesleriHazirla(), []);
   const etiketAday = useMemo(() => {
     const x = /(?:^|\s)@([^\s@]*)$/.exec(metin);
@@ -165,9 +170,9 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   useEffect(() => {
     if (!aktif) return;
     let iptal = false;
-    setMesajlar([]); setTepkiler([]); setDahaVar(false);
+    setMesajlar([]); setTepkiler([]); setDahaVar(false); setYanitlar([]); setKonuId(null);
     (async () => {
-      const { data, error } = await supabase.from("mesajlar").select("*").eq("kanal_id", aktif)
+      const { data, error } = await supabase.from("mesajlar").select("*").eq("kanal_id", aktif).is("ust_mesaj_id", null)
         .order("olusturma", { ascending: false }).limit(SAYFA);
       if (iptal) return;
       if (error) return setHata("Mesajlar yüklenemedi.");
@@ -182,6 +187,29 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     })();
     return () => { iptal = true; };
   }, [aktif]);
+
+  // Kanaldaki konu yanıtları (en yeni 500)
+  useEffect(() => {
+    if (!aktif) return;
+    let iptal = false;
+    (async () => {
+      const { data } = await supabase.from("mesajlar").select("*").eq("kanal_id", aktif).not("ust_mesaj_id", "is", null)
+        .order("olusturma", { ascending: false }).limit(500);
+      if (!iptal && data) setYanitlar(((data as Mesaj[]).reverse()));
+    })();
+    return () => { iptal = true; };
+  }, [aktif]);
+
+  // Konu açılınca yanıtların tepkilerini getir
+  useEffect(() => {
+    if (!konuId) return;
+    const idler = yanitlar.filter((y) => y.ust_mesaj_id === konuId).map((y) => y.id);
+    if (!idler.length) return;
+    supabase.from("tepkiler").select("*").in("mesaj_id", idler).then(({ data }) => {
+      if (data) setTepkiler((x) => [...x, ...(data as Tepki[]).filter((n) => !x.some((y) => y.id === n.id))]);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [konuId]);
 
   // Kanaldaki sabit mesajlar
   useEffect(() => {
@@ -198,7 +226,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
 
   const eskileriYukle = useCallback(async () => {
     if (!aktif || !mesajlar.length) return;
-    const { data } = await supabase.from("mesajlar").select("*").eq("kanal_id", aktif)
+    const { data } = await supabase.from("mesajlar").select("*").eq("kanal_id", aktif).is("ust_mesaj_id", null)
       .lt("olusturma", mesajlar[0].olusturma).order("olusturma", { ascending: false }).limit(SAYFA);
     const liste = ((data ?? []) as Mesaj[]).reverse();
     altaKaydir.current = false;
@@ -222,10 +250,17 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         if (p.eventType === "INSERT" && m.uye_id !== me.id && !m.silindi) {
           const yazar = uyelerRef.current.find((u) => u.id === m.uye_id)?.takma_ad ?? "Biri";
           const benAd = uyelerRef.current.find((u) => u.id === me.id)?.takma_ad ?? me.takma_ad;
+          const ust = m.ust_mesaj_id ? mesajlarRef.current.find((x) => x.id === m.ust_mesaj_id) : undefined;
           if (etiketVar(m.metin ?? "", benAd)) { duyur("etiket", `${yazar} seni etiketledi`); bildirim(`${yazar} seni etiketledi`, m.metin); }
+          else if (ust && ust.uye_id === me.id) { duyur("etiket", `${yazar} mesajına yanıt verdi`); bildirim(`${yazar} mesajına yanıt verdi`, m.metin); }
           else duyur("mesaj");
         }
+        if (p.eventType === "DELETE") setYanitlar((x) => x.filter((y) => y.id !== m.id));
         if (m.kanal_id !== aktifRef.current) return;
+        if (m.ust_mesaj_id) {
+          setYanitlar((x) => { const i = x.findIndex((y) => y.id === m.id); return i < 0 ? [...x, m].sort((a, b) => a.olusturma.localeCompare(b.olusturma)) : x.map((y) => (y.id === m.id ? m : y)); });
+          return;
+        }
         if (p.eventType === "DELETE") { setSabitler((x) => x.filter((y) => y.id !== m.id)); return setMesajlar((x) => x.filter((y) => y.id !== m.id)); }
         setMesajlar((x) => birlestir(x, [m]));
         setSabitler((x) => {
@@ -383,6 +418,15 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     }
   }
 
+  async function yanitGonder(t: string): Promise<boolean> {
+    if (!aktif || !konuId) return false;
+    setHata("");
+    const { data, error } = await supabase.from("mesajlar").insert({ kanal_id: aktif, uye_id: me.id, metin: t, ust_mesaj_id: konuId }).select().single();
+    if (error) { setHata("Yanıt gönderilemedi."); return false; }
+    setYanitlar((x) => (x.some((y) => y.id === (data as Mesaj).id) ? x : [...x, data as Mesaj]));
+    return true;
+  }
+
   async function sil(m: Mesaj) {
     if (!confirm("Bu mesaj silinsin mi?")) return;
     const { error } = await supabase.from("mesajlar").update({ silindi: true }).eq("id", m.id);
@@ -463,7 +507,8 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     if (g !== sonGun) { sonGun = g; satirlar.push(<div className="day" key={"g" + m.id}>{g}</div>); }
     satirlar.push(
       <MessageView key={m.id} mesaj={m} yazar={uyeHaritasi.get(m.uye_id)} benim={ben}
-        tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} onSabitle={sabitle} onProfil={setProfilId} />,
+        tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} onSabitle={sabitle} onProfil={setProfilId}
+        yanitSayisi={yanitlar.filter((y) => y.ust_mesaj_id === m.id && !y.silindi).length} onKonu={(x) => setKonuId(x.id)} />,
     );
   }
 
@@ -635,6 +680,16 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           cevrimici={cevrimici.has(profilUyesi.id) || profilUyesi.id === me.id}
           onKapat={() => setProfilId(null)} onKaydet={profilKaydet} />
       )}
+      {konuId && (() => {
+        const ana = mesajlar.find((x) => x.id === konuId);
+        if (!ana) return null;
+        const liste = yanitlar.filter((y) => y.ust_mesaj_id === konuId);
+        return (
+          <KonuPaneli ana={ana} yanitlar={liste} uyeHaritasi={uyeHaritasi} ben={ben} yazamaz={benSusturuldu}
+            tepkiler={tepkiler.filter((t) => t.mesaj_id === ana.id || liste.some((y) => y.id === t.mesaj_id))}
+            onTepki={tepkiDegistir} onSil={sil} onProfil={setProfilId} onGonder={yanitGonder} onKapat={() => setKonuId(null)} />
+        );
+      })()}
       {yonetimAcik && yonetici && (
         <YonetimPaneli ben={ben} uyeler={uyeler} kanallar={kanallar} sesKonum={sesKonum} cevrimici={cevrimici}
           onKapat={() => setYonetimAcik(false)} />
