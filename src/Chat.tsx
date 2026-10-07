@@ -20,6 +20,7 @@ import GuncellemeBandi from "./GuncellemeBandi";
 import KanalSifre from "./KanalSifre";
 import SabitlerDialog from "./SabitlerDialog";
 import KonuPaneli from "./KonuPaneli";
+import { useYaziyorTakip, YAZIYOR_YAYIN_ARALIK_MS } from "./mesaj/yaziyor";
 import ProfilDialog, { type ProfilDegisiklik } from "./ProfilDialog";
 import { boyutMetni, ekHazirla, ekYolu, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
 
@@ -107,6 +108,10 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [kullanimDk, setKullanimDk] = useState<number | null>(null);
 
   aktifRef.current = aktif;
+  const yaziyor = useYaziyorTakip(aktif);
+  const yaziyorRef = useRef(yaziyor);
+  yaziyorRef.current = yaziyor;
+  const sonYaziyorYayin = useRef(0);
   const duyuruRef = useRef<{ ses: string | null; motor: Motor | null }>({ ses: null, motor: null });
   const kanalDuyur = useCallback((k: string | null, motor: Motor | null) => {
     duyuruRef.current = { ses: k, motor };
@@ -343,8 +348,14 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     const kanal = supabase.channel(`oda-${me.oda_id}`, { config: { presence: { key: me.id } } });
     kanalRef.current = kanal;
     kanal
+      .on("broadcast", { event: "yaziyor" }, ({ payload }) => {
+        const v = payload as { uye?: string; ad?: string; kanal?: string };
+        if (!v?.uye || v.uye === me.id || typeof v.ad !== "string" || typeof v.kanal !== "string") return;
+        yaziyorRef.current.kaydet(v.uye, v.ad.slice(0, 24), v.kanal);
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "mesajlar" }, (p) => {
         const m = (p.eventType === "DELETE" ? p.old : p.new) as Mesaj;
+        if (p.eventType === "INSERT") yaziyorRef.current.sil(m.uye_id);
         if (p.eventType === "INSERT" && m.uye_id !== me.id && !m.silindi) {
           const yazar = uyelerRef.current.find((u) => u.id === m.uye_id)?.takma_ad ?? "Biri";
           const benAd = uyelerRef.current.find((u) => u.id === me.id)?.takma_ad ?? me.takma_ad;
@@ -487,6 +498,13 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
 
   function resimBul(liste: FileList | null | undefined): File | undefined {
     return liste ? [...liste].find((f) => f.type.startsWith("image/")) : undefined;
+  }
+
+  function yaziyorYayinla() {
+    const simdi = Date.now();
+    if (!aktif || simdi - sonYaziyorYayin.current < YAZIYOR_YAYIN_ARALIK_MS) return;
+    sonYaziyorYayin.current = simdi;
+    void kanalRef.current?.send({ type: "broadcast", event: "yaziyor", payload: { uye: me.id, ad: ben.takma_ad, kanal: aktif } });
   }
 
   async function gonder() {
@@ -861,6 +879,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             <button className="linkbtn" onClick={ekTemizle} aria-label="Resmi kaldır" disabled={gonderiliyor}>Kaldır</button>
           </div>
         )}
+        <div className="yaziyor" aria-hidden="true">{yaziyor.metin}</div>
         <div className="composer">
           {etiketAday.length > 0 && (
             <div className="etiket-liste" role="listbox" aria-label="Etiketlenecek kişi">
@@ -879,7 +898,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             onChange={(e) => { void ekSec(e.target.files?.[0]); e.target.value = ""; }} />
           <textarea ref={metinRef} rows={1} value={metin} maxLength={4000} aria-label="Mesaj yaz" disabled={benSusturuldu}
             placeholder={benSusturuldu ? `Susturuldun; ${new Date(ben.susturma_bitis!).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}'e kadar yazamazsın` : `#${aktifKanal?.ad ?? ""} kanalına yaz`}
-            onChange={(e) => setMetin(e.target.value)}
+            onChange={(e) => { setMetin(e.target.value); if (e.target.value.trim()) yaziyorYayinla(); }}
             onPaste={(e) => { const f = resimBul(e.clipboardData.files); if (f) { e.preventDefault(); void ekSec(f, "Ekran görüntüsü"); } }}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); gonder(); } }} />
           <button className="sq send" onClick={gonder} aria-label="Gönder" disabled={(!metin.trim() && !ek) || gonderiliyor || benSusturuldu}>{gonderiliyor ? "…" : "➤"}</button>

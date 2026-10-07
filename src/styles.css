@@ -454,3 +454,5 @@ body{transition:background-color .2s,color .2s}
 .spoiler>span{opacity:0}
 .spoiler.acik{background:color-mix(in srgb,var(--fg) 14%,transparent);color:inherit}
 .spoiler.acik>span{opacity:1}
+
+.yaziyor{min-height:20px;padding:0 16px 2px;font-size:13px;color:var(--muted);font-style:italic;background:var(--bg)}
