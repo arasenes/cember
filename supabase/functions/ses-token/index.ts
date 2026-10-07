@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { AccessToken } from "npm:livekit-server-sdk@2";
+import * as lksdk from "npm:livekit-server-sdk@2";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -45,6 +46,18 @@ Deno.serve(async (req) => {
   const { data: uye } = await admin.from("uyeler").select("id, takma_ad, rol").eq("oda_id", kanal.oda_id).eq("user_id", user.id).maybeSingle();
   if (!uye) return json({ hata: "Bu odanın üyesi değilsin" }, 403);
 
+  // İzinler: 4 sesli odada konuş · 8 ekran ve kamera paylaş (024_roller_izinler.sql)
+  const { data: maskeVeri } = await admin.rpc("uye_izni", { p_uye: uye.id });
+  const maske = Number(maskeVeri ?? 0);
+  const TS = (lksdk as unknown as { TrackSource?: Record<string, number> }).TrackSource;
+  const yayinKaynaklari = (): { canPublish: boolean; canPublishSources?: number[] } => {
+    if (!TS) return { canPublish: (maske & 12) !== 0 };
+    const k: number[] = [];
+    if (maske & 4) k.push(TS.MICROPHONE);
+    if (maske & 8) k.push(TS.CAMERA, TS.SCREEN_SHARE, TS.SCREEN_SHARE_AUDIO);
+    return { canPublish: k.length > 0, canPublishSources: k };
+  };
+
   // Şifreli odada: yönetici ya da şifreyi girmiş üye
   if (kanal.sifreli && uye.rol !== "sahip" && uye.rol !== "moderator") {
     const { data: acik } = await admin.from("kanal_acik").select("uye_id").eq("kanal_id", kanalId).eq("uye_id", uye.id).maybeSingle();
@@ -62,6 +75,7 @@ Deno.serve(async (req) => {
 
   // Telefondan ekran paylaşımı: ayrı bir katılımcı (kimlik "<üye>~ekran"), yalnızca yayın yapar, ses oturumu sayılmaz
   if (govde.ekran === true) {
+    if ((maske & 8) === 0) return json({ hata: "Bu sunucuda ekran paylaşma iznin yok." }, 403);
     const atE = new AccessToken(lkKey, lkSecret, { identity: `${uye.id}~ekran`, name: `${uye.takma_ad} (ekran)`, ttl: "2h" });
     atE.addGrant({ room: kanalId, roomJoin: true, canPublish: true, canSubscribe: false, canPublishData: false });
     return json({ token: await atE.toJwt(), url: lkUrl, oturum_id: null, kullanilan, limit: AYLIK_LIMIT });
@@ -77,7 +91,7 @@ Deno.serve(async (req) => {
   if (oErr || !oturum) return json({ hata: "Oturum başlatılamadı" }, 500);
 
   const at = new AccessToken(lkKey, lkSecret, { identity: uye.id, name: uye.takma_ad, ttl: "2h" });
-  at.addGrant({ room: kanalId, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: false });
+  at.addGrant({ room: kanalId, roomJoin: true, ...yayinKaynaklari(), canSubscribe: true, canPublishData: false } as Parameters<typeof at.addGrant>[0]);
   const token = await at.toJwt();
 
   return json({ token, url: lkUrl, oturum_id: oturum.id, kullanilan, limit: AYLIK_LIMIT });

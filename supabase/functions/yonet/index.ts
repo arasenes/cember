@@ -33,15 +33,25 @@ Deno.serve(async (req) => {
   if (!user) return json({ hata: "Oturum geçersiz" }, 401);
   const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-  // Hedef üye ve yetki denetimi
-  async function hedefVeYetki(uyeId: unknown) {
+  // İzin bitleri (bkz. 024_roller_izinler.sql): 16 mesaj_yonet · 32 sustur · 64 yasakla · 128 kanal_yonet
+  const IZIN = { sustur: 32, yasakla: 64 } as const;
+  async function izinMaskesi(uyeId: string): Promise<number> {
+    const { data } = await admin.rpc("uye_izni", { p_uye: uyeId });
+    return Number(data ?? 0);
+  }
+  async function denetim(odaId: string, eyleyen: string, eylem: string, hedef: string | null, ayrinti: Record<string, unknown> = {}) {
+    try { await admin.from("denetim_kaydi").insert({ oda_id: odaId, eyleyen, eylem, hedef, ayrinti }); } catch { /* kayıt yazılamazsa işlem yine de yapılır */ }
+  }
+
+  // Hedef üye ve yetki denetimi (izin: gereken bit)
+  async function hedefVeYetki(uyeId: unknown, izin: number = IZIN.sustur) {
     if (typeof uyeId !== "string" || !UUID.test(uyeId)) return { hata: json({ hata: "Geçersiz üye" }, 400) };
     const { data: hedef } = await admin.from("uyeler").select("id, oda_id, user_id, rol, takma_ad").eq("id", uyeId).maybeSingle();
     if (!hedef) return { hata: json({ hata: "Üye bulunamadı" }, 404) };
-    const { data: ben } = await admin.from("uyeler").select("id, rol").eq("oda_id", hedef.oda_id).eq("user_id", user!.id).maybeSingle();
-    if (!ben || (ben.rol !== "sahip" && ben.rol !== "moderator")) return { hata: json({ hata: "Bu işlem için yetkin yok" }, 403) };
+    const { data: ben } = await admin.from("uyeler").select("id, rol").eq("oda_id", hedef.oda_id).eq("user_id", user!.id).eq("silindi", false).maybeSingle();
+    if (!ben || (await izinMaskesi(ben.id) & izin) === 0) return { hata: json({ hata: "Bu işlem için yetkin yok" }, 403) };
     if (hedef.rol === "sahip") return { hata: json({ hata: "Oda sahibine işlem yapılamaz" }, 403) };
-    if (ben.rol === "moderator" && hedef.rol !== "uye") return { hata: json({ hata: "Moderatör, başka bir moderatöre işlem yapamaz" }, 403) };
+    if (ben.rol !== "sahip" && hedef.rol !== "uye") return { hata: json({ hata: "Moderatör, başka bir moderatöre işlem yapamaz" }, 403) };
     return { hedef, ben };
   }
 
@@ -75,11 +85,10 @@ Deno.serve(async (req) => {
   }
 
   if (g.islem === "at") {
-    const s = await hedefVeYetki(g.uye_id);
+    const s = await hedefVeYetki(g.uye_id, g.yasakla ? IZIN.yasakla : IZIN.sustur);
     if (s.hata) return s.hata;
     const { hedef, ben } = s as { hedef: { id: string; oda_id: string; user_id: string; takma_ad: string }; ben: { rol: string } };
     if (g.yasakla) {
-      if (ben.rol !== "sahip") return json({ hata: "Banlamak yalnızca oda sahibine açık" }, 403);
       const { data: ip } = await admin.from("uye_ip").select("ip").eq("uye_id", hedef.id).maybeSingle();
       const sebep = String(g.sebep ?? "").trim().slice(0, 100) || null;
       const kacis = hedef.takma_ad.replace(/[%_\\]/g, (m) => "\\" + m);
@@ -92,6 +101,7 @@ Deno.serve(async (req) => {
     await sesttenCikar(hedef.oda_id, hedef.id);
     const { error: sErr } = await admin.auth.admin.deleteUser(hedef.user_id);
     if (sErr) return json({ hata: "Üye atılamadı" }, 500);
+    await denetim(hedef.oda_id, (s as { ben: { id: string } }).ben.id, g.yasakla ? "yasakla" : "at", hedef.takma_ad, { sebep: String(g.sebep ?? "").slice(0, 100) });
     return json({ ok: true });
   }
 
@@ -99,16 +109,19 @@ Deno.serve(async (req) => {
     if (typeof g.yasak_id !== "string" || !UUID.test(g.yasak_id)) return json({ hata: "Geçersiz kayıt" }, 400);
     const { data: y } = await admin.from("yasaklar").select("id, oda_id").eq("id", g.yasak_id).maybeSingle();
     if (!y) return json({ hata: "Kayıt bulunamadı" }, 404);
-    const { data: ben } = await admin.from("uyeler").select("rol").eq("oda_id", y.oda_id).eq("user_id", user.id).maybeSingle();
-    if (ben?.rol !== "sahip") return json({ hata: "Bu işlem için yetkin yok" }, 403);
+    const { data: ben } = await admin.from("uyeler").select("id").eq("oda_id", y.oda_id).eq("user_id", user.id).eq("silindi", false).maybeSingle();
+    if (!ben || (await izinMaskesi(ben.id) & IZIN.yasakla) === 0) return json({ hata: "Bu işlem için yetkin yok" }, 403);
     await admin.from("yasaklar").delete().eq("id", y.id);
+    await denetim(y.oda_id, ben.id, "yasak_kaldir", null, {});
     return json({ ok: true });
   }
 
   if (g.islem === "ses") {
     const s = await hedefVeYetki(g.uye_id);
     if (s.hata) return s.hata;
-    const { hedef } = s as { hedef: { id: string; oda_id: string } };
+    const { hedef } = s as { hedef: { id: string; oda_id: string; takma_ad?: string } };
+    const eyleyen = (s as { ben: { id: string } }).ben.id;
+    await denetim(hedef.oda_id, eyleyen, g.tur === "sustur" ? "ses_sustur" : g.tur === "sustur-kaldir" ? "ses_sustur_kaldir" : g.tur === "tasi" ? "ses_tasi" : "ses_at", String(hedef.takma_ad ?? ""), {});
     if (g.tur === "sustur" || g.tur === "sustur-kaldir") {
       await admin.from("yonetim_komutlari").delete().eq("hedef_uye", hedef.id).lt("olusturma", new Date(Date.now() - 60_000).toISOString());
       const { error: sErr } = await admin.from("yonetim_komutlari").insert({ oda_id: hedef.oda_id, hedef_uye: hedef.id, tur: g.tur, kanal_id: null });

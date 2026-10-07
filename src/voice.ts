@@ -11,7 +11,7 @@ async function yerelDurdur(y: { durdur(): Promise<void> }) {
 }
 
 export type SesDurumu = "kapali" | "baglaniyor" | "bagli";
-export type BaglanSonuc = { ok: boolean; neden?: "limit" | "kurulmadi" | "dolu" | "izin" | "ag" | "iptal"; mesaj?: string; mikYok?: boolean };
+export type BaglanSonuc = { ok: boolean; neden?: "limit" | "kurulmadi" | "dolu" | "izin" | "ag" | "iptal"; mesaj?: string; mikYok?: boolean; izinYok?: boolean };
 
 export function sesHatasiMetni(e: unknown): string {
   const ad = (e as { name?: string })?.name ?? "";
@@ -172,8 +172,11 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       await room.connect(j.url, j.token);
       // Mikrofon yoksa odaya yine de girilir (yalnızca dinleyici olarak)
       let mikYok = false;
+      let izinYok = false;
       try { await room.localParticipant.setMicrophoneEnabled(true); } catch (e) {
-        if ((e as { name?: string })?.name === "NotFoundError" || /requested device not found/i.test(String((e as Error)?.message ?? ""))) mikYok = true;
+        const mesaj = String((e as Error)?.message ?? "");
+        if ((e as { name?: string })?.name === "NotFoundError" || /requested device not found/i.test(mesaj)) mikYok = true;
+        else if (/permission|not allowed|insufficient|publish/i.test(mesaj) && (e as { name?: string })?.name !== "NotAllowedError") { mikYok = true; izinYok = true; }
         else throw e;
       }
       if (islem !== islemRef.current) { await room.disconnect(); return { ok: false, neden: "iptal" }; }
@@ -184,7 +187,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       setDurum("bagli");
       if (mikYok) setSessiz(true);
       onKanal(hedef);
-      return { ok: true, mikYok };
+      return { ok: true, mikYok, izinYok };
     } catch (e) {
       if (islem !== islemRef.current) return { ok: false, neden: "iptal" };
       const kod = (e as { kod?: string }).kod;

@@ -32,6 +32,9 @@ async function fcmErisim(sa: { client_email: string; private_key: string }): Pro
 }
 
 type Abone = { id: string; uye_id: string; tur: string; uc: string; p256dh: string | null; auth: string | null; sadece_etiket: boolean };
+// Abonelik, kaydın yapıldığı üye satırına bağlıdır; çoklu sunucuda alıcıyı kullanıcı (user_id) üzerinden buluruz
+type AboneKullanici = Abone & { uyeler: { user_id: string | null } | { user_id: string | null }[] | null };
+const kullaniciKimligi = (a: AboneKullanici): string | null => (Array.isArray(a.uyeler) ? a.uyeler[0]?.user_id : a.uyeler?.user_id) ?? null;
 const kisalt = (s: string) => (s.length > 140 ? s.slice(0, 137) + "…" : s);
 
 Deno.serve(async (req) => {
@@ -73,15 +76,17 @@ Deno.serve(async (req) => {
     veri = { dm_id: d.dm_id, mesaj_id: d.id };
     const alicilar = (uyeler ?? []).map((u: { uye_id: string }) => u.uye_id).filter((id: string) => id !== d.uye_id);
     if (!alicilar.length) return json({ ok: true, gonderilen: 0 });
-    const { data: ab } = await admin.from("push_abonelikleri").select("id, uye_id, tur, uc, p256dh, auth, sadece_etiket").in("uye_id", alicilar);
-    hedefler = (ab ?? []) as Abone[];
+    const { data: alicilarUye } = await admin.from("uyeler").select("user_id").in("id", alicilar);
+    const kullanicilar = new Set((alicilarUye ?? []).map((u: { user_id: string | null }) => u.user_id).filter(Boolean) as string[]);
+    const { data: ab } = await admin.from("push_abonelikleri").select("id, uye_id, tur, uc, p256dh, auth, sadece_etiket, uyeler(user_id)");
+    hedefler = ((ab ?? []) as AboneKullanici[]).filter((a) => { const k = kullaniciKimligi(a); return !!k && kullanicilar.has(k); });
   } else {
     // --- Kanal mesajı ---
     const { data: m } = await admin.from("mesajlar").select("id, kanal_id, uye_id, metin, ek_tur, silindi").eq("id", mesajId).maybeSingle();
     if (!m || m.silindi) return json({ ok: true, gonderilen: 0 });
     const [{ data: gonderen }, { data: kanal }] = await Promise.all([
-      admin.from("uyeler").select("takma_ad").eq("id", m.uye_id).maybeSingle(),
-      admin.from("kanallar").select("ad, sifreli").eq("id", m.kanal_id).maybeSingle(),
+      admin.from("uyeler").select("takma_ad, user_id").eq("id", m.uye_id).maybeSingle(),
+      admin.from("kanallar").select("ad, sifreli, oda_id").eq("id", m.kanal_id).maybeSingle(),
     ]);
     const ad = gonderen?.takma_ad ?? "Biri";
     const sifreli = !!kanal?.sifreli;
@@ -91,14 +96,15 @@ Deno.serve(async (req) => {
     baslik = `${ad} · #${kanal?.ad ?? "sohbet"}`;
     veri = { kanal_id: m.kanal_id, mesaj_id: m.id };
 
-    const { data: abonelikler } = await admin.from("push_abonelikleri").select("id, uye_id, tur, uc, p256dh, auth, sadece_etiket").neq("uye_id", m.uye_id);
-    const adlar = new Map<string, string>();
-    const uyeIdler = [...new Set((abonelikler ?? []).map((a: { uye_id: string }) => a.uye_id))];
-    if (uyeIdler.length) {
-      const { data: uy } = await admin.from("uyeler").select("id, takma_ad").in("id", uyeIdler);
-      for (const u of uy ?? []) adlar.set(u.id, u.takma_ad);
-    }
-    hedefler = ((abonelikler ?? []) as Abone[]).filter((a) => !a.sadece_etiket || etiketMetni.includes("@" + (adlar.get(a.uye_id) ?? "\u0000").toLowerCase()));
+    // Alıcılar: bu sunucunun üyeleri (gönderen hariç); etiket tercihi sunucudaki takma adla eşleşir
+    const { data: odaUyeleri } = await admin.from("uyeler").select("user_id, takma_ad").eq("oda_id", kanal?.oda_id ?? "").eq("silindi", false).not("user_id", "is", null);
+    const adHaritasi = new Map((odaUyeleri ?? []).map((u: { user_id: string; takma_ad: string }) => [u.user_id, u.takma_ad]));
+    const { data: abonelikler } = await admin.from("push_abonelikleri").select("id, uye_id, tur, uc, p256dh, auth, sadece_etiket, uyeler(user_id)");
+    hedefler = ((abonelikler ?? []) as AboneKullanici[]).filter((a) => {
+      const k = kullaniciKimligi(a);
+      if (!k || k === gonderen?.user_id || !adHaritasi.has(k)) return false;
+      return !a.sadece_etiket || etiketMetni.includes("@" + String(adHaritasi.get(k)).toLowerCase());
+    });
   }
 
   let vapidHazir = false;

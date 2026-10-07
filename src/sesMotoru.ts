@@ -53,7 +53,7 @@ export function useSesMotoru(
     if (mevcut === "p2p") { await p2pBaglan(hedef); return; }
 
     const r = await lk.baglan(hedef);
-    if (r.ok) { if (r.mikYok) setBilgi("Mikrofon bulunamadı; odaya yalnızca dinleyici olarak katıldın."); return; }
+    if (r.ok) { if (r.izinYok) setBilgi("Bu sunucuda sesli odada konuşma iznin yok; yalnızca dinleyici olarak katıldın."); else if (r.mikYok) setBilgi("Mikrofon bulunamadı; odaya yalnızca dinleyici olarak katıldın."); return; }
     if (r.neden === "iptal") return;
     // Kullanıcıdan kaynaklı ya da oda dolu hatalarında yedeğe geçme
     if (r.neden === "izin" || r.neden === "dolu") { setHata(r.mesaj ?? "Sese bağlanılamadı."); return; }
