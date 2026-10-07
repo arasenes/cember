@@ -926,29 +926,37 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     <button key={u.id} className={"mem" + (acik ? "" : " off")} onClick={() => setProfilId(u.id)}
       aria-label={`${u.takma_ad} profilini aç${u.rol !== "uye" ? `, ${rolEtiketi(u.rol).toLowerCase()}` : ""}`}>
       <Avatar uye={u}>{acik && <span className="on-dot" style={{ background: bosta.has(u.id) && (!u.durum || u.durum === "cevrimici") ? "#f5b94a" : DURUM_BILGI[u.durum ?? "cevrimici"].renk }} />}</Avatar>
-      <div className="mem-ad">{u.takma_ad}{acik && u.durum && u.durum !== "cevrimici" && <small>{DURUM_BILGI[u.durum].ad}</small>}{acik && bosta.has(u.id) && (!u.durum || u.durum === "cevrimici") && <small>Boşta</small>}{u.durum_metin && <small className="mem-durum-metin">{u.durum_metin}</small>}{u.rol !== "uye" && <small>{rolEtiketi(u.rol)}</small>}{u.hakkinda && <small className="mem-hk">{u.hakkinda}</small>}</div>
+      <div className="mem-ad"><span className={"mem-isim rol-" + u.rol}>{u.takma_ad}</span>{acik && u.durum && u.durum !== "cevrimici" && <small>{DURUM_BILGI[u.durum].ad}</small>}{acik && bosta.has(u.id) && (!u.durum || u.durum === "cevrimici") && <small>Boşta</small>}{u.durum_metin && <small className="mem-durum-metin">{u.durum_metin}</small>}{u.hakkinda && <small className="mem-hk">{u.hakkinda}</small>}</div>
     </button>
   );
 
   return (
     <div id="app" className={"on" + (gorunum === "dm" ? " dm-modu" : "")} data-pane={gorunum === "dm" ? (dmMobil === "liste" ? "side" : "chat") : pane}>
+      <nav className="sunucu-serit" aria-label="Sunucular">
+        <button type="button" className={"sr-dugme sr-sunucu" + (gorunum === "sunucu" ? " aktif" : "")} aria-label={`${odaAdi} sunucusu`} aria-current={gorunum === "sunucu"} onClick={() => setGorunum("sunucu")}>
+          {(odaAdi.trim()[0] ?? "Ç").toLocaleUpperCase("tr")}
+        </button>
+        <span className="sr-ayrac" aria-hidden="true" />
+        <button type="button" className={"sr-dugme" + (gorunum === "dm" ? " aktif" : "")} aria-current={gorunum === "dm"}
+          onClick={() => { setGorunum("dm"); setDmMobil("liste"); setDmSayfa(aktifDm ? "sohbet" : "arkadaslar"); }}
+          aria-label={`Özel mesajlar${dm.toplamOkunmamis ? `, ${dm.toplamOkunmamis} okunmamış` : ""}${dm.gelenIstekler.length ? `, ${dm.gelenIstekler.length} arkadaş isteği` : ""}`}>
+          <Ikon ad="sohbet" boyut={22} />
+          {dm.toplamOkunmamis + dm.gelenIstekler.length > 0 && <span className="rozet sr-rozet" aria-hidden="true">{dm.toplamOkunmamis + dm.gelenIstekler.length}</span>}
+        </button>
+      </nav>
       <section className="col side sunucu-kolon" aria-label="Kanallar">
-        <div className="head">
+        <div className="head kanal-ust">
           <h1>{odaAdi}</h1>
-          <button type="button" className="head-dugme dm-gec" onClick={() => { setGorunum("dm"); setDmMobil("liste"); setDmSayfa(aktifDm ? "sohbet" : "arkadaslar"); }}
-            aria-label={`Özel mesajlar${dm.toplamOkunmamis ? `, ${dm.toplamOkunmamis} okunmamış` : ""}${dm.gelenIstekler.length ? `, ${dm.gelenIstekler.length} arkadaş isteği` : ""}`}>
-            <Ikon ad="sohbet" boyut={16} /> Mesajlar
-            {dm.toplamOkunmamis + dm.gelenIstekler.length > 0 && <span className="rozet" aria-hidden="true">{dm.toplamOkunmamis + dm.gelenIstekler.length}</span>}
-          </button>
+          <Ikon ad="asagi" boyut={16} />
         </div>
         <nav className="scroll" aria-label="Kanal listesi">
           <div className="sec sec-satir">
             <button className="sec-bas" aria-expanded={!katlanmis.includes("yazili")} onClick={() => bolumKatla("yazili")}>
-              <span aria-hidden="true">{katlanmis.includes("yazili") ? "▸" : "▾"}</span> Yazılı kanallar
+              <Ikon ad={katlanmis.includes("yazili") ? "saga" : "asagi"} boyut={12} /> Yazılı kanallar
               {katlanmis.includes("yazili") && bolumOkunmamis(yaziKanallari) > 0 && <span className="rozet" aria-hidden="true">{bolumOkunmamis(yaziKanallari)}</span>}
             </button>
             <div className="sec-sag">
-              <button className="sec-ekle" aria-pressed={duzenle} onClick={() => setDuzenle(!duzenle)} aria-label="Kanalları sırala ve sessize al" title="Sırala / sessize al">⇅</button>
+              <button className="sec-ekle" aria-pressed={duzenle} onClick={() => setDuzenle(!duzenle)} aria-label="Kanalları sırala ve sessize al" title="Sırala / sessize al"><Ikon ad="sirala" boyut={16} /></button>
               {yonetici && <button className="sec-ekle" onClick={() => setYonetimAcik(true)} aria-label="Kanal veya sesli oda aç" title="Kanal / oda aç">+</button>}
             </div>
           </div>
@@ -960,9 +968,9 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
                   aria-label={`${k.ad}${k.sifreli ? ", şifreli kanal" : ""}${sessiz.includes(k.id) ? ", sessizde" : ""}${okunmamisEtiket(k)}`}
                   onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); })}>
                   {o && <span className="nokta" aria-hidden="true" />}
-                  <span className="hash" aria-hidden="true">#</span><span className="ch-ad">{k.ad}</span>
-                  {sessiz.includes(k.id) && <span className="kilit" aria-hidden="true">🔕</span>}
-                  {k.sifreli && <span className="kilit" aria-hidden="true">🔒</span>}
+                  <span className="hash" aria-hidden="true"><Ikon ad="hash" boyut={16} /></span><span className="ch-ad">{k.ad}</span>
+                  {sessiz.includes(k.id) && <span className="kilit" aria-hidden="true"><Ikon ad="zilKapali" boyut={14} /></span>}
+                  {k.sifreli && <span className="kilit" aria-hidden="true"><Ikon ad="kilit" boyut={14} /></span>}
                   {sayacRozeti(k.id)}
                 </button>
                 {kanalArac(k)}
@@ -971,7 +979,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           })}
           <div className="sec sec-satir">
             <button className="sec-bas" aria-expanded={!katlanmis.includes("sesli")} onClick={() => bolumKatla("sesli")}>
-              <span aria-hidden="true">{katlanmis.includes("sesli") ? "▸" : "▾"}</span> Sesli odalar
+              <Ikon ad={katlanmis.includes("sesli") ? "saga" : "asagi"} boyut={12} /> Sesli odalar
               {katlanmis.includes("sesli") && bolumOkunmamis(sesKanallari) > 0 && <span className="rozet" aria-hidden="true">{bolumOkunmamis(sesKanallari)}</span>}
             </button>
             {yonetici && <div className="sec-sag"><button className="sec-ekle" onClick={() => setYonetimAcik(true)} aria-label="Kanal veya sesli oda aç" title="Kanal / oda aç">+</button></div>}
@@ -987,15 +995,15 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
                   onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); if (!buradayim) void ses.baglan(k.id); })}
                   aria-label={`${k.ad} sesli odası${k.sifreli ? ", şifreli" : ""}${okunmamisEtiket(k)}, ${buradayim ? "sohbetini açmak için tıkla; ayrılmak için Ayrıl düğmesini kullan" : "katılmak için tıkla"}`}>
                   {o && <span className="nokta" aria-hidden="true" />}
-                  <span className="hash" aria-hidden="true">🔊</span><span className="ch-ad">{k.ad}</span>
-                  {sessiz.includes(k.id) && <span className="kilit" aria-hidden="true">🔕</span>}
-                  {k.sifreli && <span className="kilit" aria-hidden="true">🔒</span>}
+                  <span className="hash" aria-hidden="true"><Ikon ad="ses" boyut={16} /></span><span className="ch-ad">{k.ad}</span>
+                  {sessiz.includes(k.id) && <span className="kilit" aria-hidden="true"><Ikon ad="zilKapali" boyut={14} /></span>}
+                  {k.sifreli && <span className="kilit" aria-hidden="true"><Ikon ad="kilit" boyut={14} /></span>}
                   {buradayim && <span className="soon">bağlı</span>}
                   {sayacRozeti(k.id)}
                 </button>
                 <button className="ch-sohbet" aria-current={k.id === aktif} title="Bu odanın yazılı sohbetini aç"
                   aria-label={`${k.ad} sesli odasının yazılı sohbetini aç`}
-                  onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); })}>💬</button>
+                  onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); })}><Ikon ad="sohbet" boyut={16} /></button>
                 {kanalArac(k)}
                 </div>
                 {icindekiler.length > 0 && (
@@ -1018,11 +1026,11 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         <div className="me">
           <button className="me-profil" onClick={() => setProfilId(me.id)} aria-label="Profilimi aç ve düzenle">
             <Avatar uye={ben}><span className="on-dot" style={{ background: DURUM_BILGI[ben.durum ?? "cevrimici"].renk }} /></Avatar>
-            <div><b>{ben.takma_ad}</b><span>{DURUM_BILGI[ben.durum ?? "cevrimici"].ad} · Profil</span></div>
+            <div><b>{ben.takma_ad}</b><span>{ben.durum_metin || DURUM_BILGI[ben.durum ?? "cevrimici"].ad}</span></div>
           </button>
-          {yonetici && <button className="yon-ac" onClick={() => setYonetimAcik(true)} aria-label="Yönetim panelini aç" title="Yönetim">🛡️</button>}
-          <button className="yon-ac" onClick={() => setAyarAcik(true)} aria-label="Ayarlar" title="Ayarlar: tema, yazı boyutu, sesler">⚙️</button>
-          <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={cikis}>Çıkış</button>
+          {yonetici && <button className="yon-ac cb-ibtn" onClick={() => setYonetimAcik(true)} aria-label="Yönetim panelini aç" title="Yönetim"><Ikon ad="kalkan" /></button>}
+          <button className="yon-ac cb-ibtn" onClick={() => setAyarAcik(true)} aria-label="Ayarlar" title="Ayarlar: tema, yazı boyutu, sesler"><Ikon ad="ayar" /></button>
+          <button className="yon-ac cb-ibtn" onClick={cikis} aria-label="Çıkış yap" title="Çıkış"><Ikon ad="cikis" /></button>
         </div>
       </section>
 
@@ -1030,31 +1038,35 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setSurukle(true); } }}
         onDragLeave={(e) => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setSurukle(false); }}
         onDrop={(e) => { e.preventDefault(); setSurukle(false); const f = resimBul(e.dataTransfer.files); if (f) void ekSec(f); else if (e.dataTransfer.files.length) setHata("Yalnızca resim dosyaları gönderilebilir."); }}>
-        <div className="head">
-          <div className="kanal-baslik">
-            <h2>{aktifKanal?.tur === "sesli" ? "🔊" : "#"} {aktifKanal?.ad ?? "…"}</h2>
-            {konuDuzen !== null ? (
-              <form className="kanal-konu-duzen" onSubmit={(e) => { e.preventDefault(); void konuKaydet(); }}>
-                <input type="text" value={konuDuzen} onChange={(e) => setKonuDuzen(e.target.value)} maxLength={200} placeholder="Kanal açıklaması" aria-label="Kanal açıklaması" autoFocus />
-                <button className="linkbtn" type="submit">Kaydet</button>
-                <button className="linkbtn" type="button" onClick={() => setKonuDuzen(null)}>Vazgeç</button>
-              </form>
-            ) : aktifKanal?.aciklama ? (
+        <div className="head sohbet-ust">
+          <span className="ust-ikon" aria-hidden="true"><Ikon ad={aktifKanal?.tur === "sesli" ? "ses" : "hash"} /></span>
+          <h2 className="ust-ad">{aktifKanal?.ad ?? "…"}</h2>
+          {konuDuzen !== null ? (
+            <form className="kanal-konu-duzen" onSubmit={(e) => { e.preventDefault(); void konuKaydet(); }}>
+              <input type="text" value={konuDuzen} onChange={(e) => setKonuDuzen(e.target.value)} maxLength={200} placeholder="Kanal açıklaması" aria-label="Kanal açıklaması" autoFocus />
+              <button className="linkbtn" type="submit">Kaydet</button>
+              <button className="linkbtn" type="button" onClick={() => setKonuDuzen(null)}>Vazgeç</button>
+            </form>
+          ) : aktifKanal?.aciklama ? (
+            <>
+              <span className="ust-ayrac" aria-hidden="true" />
               <div className="kanal-konu" title={aktifKanal.aciklama}>{aktifKanal.aciklama}</div>
-            ) : null}
-          </div>
+            </>
+          ) : <span className="ust-bosluk" />}
           <div className="head-dugmeler">
             {yonetici && aktifKanal && konuDuzen === null && (
-              <button className="head-dugme" onClick={() => setKonuDuzen(aktifKanal.aciklama ?? "")} aria-label="Kanal açıklamasını düzenle">✎ {aktifKanal.aciklama ? "Açıklama" : "Açıklama ekle"}</button>
+              <button className="cb-ibtn" onClick={() => setKonuDuzen(aktifKanal.aciklama ?? "")} aria-label="Kanal açıklamasını düzenle" title={aktifKanal.aciklama ? "Açıklamayı düzenle" : "Açıklama ekle"}><Ikon ad="duzenle" /></button>
             )}
             {aktifKanal && (
-              <button className="head-dugme" aria-pressed={sessiz.includes(aktifKanal.id)} onClick={() => sessizDegistir(aktifKanal.id)}
-                aria-label={sessiz.includes(aktifKanal.id) ? "Kanalın sesini aç" : "Kanalı sessize al"} title={sessiz.includes(aktifKanal.id) ? "Sessizde: ses ve sayaç yok" : "Sessize al"}>{sessiz.includes(aktifKanal.id) ? "🔕" : "🔔"}</button>
+              <button className="cb-ibtn" aria-pressed={sessiz.includes(aktifKanal.id)} onClick={() => sessizDegistir(aktifKanal.id)}
+                aria-label={sessiz.includes(aktifKanal.id) ? "Kanalın sesini aç" : "Kanalı sessize al"} title={sessiz.includes(aktifKanal.id) ? "Sessizde: ses ve sayaç yok" : "Sessize al"}>
+                <Ikon ad={sessiz.includes(aktifKanal.id) ? "zilKapali" : "zil"} />
+              </button>
             )}
-            <button className="head-dugme" onClick={() => setAramaAcik(true)} aria-label="Mesajlarda ara" aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /> Ara</button>
             {sabitler.length > 0 && (
-              <button className="head-dugme" onClick={() => setSabitAcik(true)} aria-label={`${sabitler.length} sabitlenmiş mesajı göster`}>📌 {sabitler.length}</button>
+              <button className="cb-ibtn ust-sabit" onClick={() => setSabitAcik(true)} aria-label={`${sabitler.length} sabitlenmiş mesajı göster`}><Ikon ad="pin" /><span className="ust-sayi" aria-hidden="true">{sabitler.length}</span></button>
             )}
+            <button className="ust-ara" onClick={() => setAramaAcik(true)} aria-label="Mesajlarda ara" aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /><span>Mesajlarda ara</span></button>
           </div>
         </div>
         {aktifKanal?.tur === "sesli" && (
@@ -1087,7 +1099,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             <button className="linkbtn" onClick={ekTemizle} aria-label="Resmi kaldır" disabled={gonderiliyor}>Kaldır</button>
           </div>
         )}
-        <div className="yaziyor" aria-hidden="true">{yaziyor.metin}</div>
+        <div className="yaziyor" aria-hidden="true">{yaziyor.metin && <span className="yaziyor-noktalar"><i /><i /><i /></span>}{yaziyor.metin}</div>
         {yanitlanan && (
           <div className="yanit-cubugu" role="status">
             <Ikon ad="yanit" boyut={14} />
@@ -1107,8 +1119,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           {emojiAcik && (
             <EmojiDeposu className="deposu-yazi" onSec={(e) => { setMetin((m) => m + e); metinRef.current?.focus(); }} />
           )}
-          <button className="sq" onClick={() => setEmojiAcik(!emojiAcik)} aria-label="Emoji seçici" aria-expanded={emojiAcik}>🙂</button>
-          <button className="sq" onClick={() => dosyaRef.current?.click()} aria-label="Resim ekle" disabled={gonderiliyor || benSusturuldu}>📎</button>
+          <button className="sq" onClick={() => dosyaRef.current?.click()} aria-label="Resim ekle" disabled={gonderiliyor || benSusturuldu}><Ikon ad="ek" /></button>
           <button className="sq" onClick={() => setAnketAcik(true)} aria-label="Anket oluştur" disabled={benSusturuldu || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
           <button className="sq" onClick={() => setGifAcik((x) => !x)} aria-label="GIF seç" aria-expanded={gifAcik} disabled={benSusturuldu || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
           {gifAcik && <GifSecici onSec={(u) => void gifGonder(u)} onKapat={() => setGifAcik(false)} />}
@@ -1122,15 +1133,24 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); gonder(); }
               else if (e.key === "Escape" && yanitlanan) setYanitlanan(null);
             }} />
-          <button className="sq send" onClick={gonder} aria-label="Gönder" disabled={(!metin.trim() && !ek) || gonderiliyor || benSusturuldu}>{gonderiliyor ? "…" : "➤"}</button>
+          <button className="sq" onClick={() => setEmojiAcik(!emojiAcik)} aria-label="Emoji seçici" aria-expanded={emojiAcik}><Ikon ad="gulen" /></button>
+          <button className="sq send" onClick={gonder} aria-label="Gönder" disabled={(!metin.trim() && !ek) || gonderiliyor || benSusturuldu}>{gonderiliyor ? "…" : <Ikon ad="gonder" />}</button>
         </div>
       </section>
 
       <aside className="col members sunucu-kolon" aria-label="Üyeler">
         <div className="head"><h2>Üyeler — {aktifUyeler.length}</h2></div>
         <div className="scroll">
-          <div className="sec">Çevrimiçi — {cevrimiciUyeler.length}</div>
-          {cevrimiciUyeler.map((u) => uyeSatiri(u, true))}
+          {(["sahip", "moderator", "uye"] as const).map((rol) => {
+            const grup = cevrimiciUyeler.filter((u) => u.rol === rol);
+            if (!grup.length) return null;
+            return (
+              <div key={rol}>
+                <div className="sec">{rol === "sahip" ? "Sahip" : rol === "moderator" ? "Moderatör" : "Üye"} — {grup.length}</div>
+                {grup.map((u) => uyeSatiri(u, true))}
+              </div>
+            );
+          })}
           {cevrimdisiUyeler.length > 0 && <div className="sec">Çevrimdışı — {cevrimdisiUyeler.length}</div>}
           {cevrimdisiUyeler.map((u) => uyeSatiri(u, false))}
         </div>

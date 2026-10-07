@@ -3,7 +3,7 @@ import type { Mesaj, Tepki, Uye } from "./types";
 import { HIZLI_TEPKILER, saat } from "./util";
 import Avatar from "./Avatar";
 import EkResim from "./EkResim";
-import { metinOge } from "./mesaj/markdown";
+import { duzMetin, metinOge } from "./mesaj/markdown";
 import Ikon from "./mesaj/Ikon";
 import AnketKart from "./mesaj/AnketKart";
 import OnizlemeKarti from "./mesaj/OnizlemeKarti";
@@ -83,14 +83,14 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
       <div className="mb">
         <div className={"mh" + (devam ? " sr" : "")}>
           {yazar && onProfil ? (
-            <button className="ad-btn" onClick={() => onProfil(yazar.id)}><b>{yazar.takma_ad}</b></button>
+            <button className="ad-btn" onClick={() => onProfil(yazar.id)}><b className={"rol-" + yazar.rol}>{yazar.takma_ad}</b></button>
           ) : (
-            <b>{yazar?.takma_ad ?? "Eski üye"}</b>
+            <b className={"rol-" + (yazar?.rol ?? "uye")}>{yazar?.takma_ad ?? "Eski üye"}</b>
           )}
           <time dateTime={mesaj.olusturma}>{saat(mesaj.olusturma)}</time>
           {mesaj.duzenleme && !mesaj.silindi && <span className="hint">(düzenlendi)</span>}
         </div>
-        {mesaj.sabit && !mesaj.silindi && <span className="pin-isaret" title="Sabitlenmiş mesaj"><span aria-hidden="true">📌</span><span className="sr"> sabitlenmiş</span></span>}
+        {mesaj.sabit && !mesaj.silindi && <span className="pin-isaret" title="Sabitlenmiş mesaj"><Ikon ad="pin" boyut={14} /><span className="sr"> sabitlenmiş</span></span>}
         {mesaj.silindi ? (
           <div className="txt silindi">Bu mesaj silindi.</div>
         ) : (
@@ -103,7 +103,7 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
                 {zengin?.alinti?.mesaj && !zengin.alinti.mesaj.silindi ? (
                   <>
                     <b>{zengin.alinti.yazar?.takma_ad ?? "Eski üye"}</b>
-                    <span>{zengin.alinti.mesaj.metin ? zengin.alinti.mesaj.metin.slice(0, 100) : zengin.alinti.mesaj.ek_yol ? "Resim" : ""}</span>
+                    <span>{zengin.alinti.mesaj.metin ? duzMetin(zengin.alinti.mesaj.metin).slice(0, 100) : zengin.alinti.mesaj.ek_yol ? "Resim" : ""}</span>
                   </>
                 ) : (
                   <span>{zengin?.alinti?.mesaj?.silindi ? "Bu mesaj silindi." : "Önceki mesaj"}</span>
@@ -164,16 +164,16 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
       </div>
       {aracVar && (
         <div className="arac" role="toolbar" aria-label="Mesaj eylemleri">
-          {!tepkisiz && <button onClick={() => setSec(!sec)} aria-expanded={sec} aria-label="Tepki ekle" title="Tepki ekle">😀</button>}
+          {!tepkisiz && <button onClick={() => setSec(!sec)} aria-expanded={sec} aria-label="Tepki ekle" title="Tepki ekle"><Ikon ad="gulen" /></button>}
           {zengin?.onYanitla && <button onClick={() => zengin.onYanitla!(mesaj)} aria-label="Yanıtla" title="Yanıtla"><Ikon ad="yanit" /></button>}
-          {onKonu && !yanitSayisi && <button onClick={() => onKonu(mesaj)} aria-label="Konu aç ve yanıtla" title="Yanıtla (konu aç)">💬</button>}
+          {onKonu && !yanitSayisi && <button onClick={() => onKonu(mesaj)} aria-label="Konu aç ve yanıtla" title="Yanıtla (konu aç)"><Ikon ad="sohbet" /></button>}
           {pinGoster && (
             <button className="pin-btn" onClick={() => onSabitle!(mesaj, !mesaj.sabit)} title={mesaj.sabit ? "Sabitlemeyi kaldır" : "Sabitle"}
-              aria-label={mesaj.sabit ? "Sabitlemeyi kaldır" : "Mesajı sabitle"}>{mesaj.sabit ? "📍" : "📌"}</button>
+              aria-label={mesaj.sabit ? "Sabitlemeyi kaldır" : "Mesajı sabitle"}><Ikon ad="pin" /></button>
           )}
-          {duzenlenebilir && <button onClick={() => { setTaslak(mesaj.metin); setDuzenle(true); setArac(false); }} aria-label="Mesajı düzenle" title="Düzenle">✏️</button>}
+          {duzenlenebilir && <button onClick={() => { setTaslak(mesaj.metin); setDuzenle(true); setArac(false); }} aria-label="Mesajı düzenle" title="Düzenle"><Ikon ad="duzenle" /></button>}
           {zengin?.onIlet && !mesaj.ek_yol && !!mesaj.metin && !zengin.anket && <button onClick={() => zengin.onIlet!(mesaj)} aria-label="İlet" title="İlet"><Ikon ad="ilet" /></button>}
-          {silebilir && <button className="del" onClick={() => onSil(mesaj)} aria-label="Mesajı sil" title="Sil">🗑️</button>}
+          {silebilir && <button className="del" onClick={() => onSil(mesaj)} aria-label="Mesajı sil" title="Sil"><Ikon ad="sil" /></button>}
         </div>
       )}
     </article>

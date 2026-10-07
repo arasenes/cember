@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { anketGorunumu, type Anket } from "./anket";
+import Ikon from "./Ikon";
 
 type Props = {
   anket: Anket;
@@ -30,6 +31,7 @@ export default function AnketKart({ anket, benUyeId, onOyla, onHata }: Props) {
 
   return (
     <div className="anket" role="group" aria-label={`Anket: ${anket.soru}`}>
+      <div className="anket-etiket"><Ikon ad="anket" boyut={16} /> ANKET</div>
       <div className="anket-soru">{anket.soru}</div>
       <ul className="anket-liste">
         {g.secenekler.map((s) => (
@@ -37,7 +39,7 @@ export default function AnketKart({ anket, benUyeId, onOyla, onHata }: Props) {
             <button type="button" className={"anket-sec" + (s.benim ? " benim" : "")} aria-pressed={s.benim} disabled={mesgul || g.bitti} onClick={() => void sec(s.id, s.benim)}>
               <span className="anket-cubuk" style={{ width: `${s.yuzde}%` }} aria-hidden="true" />
               <span className="anket-metin">{s.metin}</span>
-              <span className="anket-sayi">{s.yuzde}% <span className="sr">, {s.sayi} oy</span></span>
+              <span className="anket-sayi">{s.sayi} oy · %{s.yuzde}</span>
             </button>
           </li>
         ))}

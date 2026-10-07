@@ -81,6 +81,19 @@ function metinBolumu(icerik: string, benAd: string, anahtar: string): ReactNode[
   return cikti;
 }
 
+/** Biçimlendirme işaretlerini atar (alıntı satırı, bildirim gibi tek satırlık özetler için). */
+export function duzMetin(metin: string): string {
+  return metin
+    .replace(/```(?:[A-Za-z0-9_+-]*\n)?([\s\S]*?)```/g, "$1")
+    .replace(/\|\|([^\n]+?)\|\|/g, "$1")
+    .replace(/\*\*([^\n]+?)\*\*/g, "$1")
+    .replace(/\*([^\s*][^\n]*?)\*/g, "$1")
+    .replace(/`([^`\n]+)`/g, "$1")
+    .replace(/^>\s?/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Mesaj metnini React öğelerine çevirir. */
 export function metinOge(metin: string, benAd: string): ReactNode {
   const bolumler = kodBolumleri(metin);
