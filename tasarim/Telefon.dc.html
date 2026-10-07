@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Çember telefon sohbeti</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Figtree',system-ui,sans-serif;background:#0f1116;color:#e8eaf0}
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0f1116;font-size:14px;flex:none}
+.ibtn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:#9aa3b5;cursor:pointer;font-family:inherit}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;border:0;background:transparent;color:#9aa3b5;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer}
+.chip{display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:14px;background:#252a35;border:1px solid #2c3240;color:#e8eaf0;font-size:13px;font-weight:600;font-family:inherit}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;display:flex;flex-direction:column;background:#1c2029;overflow:hidden">
+
+<header style="display:flex;align-items:center;gap:4px;height:56px;padding:0 6px;border-bottom:1px solid #2c3240;flex:none;background:#161920">
+<button class="ibtn" aria-label="Kanallar ve sunucular"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+<div style="flex:1;min-width:0"><div style="font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:700">genel-sohbet</div><div style="font-size:12px;color:#9aa3b5">Çember Ailesi · 6 çevrimiçi</div></div>
+<button class="ibtn" aria-label="Ara"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></button>
+<button class="ibtn" aria-label="Üyeler"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 11a3.500 3.500 0 1 0 0-7 3.500 3.500 0 0 0 0 7zM20 19v-1a4 4 0 0 0-3-3.800M16 4.200a3.500 3.500 0 0 1 0 6.600"/></svg></button>
+</header>
+
+<!-- sesli odada şerit -->
+<div style="display:flex;align-items:center;gap:10px;min-height:48px;padding:0 12px;background:#12362c;border-bottom:1px solid #1b4a3c;flex:none">
+<span style="width:10px;height:10px;border-radius:50%;background:#4fd1a5"></span>
+<div style="flex:1;min-width:0;font-size:14px;font-weight:600;color:#bff3e0">Salon · 3 kişi</div>
+<button class="ibtn" style="color:#bff3e0" aria-label="Mikrofon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+<button class="ibtn" style="color:#ffb4ab" aria-label="Ayrıl"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15c4-4 12-4 16 0l-2 3-3-1.500v-2.500a9 9 0 0 0-6 0v2.500L6 18z"/></svg></button>
+</div>
+
+<div style="flex:1;overflow:hidden;padding:8px 0;display:flex;flex-direction:column;gap:4px">
+<div style="display:flex;gap:10px;padding:6px 12px">
+<div class="av" style="background:#f5b94a">E</div>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:baseline;gap:8px"><b style="color:#f5b94a;font-size:15px">Enes</b><span style="font-size:11px;color:#9aa3b5">20:41</span></div>
+<div style="font-size:15px;line-height:1.45">akşam <b>toplantı</b> yapalım mı? <code style="background:#12151b;border:1px solid #2c3240;border-radius:4px;padding:0 4px;font-size:13px">21:00</code></div>
+</div>
+</div>
+
+<div style="display:flex;gap:10px;padding:6px 12px;background:#222733;border-left:3px solid #4fd1a5">
+<div class="av" style="background:#4fd1a5;margin-top:20px">A</div>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:center;gap:6px;height:20px;font-size:12px;color:#9aa3b5;min-width:0"><svg class="ic" style="width:12px;height:12px;transform:scaleX(-1);flex:none" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 6 6v3"/></svg><b style="color:#f5b94a;flex:none">Enes</b><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">akşam toplantı yapalım mı?…</span></div>
+<div style="display:flex;align-items:baseline;gap:8px"><b style="color:#4fd1a5;font-size:15px">Aras</b><span style="font-size:11px;color:#9aa3b5">20:43</span></div>
+<div style="font-size:15px;line-height:1.45"><span style="background:#3a3217;color:#f5b94a;border-radius:4px;padding:0 4px;font-weight:600">@Enes</span> olur, sesli odada buluşalım.</div>
+<div style="display:flex;gap:6px;margin-top:6px">
+<span class="chip" style="background:#12362c;border-color:#4fd1a5;color:#bff3e0"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>3</span>
+<span class="chip"><svg class="ic" style="width:14px;height:14px;color:#ff8a80" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.500-7-10a4 4 0 0 1 7-2.500A4 4 0 0 1 19 10c0 5.500-7 10-7 10z"/></svg>2</span>
+</div>
+</div>
+</div>
+
+<div style="display:flex;align-items:center;gap:10px;padding:6px 12px"><span style="flex:1;height:1px;background:#ff8a80"></span><span style="font-size:11px;font-weight:700;color:#ff8a80">Yeni mesajlar</span></div>
+
+<div style="display:flex;gap:10px;padding:6px 12px">
+<div class="av" style="background:#7aa8ff">C</div>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:baseline;gap:8px"><b style="color:#7aa8ff;font-size:15px">Can</b><span style="font-size:11px;color:#9aa3b5">20:50</span></div>
+<div style="margin-top:4px;border:1px solid #2c3240;background:#161920;border-radius:12px;padding:12px">
+<div style="font-size:11px;font-weight:700;color:#9aa3b5;letter-spacing:.06em">ANKET</div>
+<div style="font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:700;margin:4px 0 10px">Cuma akşamı ne oynayalım?</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<button style="position:relative;display:flex;justify-content:space-between;align-items:center;height:44px;padding:0 12px;border:1px solid #4fd1a5;border-radius:10px;background:#12362c;color:#e8eaf0;font-family:inherit;font-size:14px;font-weight:600;overflow:hidden"><span style="position:absolute;left:0;top:0;bottom:0;width:58%;background:#1b4a3c"></span><span style="position:relative">Valorant</span><span style="position:relative">%58</span></button>
+<button style="position:relative;display:flex;justify-content:space-between;align-items:center;height:44px;padding:0 12px;border:1px solid #2c3240;border-radius:10px;background:#1c2029;color:#e8eaf0;font-family:inherit;font-size:14px;font-weight:600;overflow:hidden"><span style="position:absolute;left:0;top:0;bottom:0;width:25%;background:#252a35"></span><span style="position:relative">Minecraft</span><span style="position:relative">%25</span></button>
+<button style="position:relative;display:flex;justify-content:space-between;align-items:center;height:44px;padding:0 12px;border:1px solid #2c3240;border-radius:10px;background:#1c2029;color:#e8eaf0;font-family:inherit;font-size:14px;font-weight:600;overflow:hidden"><span style="position:absolute;left:0;top:0;bottom:0;width:17%;background:#252a35"></span><span style="position:relative">Film izleyelim</span><span style="position:relative">%17</span></button>
+</div>
+<div style="margin-top:8px;font-size:12px;color:#9aa3b5">12 oy · 23 saat kaldı</div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;gap:10px;padding:6px 12px">
+<div class="av" style="background:#ff8a80">El</div>
+<div style="flex:1;min-width:0">
+<div style="display:flex;align-items:baseline;gap:8px"><b style="color:#ff8a80;font-size:15px">Elif</b><span style="font-size:11px;color:#9aa3b5">20:52</span></div>
+<div style="font-size:15px;line-height:1.45">Minecraft'a verdim ama kimse dinlemez</div>
+<div style="margin-top:6px;width:200px;height:110px;border-radius:12px;background:#2d3550;display:flex;align-items:center;justify-content:center;color:#bcc8ff;position:relative"><span style="position:absolute;left:8px;top:8px;background:#0f1116;color:#e8eaf0;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700">GIF</span><svg class="ic" style="width:32px;height:32px" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></div>
+</div>
+</div>
+</div>
+
+<div style="padding:0 12px 8px;flex:none">
+<div style="display:flex;align-items:center;gap:6px;height:22px;font-size:12px;color:#c3c9d6"><span style="display:flex;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#4fd1a5"></span><span style="width:5px;height:5px;border-radius:50%;background:#4fd1a5;opacity:.6"></span><span style="width:5px;height:5px;border-radius:50%;background:#4fd1a5;opacity:.3"></span></span><b>Can</b> yazıyor…</div>
+<div style="display:flex;align-items:center;gap:2px;min-height:48px;padding:0 4px;background:#252a35;border-radius:12px">
+<button class="ibtn" aria-label="Dosya, anket veya GIF ekle"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></button>
+<input aria-label="Mesaj yaz" placeholder="Mesaj yaz" style="flex:1;min-width:0;height:44px;background:transparent;border:0;outline:0;color:#e8eaf0;font-family:inherit;font-size:15px">
+<button class="ibtn" aria-label="Emoji seç"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.500 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg></button>
+<button class="ibtn" aria-label="Gönder" style="background:#4fd1a5;color:#07261c"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+</div>
+</div>
+
+<nav aria-label="Ana gezinme" style="display:flex;border-top:1px solid #2c3240;background:#161920;flex:none">
+<button class="tab" style="color:#4fd1a5"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10 12 3l9 7v10H3z"/></svg>Sunucu</button>
+<button class="tab"><span style="position:relative;display:flex"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><span style="position:absolute;right:-8px;top:-6px;background:#ff8a80;color:#1b0b09;font-size:10px;font-weight:700;border-radius:8px;padding:0 5px">3</span></span>Mesajlar</button>
+<button class="tab"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 11a3.500 3.500 0 1 0 0-7 3.500 3.500 0 0 0 0 7z"/></svg>Arkadaşlar</button>
+<button class="tab"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4l2-2zM10 21h4"/></svg>Bildirim</button>
+<button class="tab"><div class="av" style="width:24px;height:24px;font-size:11px;background:#4fd1a5">A</div>Ben</button>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
