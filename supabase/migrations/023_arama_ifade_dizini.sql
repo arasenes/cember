@@ -1,9 +1,9 @@
--- Aşama 1: mesaj arama (Türkçe tam metin, önek eşleşmeli) + süzgeçler
--- Üretilmiş (stored generated) sütun yerine ifade dizini: PG 18'de, replica identity FULL olan yayınlanmış tabloda
--- üretilmiş sütun UPDATE/DELETE'i bozar. İfade dizini aynı hızı verir ve tabloya sütun eklemez.
-create index if not exists mesajlar_arama_gin on public.mesajlar using gin (to_tsvector('turkish', coalesce(metin, '')));
+-- Canlı veritabanını 016'nın son haline getirir: üretilmiş `arama` sütunu kalkar, ifade dizini gelir.
+-- (PG 18'e geçişte replica identity FULL + üretilmiş sütun, mesaj UPDATE/DELETE'ini bozardı.)
+-- Eski dizin üretilmiş sütunun üstündeydi (aynı ad): önce o gider, sonra ifade dizini kurulur
+drop index if exists public.mesajlar_arama_gin;
+create index mesajlar_arama_gin on public.mesajlar using gin (to_tsvector('turkish', coalesce(metin, '')));
 
--- SECURITY INVOKER: mesajlar_oku politikası (üyelik + kanal şifresi) aynen geçerli kalır
 create or replace function public.mesaj_ara(
   p_oda uuid, p_sorgu text, p_kanal uuid default null, p_uye uuid default null,
   p_bas timestamptz default null, p_son timestamptz default null, p_ekli boolean default null, p_limit integer default 30
@@ -30,3 +30,5 @@ begin
     order by m.olusturma desc
     limit least(greatest(coalesce(p_limit, 30), 1), 50);
 end $$;
+
+alter table public.mesajlar drop column if exists arama;

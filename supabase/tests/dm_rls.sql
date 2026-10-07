@@ -1,4 +1,5 @@
--- NOT: canlı projede çalıştırılmadı (auth.users'a geçici satır yazar); SQL editöründe ya da bir Supabase branch'inde çalıştır.
+-- Yerelde çalıştırma (canlıya dokunmaz): node supabase/tests/yerel/calistir.mjs supabase/tests/dm_rls.sql
+-- (auth.users'a geçici satır yazdığı için canlı projede çalıştırma; SQL editöründe ya da bir Supabase branch'inde çalıştır.)
 -- Aşama 2 yetki testi (DM, grup DM, arkadaşlık, engelleme). SQL editöründe çalıştır; sonunda bilerek hata verip
 -- her şeyi geri alır (hata metni raporu içerir). "FAIL" satırı olmamalı.
 do $$
@@ -38,6 +39,7 @@ begin
 
   -- B görür; C ve D göremez, yazamaz
   reset role;
+  update dm_uyeleri set son_okuma = now() - interval '1 minute'; -- aynı işlemde now() eşit olduğundan okunmamış sayımı için geriye al
   perform set_config('request.jwt.claims', json_build_object('sub',ub,'role','authenticated')::text, true);
   set local role authenticated;
   select count(*) into n from dm_mesajlari; rapor := rapor||'B mesaj sayısı (1): '||n||E'\n';
