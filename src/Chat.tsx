@@ -548,8 +548,8 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
               <div key={k.id}>
                 <div className="ch-satir">
                 <button className="ch" aria-pressed={buradayim} disabled={ses.durum === "baglaniyor"}
-                  onClick={() => (buradayim ? ses.ayril() : kanalaGir(k, () => { void ses.baglan(k.id); }))}
-                  aria-label={`${k.ad} sesli odası${k.sifreli ? ", şifreli" : ""}, ${buradayim ? "ayrılmak için tıkla" : "katılmak için tıkla"}`}>
+                  onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); if (!buradayim) void ses.baglan(k.id); })}
+                  aria-label={`${k.ad} sesli odası${k.sifreli ? ", şifreli" : ""}, ${buradayim ? "sohbetini açmak için tıkla; ayrılmak için Ayrıl düğmesini kullan" : "katılmak için tıkla"}`}>
                   <span className="hash" aria-hidden="true">🔊</span>{k.ad}
                   {k.sifreli && <span className="kilit" aria-hidden="true">🔒</span>}
                   {buradayim && <span className="soon">bağlı</span>}
