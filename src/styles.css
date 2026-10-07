@@ -18,7 +18,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
 /* giriş */
-#gate{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+#gate,#kayit{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 16px}
 .gatecard{width:min(100%,400px);display:flex;flex-direction:column;gap:18px}
 .logo{display:flex;align-items:center;gap:12px}
 .logo svg{flex:none}
