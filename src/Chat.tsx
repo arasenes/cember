@@ -520,9 +520,11 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         }
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "yonetim_komutlari", filter: `hedef_uye=eq.${me.id}` }, (p) => {
-        const k = p.new as { tur: "ses-at" | "tasi"; kanal_id: string | null };
+        const k = p.new as { tur: "ses-at" | "tasi" | "sustur" | "sustur-kaldir"; kanal_id: string | null };
         const s = sesRef.current;
         if (!s.kanalId) return;
+        if (k.tur === "sustur") { void s.sunucuSusturAyarla(true); setYonBilgi("Bir yönetici seni susturdu; sesin yönetici kaldırınca açılır."); return; }
+        if (k.tur === "sustur-kaldir") { void s.sunucuSusturAyarla(false); setYonBilgi("Susturman kaldırıldı."); return; }
         if (k.tur === "tasi" && k.kanal_id) {
           setYonBilgi("Yönetici seni başka bir sesli odaya taşıdı.");
           void s.baglan(k.kanal_id);

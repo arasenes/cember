@@ -22,7 +22,7 @@ export function islemYapabilir(ben: Pick<Uye, "id" | "rol">, hedef: Pick<Uye, "i
   return ben.rol === "sahip" || (ben.rol === "moderator" && hedef.rol === "uye");
 }
 
-async function yonetCagir(govde: Record<string, unknown>): Promise<string | null> {
+export async function yonetCagir(govde: Record<string, unknown>): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/yonet`, {

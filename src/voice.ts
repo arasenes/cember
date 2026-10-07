@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Room } from "livekit-client";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
 import { gurultuTercihi, gurultuUygula } from "./gurultu";
+import { sesYoneticisi } from "./ses/sesDuzeyi";
 import { ekranHatasi, ekranPaylasilabilirTarayici, KALITE, uygulamaIci, yerelEkran, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
 
 /** Yerel eklenti yanıt vermese bile bağlantı akışını kilitlemesin diye zaman aşımı ile durdurur. */
@@ -65,6 +66,8 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   const hedefRef = useRef<string | null>(null);
   const [izlenen, setIzlenen] = useState<Izlenen | null>(null);
   const [paylasiyorum, setPaylasiyorum] = useState(false);
+  const [kameralar, setKameralar] = useState<Map<string, MediaStream>>(new Map());
+  const [kameraAcik, setKameraAcik] = useState(false);
   const yerelDinleyici = useRef<{ remove: () => Promise<void> } | null>(null);
   const yerelAktif = useRef(false); // telefonda ekran paylaşımı başlatıldı mı (yerel eklentiyi gereksiz çağırmamak için)
 
@@ -77,6 +80,8 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     odaRef.current = null;
     if (room) { try { await room.disconnect(); } catch { /* yoksay */ } }
     if (sesKabi.current) sesKabi.current.replaceChildren();
+    sesYoneticisi.hepsiniKaldir();
+    setKameralar(new Map()); setKameraAcik(false);
     setKonusanlar(new Set());
     setIzlenen(null); setPaylasiyorum(false);
     const y = yerelEkran();
@@ -112,24 +117,42 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
         audioCaptureDefaults: { echoCancellation: true, noiseSuppression: gurultuTercihi(), autoGainControl: gurultuTercihi() },
       });
       odaRef.current = room;
+      // Ses anahtarı: mikrofon "<üye>", paylaşılan ekranın sesi (tarayıcı ya da telefon) "<üye>~ekran" (kişi başı ses düzeyi için)
+      const sesAnahtari = (kimlik: string, kaynak: string) => {
+        const uye = kimlik.split("~")[0];
+        return kaynak === Track.Source.ScreenShareAudio || kimlik.includes("~ekran") ? `${uye}~ekran` : uye;
+      };
       room.on(RoomEvent.TrackSubscribed, (track, yayin, katilimci) => {
         if (track.kind === Track.Kind.Audio) {
-          // Mikrofon sesi ve paylaşılan ekranın sesi aynı yoldan çalınır
+          // Mikrofon sesi ve paylaşılan ekranın sesi aynı yoldan çalınır; ses düzeyi WebAudio kazancıyla ayarlanır
           const el = track.attach();
           sesKabi.current?.appendChild(el);
+          sesYoneticisi.kaydet(sesAnahtari(katilimci.identity, yayin.source), new MediaStream([track.mediaStreamTrack]), el);
         } else if (track.kind === Track.Kind.Video && yayin.source === Track.Source.ScreenShare) {
           setIzlenen({ uyeId: katilimci.identity.split("~")[0], akis: new MediaStream([track.mediaStreamTrack]) });
+        } else if (track.kind === Track.Kind.Video && yayin.source === Track.Source.Camera) {
+          const uye = katilimci.identity.split("~")[0];
+          setKameralar((x) => new Map(x).set(uye, new MediaStream([track.mediaStreamTrack])));
         }
       });
       room.on(RoomEvent.TrackUnsubscribed, (track, yayin, katilimci) => {
         track.detach().forEach((el) => el.remove());
+        if (track.kind === Track.Kind.Audio) sesYoneticisi.kaldir(sesAnahtari(katilimci.identity, yayin.source));
         if (yayin.source === Track.Source.ScreenShare && track.kind === Track.Kind.Video) {
           setIzlenen((i) => (i?.uyeId === katilimci.identity.split("~")[0] ? null : i));
         }
+        if (yayin.source === Track.Source.Camera && track.kind === Track.Kind.Video) {
+          const uye = katilimci.identity.split("~")[0];
+          setKameralar((x) => { const y = new Map(x); y.delete(uye); return y; });
+        }
       });
+      // Yönetici sunucudan susturduğunda (ya da kaldırdığında) kendi mikrofon durumumuz güncellenir
+      room.on(RoomEvent.TrackMuted, (pub, p) => { if (p.isLocal && pub.source === Track.Source.Microphone) setSessiz(true); });
+      room.on(RoomEvent.TrackUnmuted, (pub, p) => { if (p.isLocal && pub.source === Track.Source.Microphone) setSessiz(false); });
       // Tarayıcının kendi "Paylaşımı durdur" düğmesine basılırsa
       room.on(RoomEvent.LocalTrackUnpublished, (yayin) => {
         if (yayin.source === Track.Source.ScreenShare) setPaylasiyorum(false);
+        if (yayin.source === Track.Source.Camera) { setKameraAcik(false); setKameralar((x) => { const y = new Map(x); y.delete(uyeId); return y; }); }
       });
       room.on(RoomEvent.ActiveSpeakersChanged, (liste) => setKonusanlar(new Set(liste.map((p) => p.identity))));
       room.on(RoomEvent.Disconnected, () => {
@@ -183,13 +206,39 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     await gurultuUygula(pub?.track?.mediaStreamTrack, acik);
   }, []);
 
-  const sessizDegistir = useCallback(async () => {
+  /** Mikrofonu açar/kapatır (sessiz=true: kapalı). Bas-konuş ve sağırlaştırma da bunu kullanır. */
+  const sessizAyarla = useCallback(async (yeni: boolean) => {
     const room = odaRef.current;
     if (!room) return;
-    const yeni = !sessiz;
     try { await room.localParticipant.setMicrophoneEnabled(!yeni); } catch { return; }
     setSessiz(yeni);
-  }, [sessiz]);
+  }, []);
+  const sessizDegistir = useCallback(async () => { await sessizAyarla(!sessiz); }, [sessiz, sessizAyarla]);
+
+  /** Kamera aç/kapat (en çok 720p, 30 kare). Yalnızca LiveKit motorunda çalışır. */
+  const kameraDegistir = useCallback(async (): Promise<{ ok: boolean; mesaj?: string }> => {
+    const room = odaRef.current;
+    if (!room) return { ok: false, mesaj: "Önce sesli odaya katıl." };
+    const ac = !kameraAcik;
+    try {
+      await room.localParticipant.setCameraEnabled(
+        ac,
+        ac ? { resolution: { width: 1280, height: 720, frameRate: 30 } } : undefined,
+        ac ? { videoEncoding: { maxBitrate: 1_500_000, maxFramerate: 30 }, videoSimulcastLayers: [] } : undefined,
+      );
+    } catch (e) {
+      const ad = (e as { name?: string })?.name;
+      return { ok: false, mesaj: ad === "NotAllowedError" ? "Kamera izni verilmedi. Tarayıcının adres çubuğundan kameraya izin ver." : ad === "NotFoundError" ? "Kamera bulunamadı." : "Kamera açılamadı." };
+    }
+    if (ac) {
+      const iz = room.localParticipant.getTrackPublications().find((p) => p.source === "camera")?.track?.mediaStreamTrack;
+      if (iz) setKameralar((x) => new Map(x).set(uyeId, new MediaStream([iz])));
+    } else {
+      setKameralar((x) => { const y = new Map(x); y.delete(uyeId); return y; });
+    }
+    setKameraAcik(ac);
+    return { ok: true };
+  }, [kameraAcik, uyeId]);
 
   const ekranPaylas = useCallback(async (kalite: EkranKalite): Promise<EkranSonuc> => {
     const room = odaRef.current;
@@ -254,6 +303,5 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     return () => { window.removeEventListener("pagehide", kapat); void temizle(); };
   }, [temizle]);
 
-  void uyeId;
-  return { durum, kanalId, sessiz, konusanlar, kullanilan, sesKabi, baglan, ayril, sessizDegistir, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur };
+  return { durum, kanalId, sessiz, konusanlar, kullanilan, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur, kameralar, kameraAcik, kameraDegistir };
 }

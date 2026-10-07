@@ -1,3 +1,4 @@
+import { sesYoneticisi } from "./ses/sesDuzeyi";
 import { gurultuTercihi, gurultuUygula } from "./gurultu";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -105,6 +106,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       if (kanal) { try { await kanal.untrack(); } catch { /* yoksay */ } await supabase.removeChannel(kanal); }
       if (ctx) { try { await ctx.close(); } catch { /* yoksay */ } }
       sesKabi.current?.replaceChildren();
+      sesYoneticisi.hepsiniKaldir();
     };
     kapatRef.current = kapat;
 
@@ -184,6 +186,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             el.autoplay = true; el.setAttribute("playsinline", "");
             el.srcObject = uzak;
             sesKabi.current?.appendChild(el);
+            sesYoneticisi.kaydet(peerId, uzak, el); // kişi başı ses düzeyi için WebAudio kazancı
             void el.play().catch(() => { /* tarayıcı engelledi: bir sonraki dokunuşta tekrar denenir */ });
             es.el = el;
             analizEkle(peerId, uzak);
@@ -197,6 +200,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           }
         };
         es.sonlandir = () => {
+          sesYoneticisi.kaldir(peerId);
           pc.onicecandidate = null; pc.ontrack = null; pc.onconnectionstatechange = null;
           try { pc.close(); } catch { /* yoksay */ }
           es.el?.remove();
@@ -436,11 +440,15 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const gurultuAyarla = useCallback(async (acik: boolean) => { await gurultuUygula(yerelRef.current?.getAudioTracks()[0], acik); }, []);
 
 
-  const sessizDegistir = useCallback(async () => {
-    const yeni = !sessiz;
+  /** Mikrofonu açar/kapatır (sessiz=true: kapalı). Bas-konuş ve sağırlaştırma da bunu kullanır. */
+  const sessizAyarla = useCallback(async (yeni: boolean) => {
     yerelRef.current?.getAudioTracks().forEach((t) => { t.enabled = !yeni; });
     setSessiz(yeni);
-  }, [sessiz]);
+  }, []);
+  const sessizDegistir = useCallback(async () => { await sessizAyarla(!sessiz); }, [sessiz, sessizAyarla]);
+  // Doğrudan (P2P) modda kamera yok: arayüz bunu açıklayıcı bir uyarıyla bildirir
+  const kameralar = useRef<Map<string, MediaStream>>(new Map()).current;
+  const kameraDegistir = useCallback(async (): Promise<{ ok: boolean; mesaj?: string }> => ({ ok: false, mesaj: "Kamera yalnızca LiveKit modunda çalışır; doğrudan (ücretsiz) modda yok." }), []);
 
   useEffect(() => {
     const kapat = () => { void temizle(); };
@@ -451,5 +459,5 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const ekranPaylas = useCallback(async (kalite: EkranKalite): Promise<EkranSonuc> => ekranRef.current ? ekranRef.current.baslat(kalite) : { ok: false, mesaj: "Önce sesli odaya katıl." }, []);
   const ekranDurdur = useCallback(async () => { await ekranRef.current?.durdur(); }, []);
 
-  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur };
+  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur, kameralar, kameraAcik: false, kameraDegistir };
 }

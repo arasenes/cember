@@ -1,5 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { RoomServiceClient } from "npm:livekit-server-sdk@2";
+import * as lksdk from "npm:livekit-server-sdk@2";
+
+const { RoomServiceClient } = lksdk;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -58,6 +60,20 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Sunucuda sustur: odadaki mikrofon yayını LiveKit'ten susturulur (en iyi çaba); asıl kilit, hedefin istemcisine giden komutla uygulanır
+  async function mikSustur(odaId: string, uyeId: string) {
+    if (!lkUrl || !lkKey || !lkSecret) return;
+    const lk = new RoomServiceClient(lkUrl.replace(/^wss?:\/\//, "https://"), lkKey, lkSecret);
+    const { data: kanallar } = await admin.from("kanallar").select("id").eq("oda_id", odaId).eq("tur", "sesli");
+    const MIK = (lksdk as unknown as { TrackSource?: { MICROPHONE?: number } }).TrackSource?.MICROPHONE ?? 2;
+    for (const k of kanallar ?? []) {
+      try {
+        const p = await lk.getParticipant(k.id, uyeId);
+        for (const t of p.tracks ?? []) if (t.source === MIK) await lk.mutePublishedTrack(k.id, uyeId, t.sid, true);
+      } catch { /* odada değil */ }
+    }
+  }
+
   if (g.islem === "at") {
     const s = await hedefVeYetki(g.uye_id);
     if (s.hata) return s.hata;
@@ -93,6 +109,13 @@ Deno.serve(async (req) => {
     const s = await hedefVeYetki(g.uye_id);
     if (s.hata) return s.hata;
     const { hedef } = s as { hedef: { id: string; oda_id: string } };
+    if (g.tur === "sustur" || g.tur === "sustur-kaldir") {
+      await admin.from("yonetim_komutlari").delete().eq("hedef_uye", hedef.id).lt("olusturma", new Date(Date.now() - 60_000).toISOString());
+      const { error: sErr } = await admin.from("yonetim_komutlari").insert({ oda_id: hedef.oda_id, hedef_uye: hedef.id, tur: g.tur, kanal_id: null });
+      if (sErr) return json({ hata: "Komut gönderilemedi" }, 500);
+      if (g.tur === "sustur") await mikSustur(hedef.oda_id, hedef.id);
+      return json({ ok: true });
+    }
     let kanalId: string | null = null;
     if (g.tur === "tasi") {
       if (typeof g.kanal_id !== "string" || !UUID.test(g.kanal_id)) return json({ hata: "Geçersiz kanal" }, 400);
