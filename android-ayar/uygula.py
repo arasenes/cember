@@ -41,20 +41,60 @@ if "FOREGROUND_SERVICE_MEDIA_PROJECTION" not in m:
         sys.exit("AndroidManifest.xml içinde </application> bulunamadı")
     manifest.write_text(m, encoding="utf-8")
 
+# 1c) Google girişi dönüşü: tarayıcı com.cember.chat://giris adresiyle uygulamayı açar
+m = manifest.read_text(encoding="utf-8")
+if 'android:scheme="com.cember.chat"' not in m:
+    filtre = """            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.cember.chat" android:host="giris" />
+            </intent-filter>
+"""
+    m, n = re.subn(r"(\s*)</activity>", "\n" + filtre.rstrip("\n") + r"\1</activity>", m, count=1)
+    if n != 1:
+        sys.exit("AndroidManifest.xml içinde </activity> bulunamadı (Google dönüş adresi)")
+    manifest.write_text(m, encoding="utf-8")
+
 # Yerel eklenti (Kotlin) ve MainActivity kaydı
 paket = android / "app/src/main/java/com/cember/chat"
 paket.mkdir(parents=True, exist_ok=True)
 shutil.copy(ayar / "yerel/EkranYakalaPlugin.kt", paket / "EkranYakalaPlugin.kt")
 (paket / "MainActivity.java").write_text("""package com.cember.chat;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private static final String SITE = "https://cember.onrender.com/";
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(EkranYakalaPlugin.class);
         super.onCreate(savedInstanceState);
+        girisDonusu(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        girisDonusu(intent);
+    }
+
+    // Google girişinden sonra tarayıcı com.cember.chat://giris#... ile uygulamayı açar; oturum bilgisini siteye taşır
+    private void girisDonusu(Intent intent) {
+        if (intent == null) return;
+        Uri d = intent.getData();
+        if (d == null || !"com.cember.chat".equals(d.getScheme())) return;
+        intent.setData(null);
+        String f = d.getEncodedFragment();
+        String q = d.getEncodedQuery();
+        final String hedef = SITE + (q != null ? "?" + q : "") + (f != null ? "#" + f : "");
+        final WebView w = getBridge().getWebView();
+        w.post(() -> w.loadUrl(hedef));
     }
 }
 """, encoding="utf-8")
