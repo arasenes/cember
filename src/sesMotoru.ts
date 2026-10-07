@@ -99,6 +99,7 @@ export function useSesMotoru(
       }
       const r = await aktif.ekranPaylas(kalite);
       if (!r.ok && r.mesaj) setHata(r.mesaj);
+      if (r.ok && r.mesaj) setBilgi(r.mesaj);
       return r;
     },
     ekranDurdur: aktif.ekranDurdur,

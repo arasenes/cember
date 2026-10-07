@@ -5,8 +5,8 @@ export type EkranSonuc = { ok: boolean; mesaj?: string };
 
 // Dizi/film için akıcılık önemli: 30 kare/sn. Bit hızları tasarrufa göre seçildi (LiveKit ücretsiz planda aylık 50 GB indirme sınırı var).
 export const KALITE: Record<EkranKalite, { genislik: number; yukseklik: number; kare: number; bitHizi: number; etiket: string }> = {
-  "720": { genislik: 1280, yukseklik: 720, kare: 30, bitHizi: 1_800_000, etiket: "720p (tasarruflu)" },
-  "1080": { genislik: 1920, yukseklik: 1080, kare: 30, bitHizi: 3_500_000, etiket: "1080p (daha net)" },
+  "720": { genislik: 1280, yukseklik: 720, kare: 30, bitHizi: 2_500_000, etiket: "720p (tasarruflu)" },
+  "1080": { genislik: 1920, yukseklik: 1080, kare: 30, bitHizi: 4_500_000, etiket: "1080p (daha net)" },
 };
 
 /** Android uygulamasındaki (APK) yerel ekran yakalama eklentisi; tarayıcıda ve iOS'ta yoktur. */

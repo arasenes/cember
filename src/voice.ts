@@ -219,10 +219,12 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
           audio: true, contentHint: "motion", selfBrowserSurface: "exclude", systemAudio: "include", surfaceSwitching: "include",
           resolution: { width: k.genislik, height: k.yukseklik, frameRate: k.kare },
         },
-        { screenShareEncoding: { maxBitrate: k.bitHizi, maxFramerate: k.kare }, screenShareSimulcastLayers: [] },
+        { screenShareEncoding: { maxBitrate: k.bitHizi, maxFramerate: k.kare }, screenShareSimulcastLayers: [], degradationPreference: "maintain-framerate" },
       );
       setPaylasiyorum(true);
-      return { ok: true };
+      // Ses paylaşılmadıysa (pencere paylaşımı ya da kutu işaretlenmedi) kullanıcıyı uyar
+      const sesVar = room.localParticipant.getTrackPublications().some((p) => p.source === "screen_share_audio");
+      return sesVar ? { ok: true } : { ok: true, mesaj: "Ekran paylaşılıyor ama SES gitmiyor. Ses için paylaşırken 'Sistem sesini / Sekme sesini paylaş' kutusunu işaretle (Chrome'da sekme ya da tüm ekran seç)." };
     } catch (e) {
       setPaylasiyorum(false);
       return ekranHatasi(e);
