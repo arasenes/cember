@@ -6,7 +6,9 @@ import SesCubugu from "./SesCubugu";
 import EkranPaneli from "./EkranPaneli";
 import type { Kanal, Mesaj, Tepki, Uye } from "./types";
 import MessageView from "./MessageView";
-import { EMOJILER, gunEtiketi, rolEtiketi } from "./util";
+import { gunEtiketi, rolEtiketi } from "./util";
+import EmojiDeposu from "./EmojiDeposu";
+import { TEMA_BILGI, sonrakiTema, temaKaydet, temaTercihi } from "./tema";
 import { bildirim, bildirimIzniIste, duyur, etiketVar, seslerAcik, seslerKaydet, sesleriHazirla } from "./uyari";
 import YonetimPaneli, { susturulmus } from "./YonetimPaneli";
 import Avatar from "./Avatar";
@@ -54,6 +56,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [yanitlar, setYanitlar] = useState<Mesaj[]>([]);
   const [konuId, setKonuId] = useState<string | null>(null);
   const [sesler, setSesler] = useState(seslerAcik);
+  const [tema, setTema] = useState(temaTercihi);
   const [sesOlay, setSesOlay] = useState("");
   const olayZamanRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const oncekiKonumRef = useRef<{ kanal: string | null; konum: Map<string, string> }>({ kanal: null, konum: new Map() });
@@ -581,6 +584,8 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             <div><b>{ben.takma_ad}</b><span>{rolEtiketi(ben.rol)} · Profili düzenle</span></div>
           </button>
           {yonetici && <button className="yon-ac" onClick={() => setYonetimAcik(true)} aria-label="Yönetim panelini aç" title="Yönetim">🛡️</button>}
+          <button className="yon-ac" aria-label={`Tema: ${TEMA_BILGI[tema].ad}. Değiştir`} title={`Tema: ${TEMA_BILGI[tema].ad} (değiştirmek için dokun)`}
+            onClick={() => { const y = sonrakiTema(tema); setTema(y); temaKaydet(y); }}>{TEMA_BILGI[tema].simge}</button>
           <button className="yon-ac" aria-pressed={sesler} aria-label={sesler ? "Uyarı seslerini kapat" : "Uyarı seslerini aç"}
             title={sesler ? "Uyarı sesleri: açık (mesaj, etiket, odaya giriş/çıkış)" : "Uyarı sesleri: kapalı"}
             onClick={() => { const y = !sesler; setSesler(y); seslerKaydet(y); if (y) bildirimIzniIste(); }}>{sesler ? "🔔" : "🔕"}</button>
@@ -651,11 +656,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             </div>
           )}
           {emojiAcik && (
-            <div className="picker on" role="group" aria-label="Emoji seç">
-              {EMOJILER.map((e) => (
-                <button key={e} aria-label={e} onClick={() => { setMetin((m) => m + e); metinRef.current?.focus(); }}>{e}</button>
-              ))}
-            </div>
+            <EmojiDeposu className="deposu-yazi" onSec={(e) => { setMetin((m) => m + e); metinRef.current?.focus(); }} />
           )}
           <button className="sq" onClick={() => setEmojiAcik(!emojiAcik)} aria-label="Emoji seçici" aria-expanded={emojiAcik}>🙂</button>
           <button className="sq" onClick={() => dosyaRef.current?.click()} aria-label="Resim ekle" disabled={gonderiliyor || benSusturuldu}>📎</button>

@@ -4,6 +4,7 @@ import { HIZLI_TEPKILER, saat } from "./util";
 import Avatar from "./Avatar";
 import EkResim from "./EkResim";
 import { etiketParcala } from "./uyari";
+import EmojiDeposu from "./EmojiDeposu";
 
 type Props = {
   mesaj: Mesaj;
@@ -21,6 +22,7 @@ type Props = {
 // Metin her zaman düz metin olarak render edilir: React içeriği kaçışlar, dangerouslySetInnerHTML kullanılmaz.
 export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onSabitle, onProfil, yanitSayisi, onKonu }: Props) {
   const [sec, setSec] = useState(false);
+  const [tum, setTum] = useState(false);
   const benimMi = yazar?.id === benim.id;
   const silebilir = benimMi || benim.rol !== "uye";
 
@@ -79,6 +81,8 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
                 {HIZLI_TEPKILER.map((e) => (
                   <button key={e} onClick={() => { onTepki(mesaj.id, e); setSec(false); }} aria-label={`${e} ekle`}>{e}</button>
                 ))}
+                <button onClick={() => setTum(!tum)} aria-expanded={tum} aria-label="Tüm emojiler">⋯</button>
+                {tum && <EmojiDeposu className="deposu-tepki" onSec={(e) => { onTepki(mesaj.id, e); setSec(false); setTum(false); }} />}
               </div>
             )}
           </>
