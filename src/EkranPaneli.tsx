@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Izlenen } from "./ekranOrtak";
+import Ikon from "./mesaj/Ikon";
 
 type Props = { izlenen: Izlenen; yapanAd: string };
 
@@ -37,7 +38,7 @@ export default function EkranPaneli({ izlenen, yapanAd }: Props) {
   return (
     <section className={"ekran-panel" + (buyuk ? " buyuk" : "")} aria-label={`${yapanAd} ekranını paylaşıyor`}>
       <div className="ekran-ust">
-        <span><span aria-hidden="true">🖥️</span> <b>{yapanAd}</b> ekranını paylaşıyor</span>
+        <span className="ekran-ust-ad"><Ikon ad="ekran" boyut={16} /> <b>{yapanAd}</b> ekranını paylaşıyor</span>
         <span className="ekran-dugmeler">
           <button className="linkbtn" onClick={() => setBuyuk((b) => !b)} aria-pressed={buyuk}>{buyuk ? "Küçült" : "Büyüt"}</button>
           <button className="linkbtn" onClick={tamEkran}>Tam ekran</button>

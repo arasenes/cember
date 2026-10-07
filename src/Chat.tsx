@@ -14,7 +14,7 @@ import { katlanmisOku, katlanmisYaz, okunduOku, okunduYaz, sessizOku, sessizYaz,
 import EmojiDeposu from "./EmojiDeposu";
 import { temaKaydet, temaTercihi } from "./tema";
 import { bildirim, bildirimIzniIste, duyur, etiketVar, seslerAcik, seslerKaydet, sesleriHazirla } from "./uyari";
-import YonetimPaneli, { susturulmus } from "./YonetimPaneli";
+import YonetimPaneli, { islemYapabilir, susturulmus, yonetCagir } from "./YonetimPaneli";
 import Avatar from "./Avatar";
 import GuncellemeBandi from "./GuncellemeBandi";
 import KanalSifre from "./KanalSifre";
@@ -27,6 +27,9 @@ import AramaPaneli from "./mesaj/AramaPaneli";
 import GifSecici from "./mesaj/GifSecici";
 import IletDialog from "./mesaj/IletDialog";
 import Ikon from "./mesaj/Ikon";
+import SesSahnesi from "./ses/SesSahnesi";
+import SesYani from "./ses/SesYani";
+import { ayarOku as basKonusAyarOku, ayarYaz as basKonusAyarYaz, useBasKonus, type BasKonusAyar } from "./ses/basKonus";
 import DmAlani, { type DmSayfa } from "./dm/DmAlani";
 import { useDm } from "./dm/useDm";
 import type { DmMesaj } from "./dm/tipler";
@@ -78,6 +81,9 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [aktifDm, setAktifDm] = useState<string | null>(null);
   const [dmMobil, setDmMobil] = useState<"liste" | "icerik">("liste");
   const [bosta, setBosta] = useState<Set<string>>(new Set());
+  const [sagirlar, setSagirlar] = useState<Set<string>>(new Set());
+  const [susturulanlar, setSusturulanlar] = useState<Set<string>>(new Set());
+  const [basKonusAyar, setBasKonusAyar] = useState<BasKonusAyar>(basKonusAyarOku);
   const [yanitlanan, setYanitlanan] = useState<Mesaj | null>(null);
   const [iletMesaj, setIletMesaj] = useState<Mesaj | null>(null);
   const [aramaAcik, setAramaAcik] = useState(false);
@@ -160,10 +166,11 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const sonYaziyorYayin = useRef(0);
   // Boşta: 5 dakika hareketsizlik; presence ile herkese duyurulur
   const bostaRef = useRef(false);
+  const sagirRef = useRef(false);
   const duyuruRef = useRef<{ ses: string | null; motor: Motor | null }>({ ses: null, motor: null });
   const kanalDuyur = useCallback((k: string | null, motor: Motor | null) => {
     duyuruRef.current = { ses: k, motor };
-    void kanalRef.current?.track({ t: Date.now(), ses: k, motor, ekran: false, bosta: bostaRef.current });
+    void kanalRef.current?.track({ t: Date.now(), ses: k, motor, ekran: false, bosta: bostaRef.current, sagir: sagirRef.current });
   }, []);
   const motorSor = useCallback((kanalId: string): Motor | null => {
     for (const [uid, v] of sesKonumRef.current) if (uid !== me.id && v.kanal === kanalId && v.motor) return v.motor;
@@ -172,17 +179,25 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const ses = useSesMotoru(me.id, kanalDuyur, motorSor);
   const sesRef = useRef(ses);
   sesRef.current = ses;
+  sagirRef.current = ses.sagir;
+  const basKonus = useBasKonus(basKonusAyar, { kanalId: ses.kanalId, mikAyarla: ses.mikAyarla });
+  // Sağırlaştırma durumu odadakilere duyurulur
+  useEffect(() => {
+    if (!duyuruRef.current.ses) return;
+    void kanalRef.current?.track({ t: Date.now(), ...duyuruRef.current, ekran: ses.paylasiyorum, bosta: bostaRef.current, sagir: ses.sagir });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ses.sagir]);
   // Ekran paylaşımı başlayınca/bitince odadaki herkese duyurulur ("🖥️ yayında" göstergesi ve çift paylaşımı engelleme için)
   useEffect(() => {
     if (!duyuruRef.current.ses) return;
-    void kanalRef.current?.track({ t: Date.now(), ...duyuruRef.current, ekran: ses.paylasiyorum, bosta: bostaRef.current });
+    void kanalRef.current?.track({ t: Date.now(), ...duyuruRef.current, ekran: ses.paylasiyorum, bosta: bostaRef.current, sagir: sagirRef.current });
   }, [ses.paylasiyorum]);
   useEffect(() => {
     let sayac: ReturnType<typeof setTimeout>;
     const ayarla = (b: boolean) => {
       if (bostaRef.current === b) return;
       bostaRef.current = b;
-      void kanalRef.current?.track({ t: Date.now(), ...duyuruRef.current, ekran: false, bosta: b });
+      void kanalRef.current?.track({ t: Date.now(), ...duyuruRef.current, ekran: false, bosta: b, sagir: sagirRef.current });
     };
     const hareket = () => { ayarla(false); clearTimeout(sayac); sayac = setTimeout(() => ayarla(true), 5 * 60 * 1000); };
     const olaylar = ["pointerdown", "keydown", "visibilitychange"] as const;
@@ -534,9 +549,10 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         }
       })
       .on("presence", { event: "sync" }, () => {
-        const durum = kanal.presenceState<{ ses?: string | null; motor?: Motor | null; ekran?: boolean; bosta?: boolean }>();
+        const durum = kanal.presenceState<{ ses?: string | null; motor?: Motor | null; ekran?: boolean; bosta?: boolean; sagir?: boolean }>();
         setCevrimici(new Set(Object.keys(durum)));
         setBosta(new Set(Object.entries(durum).filter(([, m]) => m[m.length - 1]?.bosta).map(([id]) => id)));
+        setSagirlar(new Set(Object.entries(durum).filter(([, m]) => m[m.length - 1]?.sagir).map(([id]) => id)));
         const konum = new Map<string, { kanal: string; motor: Motor | null; ekran: boolean }>();
         for (const [uyeId, metalar] of Object.entries(durum)) {
           const son = metalar[metalar.length - 1];
@@ -558,7 +574,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         }
         oncekiKonumRef.current = { kanal: benimKanal, konum: new Map([...konum].map(([id, k]) => [id, k.kanal])) };
       })
-      .subscribe(async (durum) => { if (durum === "SUBSCRIBED") await kanal.track({ t: Date.now(), ses: null, motor: null, bosta: bostaRef.current }); });
+      .subscribe(async (durum) => { if (durum === "SUBSCRIBED") await kanal.track({ t: Date.now(), ses: null, motor: null, bosta: bostaRef.current, sagir: sagirRef.current }); });
 
     const nabiz = setInterval(() => {
       supabase.from("uyeler").update({ son_gorulme: new Date().toISOString() }).eq("id", me.id).then(() => {});
@@ -655,6 +671,25 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     if (m.silindi) return toastAt("Bu mesaj silindi.");
     gitRef.current = m;
     await gitIsle();
+  }
+
+  async function sesSohbetGonder(t: string): Promise<boolean> {
+    if (!aktif) return false;
+    const { data, error } = await supabase.from("mesajlar").insert({ kanal_id: aktif, uye_id: me.id, metin: t }).select().single();
+    if (error) { setHata("Mesaj gönderilemedi."); return false; }
+    altaKaydir.current = true;
+    setMesajlar((x) => birlestir(x, [data as Mesaj]));
+    return true;
+  }
+
+  async function sesSustur(u: Uye, sustur: boolean): Promise<string | null> {
+    const h = await yonetCagir({ islem: "ses", uye_id: u.id, tur: sustur ? "sustur" : "sustur-kaldir" });
+    if (!h) setSusturulanlar((x) => { const y = new Set(x); if (sustur) y.add(u.id); else y.delete(u.id); return y; });
+    return h;
+  }
+
+  async function sesAt(u: Uye): Promise<string | null> {
+    return yonetCagir({ islem: "ses", uye_id: u.id, tur: "at" });
   }
 
   async function gifGonder(url: string) {
@@ -933,7 +968,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   );
 
   return (
-    <div id="app" className={"on" + (gorunum === "dm" ? " dm-modu" : "")} data-pane={gorunum === "dm" ? (dmMobil === "liste" ? "side" : "chat") : pane}>
+    <div id="app" className={"on" + (gorunum === "dm" ? " dm-modu" : "") + (gorunum === "sunucu" && aktifKanal?.tur === "sesli" ? " ses-modu" : "")} data-pane={gorunum === "dm" ? (dmMobil === "liste" ? "side" : "chat") : pane}>
       <nav className="sunucu-serit" aria-label="Sunucular">
         <button type="button" className={"sr-dugme sr-sunucu" + (gorunum === "sunucu" ? " aktif" : "")} aria-label={`${odaAdi} sunucusu`} aria-current={gorunum === "sunucu"} onClick={() => setGorunum("sunucu")}>
           {(odaAdi.trim()[0] ?? "Ç").toLocaleUpperCase("tr")}
@@ -1040,8 +1075,16 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setSurukle(true); } }}
         onDragLeave={(e) => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setSurukle(false); }}
         onDrop={(e) => { e.preventDefault(); setSurukle(false); const f = resimBul(e.dataTransfer.files); if (f) void ekSec(f); else if (e.dataTransfer.files.length) setHata("Yalnızca resim dosyaları gönderilebilir."); }}>
+        {aktifKanal?.tur === "sesli" ? (
+          <SesSahnesi ses={ses} kanal={aktifKanal} katilimcilar={uyeler.filter((u) => sesKonum.get(u.id)?.kanal === aktifKanal.id)} benId={me.id}
+            sagirlar={sagirlar} paylasanlar={new Set([...sesKonum].filter(([, v]) => v.kanal === aktifKanal.id && v.ekran).map(([id]) => id))}
+            baglaniyor={ses.durum === "baglaniyor"} buradayim={ses.kanalId === aktifKanal.id && ses.durum !== "kapali"}
+            basKonus={{ ayar: basKonusAyar, basili: basKonus.basili, bas: basKonus.bas, birak: basKonus.birak }}
+            baskasiPaylasiyor={paylasanAd} yapanAd={(id) => uyeHaritasi.get(id)?.takma_ad ?? "Biri"}
+            onKatil={() => kanalaGir(aktifKanal, () => { void ses.baglan(aktifKanal.id); })} onProfil={setProfilId} />
+        ) : (<>
         <div className="head sohbet-ust">
-          <span className="ust-ikon" aria-hidden="true"><Ikon ad={aktifKanal?.tur === "sesli" ? "ses" : "hash"} /></span>
+          <span className="ust-ikon" aria-hidden="true"><Ikon ad="hash" /></span>
           <h2 className="ust-ad">{aktifKanal?.ad ?? "…"}</h2>
           {konuDuzen !== null ? (
             <form className="kanal-konu-duzen" onSubmit={(e) => { e.preventDefault(); void konuKaydet(); }}>
@@ -1071,13 +1114,6 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             <button className="ust-ara" onClick={() => setAramaAcik(true)} aria-label="Mesajlarda ara" aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /><span>Mesajlarda ara</span></button>
           </div>
         </div>
-        {aktifKanal?.tur === "sesli" && (
-          <KatilimciSeridi katilimcilar={uyeler.filter((u) => sesKonum.get(u.id)?.kanal === aktifKanal.id)}
-            konusanlar={ses.konusanlar} sorunlu={ses.sorunlu}
-            paylasanlar={new Set([...sesKonum].filter(([, v]) => v.kanal === aktifKanal.id && v.ekran).map(([id]) => id))}
-            benimId={me.id} buradayim={ses.kanalId === aktifKanal.id && ses.durum !== "kapali"} baglaniyor={ses.durum === "baglaniyor"}
-            onKatil={() => kanalaGir(aktifKanal, () => { void ses.baglan(aktifKanal.id); })} onProfil={setProfilId} />
-        )}
         {ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
         <GuncellemeBandi />
         {hata && <div className="banner" role="alert">{hata}</div>}
@@ -1138,9 +1174,16 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           <button className="sq" onClick={() => setEmojiAcik(!emojiAcik)} aria-label="Emoji seçici" aria-expanded={emojiAcik}><Ikon ad="gulen" /></button>
           <button className="sq send" onClick={gonder} aria-label="Gönder" disabled={(!metin.trim() && !ek) || gonderiliyor || benSusturuldu}>{gonderiliyor ? "…" : <Ikon ad="gonder" />}</button>
         </div>
+        </>)}
       </section>
 
       <aside className="col members sunucu-kolon" aria-label="Üyeler">
+        {aktifKanal?.tur === "sesli" ? (
+          <SesYani ben={ben} digerleri={uyeler.filter((u) => u.id !== me.id && sesKonum.get(u.id)?.kanal === aktifKanal.id)}
+            paylasanlar={new Set([...sesKonum].filter(([, v]) => v.kanal === aktifKanal.id && v.ekran).map(([id]) => id))}
+            uyeHaritasi={uyeHaritasi} yonetici={yonetici} islemYapabilir={(u) => islemYapabilir(ben, u)} susturulanlar={susturulanlar}
+            onSustur={sesSustur} onAt={sesAt} mesajlar={mesajlar} onGonder={sesSohbetGonder} yazamaz={benSusturuldu} onHata={(m) => toastAt(m, "hata")} />
+        ) : (<>
         <div className="head"><h2>Üyeler — {aktifUyeler.length}</h2></div>
         <div className="scroll">
           {(["sahip", "moderator", "uye"] as const).map((rol) => {
@@ -1156,6 +1199,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           {cevrimdisiUyeler.length > 0 && <div className="sec">Çevrimdışı — {cevrimdisiUyeler.length}</div>}
           {cevrimdisiUyeler.map((u) => uyeSatiri(u, false))}
         </div>
+        </>)}
       </aside>
 
       {gorunum === "dm" && (
@@ -1223,6 +1267,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         <AyarlarDialog tema={tema} onTema={(t) => { setTema(t); temaKaydet(t); }}
           yazi={yazi} onYazi={(b) => { setYazi(b); yaziBoyutuKaydet(b); }}
           sesler={sesler} onSesler={(a) => { setSesler(a); seslerKaydet(a); if (a) bildirimIzniIste(); }}
+          basKonus={basKonusAyar} onBasKonus={(a) => { setBasKonusAyar(a); basKonusAyarYaz(a); }}
           onKapat={() => setAyarAcik(false)} />
       )}
       <div className="toasts" role="status" aria-live="polite">

@@ -2,18 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { googleAcikMi, googleBagla, googleBagliMi } from "./google";
 import { TEMA_BILGI, type Tema } from "./tema";
 import type { YaziBoyutu } from "./yerel";
+import { tusAdi, tusAtanabilir, type BasKonusAyar } from "./ses/basKonus";
 import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushSadeceEtiket, pushTercih } from "./push";
 
 type Props = {
   tema: Tema; onTema: (t: Tema) => void;
   yazi: YaziBoyutu; onYazi: (b: YaziBoyutu) => void;
   sesler: boolean; onSesler: (a: boolean) => void;
+  basKonus?: BasKonusAyar; onBasKonus?: (a: BasKonusAyar) => void;
   onKapat: () => void;
 };
 
 const BOYUTLAR: { id: YaziBoyutu; ad: string }[] = [{ id: "kucuk", ad: "Küçük" }, { id: "orta", ad: "Orta" }, { id: "buyuk", ad: "Büyük" }];
 
-export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSesler, onKapat }: Props) {
+export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSesler, basKonus, onBasKonus, onKapat }: Props) {
+  const [tusBekleniyor, setTusBekleniyor] = useState(false);
   const kutu = useRef<HTMLDivElement>(null);
   const [googleDurum, setGoogleDurum] = useState<"yok" | "bagla" | "bagli">("yok");
   const [googleHata, setGoogleHata] = useState("");
@@ -45,6 +48,19 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
     const s = await pushTercih(v);
     if (!s.ok) setPushHata(s.mesaj ?? "Kaydedilemedi.");
   }
+  // Bas-konuş tuşu atama: bir sonraki tuş basışı yakalanır (Esc iptal eder)
+  useEffect(() => {
+    if (!tusBekleniyor || !basKonus || !onBasKonus) return;
+    const yakala = (e: KeyboardEvent) => {
+      e.preventDefault(); e.stopPropagation();
+      if (e.code === "Escape") return setTusBekleniyor(false);
+      if (!tusAtanabilir(e.code)) return;
+      onBasKonus({ ...basKonus, tus: e.code });
+      setTusBekleniyor(false);
+    };
+    window.addEventListener("keydown", yakala, true);
+    return () => window.removeEventListener("keydown", yakala, true);
+  }, [tusBekleniyor, basKonus, onBasKonus]);
   useEffect(() => {
     kutu.current?.querySelector<HTMLElement>("button[aria-checked=true]")?.focus();
     const tus = (e: KeyboardEvent) => { if (e.key === "Escape") onKapat(); };
@@ -85,6 +101,20 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
             <span className="anahtar" aria-hidden="true" />
           </button>
         </div>
+
+        {basKonus && onBasKonus && (
+          <div className="ayar-grup">
+            <div className="yon-baslik">Bas-konuş</div>
+            <button className="ayar-anahtar" role="switch" aria-checked={basKonus.acik} onClick={() => onBasKonus({ ...basKonus, acik: !basKonus.acik })}>
+              <span>{basKonus.acik ? "Açık" : "Kapalı"} <small>mikrofon yalnızca tuşa basılıyken açılır (sesli odadayken)</small></span>
+              <span className="anahtar" aria-hidden="true" />
+            </button>
+            <div className="ayar-tus">
+              <span>Tuş: <kbd>{tusAdi(basKonus.tus)}</kbd></span>
+              <button type="button" className="pk-btn" onClick={() => setTusBekleniyor(true)} aria-live="polite">{tusBekleniyor ? "Bir tuşa bas… (Esc: iptal)" : "Tuşu değiştir"}</button>
+            </div>
+          </div>
+        )}
 
         {pushDestekli() && (
           <div className="ayar-grup">
