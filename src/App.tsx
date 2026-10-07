@@ -19,7 +19,7 @@ export default function App() {
     if (!data) {
       // Google ile gelen ama henüz odada kaydı olmayan kişi takma ad seçer; diğerleri girişe döner
       if (googleKullanicisi(session.user)) { setBen(null); setAdOnerisi(String(session.user.user_metadata?.full_name ?? session.user.user_metadata?.name ?? "").split(" ")[0]); return setDurum("kayit"); }
-      await supabase.auth.signOut(); setBen(null); return setDurum("giris");
+      await supabase.auth.signOut({ scope: "local" }); setBen(null); return setDurum("giris");
     }
     setBen(data as Uye);
     setDurum("sohbet");

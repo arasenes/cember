@@ -41,7 +41,7 @@ export default function KayitAdi({ onBitti, varsayilan }: { onBitti: () => void;
         </div>
         <div className="err" role="alert">{hata}</div>
         <button className="cta" type="submit" disabled={bekle}>{bekle ? "Kaydediliyor…" : "Kayıt ol ve gir"}</button>
-        <button className="gate-link" type="button" onClick={() => supabase.auth.signOut().then(onBitti)}>Vazgeç</button>
+        <button className="gate-link" type="button" onClick={() => supabase.auth.signOut({ scope: "local" }).then(onBitti)}>Vazgeç</button>
       </form>
     </main>
   );

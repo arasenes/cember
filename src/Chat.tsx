@@ -381,7 +381,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "uyeler" }, (p) => {
         if (p.eventType === "DELETE") {
           const u = p.old as Uye;
-          if (u.id === me.id) { supabase.auth.signOut().then(onExit); return; }
+          if (u.id === me.id) { supabase.auth.signOut({ scope: "local" }).then(onExit); return; }
           setUyeler((x) => x.filter((y) => y.id !== u.id));
         } else {
           const u = silinmisGoster(p.new as Uye);
@@ -614,13 +614,13 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         });
       } catch { /* ağ yoksa yine de çık; bayat misafirler sonradan temizlenir */ }
       await pushKapat();
-      await supabase.auth.signOut().catch(() => {});
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
       onExit();
       return;
     }
     if (!confirm("Çıkış yapılsın mı? Google ile istediğin zaman tekrar girebilirsin.")) return;
     await pushKapat();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     onExit();
   }
 
