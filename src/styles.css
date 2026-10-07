@@ -132,6 +132,9 @@ input[type=text],input[type=password],textarea{width:100%;min-height:48px;paddin
   .vbar-side{display:none}
   .vbar-chat.on{display:flex}
 }
+.banner.guncelleme{display:flex;align-items:center;gap:10px}
+.banner.guncelleme span{flex:1}
+.banner.guncelleme button{padding:5px 14px;font-size:14px}
 .banner.info{background:color-mix(in srgb,var(--acc) 16%,var(--bg));color:var(--fg)}
 
 /* Resim ekleri */

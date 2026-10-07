@@ -13,6 +13,7 @@ export const KALITE: Record<EkranKalite, { genislik: number; yukseklik: number; 
 export type YerelEkran = {
   baslat(o: { url: string; token: string }): Promise<void>;
   durdur(): Promise<void>;
+  surum?(): Promise<{ kod: number; ad: string }>;
   addListener(ad: "durdu", f: () => void): Promise<{ remove: () => Promise<void> }> | { remove: () => Promise<void> };
 };
 type CapacitorKopru = {

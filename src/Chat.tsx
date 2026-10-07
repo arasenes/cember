@@ -15,6 +15,7 @@ import { temaKaydet, temaTercihi } from "./tema";
 import { bildirim, bildirimIzniIste, duyur, etiketVar, seslerAcik, seslerKaydet, sesleriHazirla } from "./uyari";
 import YonetimPaneli, { susturulmus } from "./YonetimPaneli";
 import Avatar from "./Avatar";
+import GuncellemeBandi from "./GuncellemeBandi";
 import KanalSifre from "./KanalSifre";
 import SabitlerDialog from "./SabitlerDialog";
 import KonuPaneli from "./KonuPaneli";
@@ -802,6 +803,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             onKatil={() => kanalaGir(aktifKanal, () => { void ses.baglan(aktifKanal.id); })} onProfil={setProfilId} />
         )}
         {ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
+        <GuncellemeBandi />
         {hata && <div className="banner" role="alert">{hata}</div>}
         {ses.sorunlu.size > 0 && (
           <div className="banner" role="status">
