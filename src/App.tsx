@@ -6,6 +6,7 @@ import KayitAdi from "./KayitAdi";
 import { googleKullanicisi } from "./google";
 import UygulamayaDon from "./UygulamayaDon";
 import { adrestenDavetAl, bekleyenDavet, davetiUnut, seciliSunucuOku, seciliSunucuYaz, sunuculariGetir, sunucuSec, type Sunucu } from "./sunucu/sunucular";
+import { t } from "./i18n";
 
 export default function App() {
   const [durum, setDurum] = useState<"yukleniyor" | "giris" | "kayit" | "sohbet">("yukleniyor");
@@ -64,8 +65,8 @@ export default function App() {
     await yukle(data as string);
   }
 
-  if (!SUPABASE_URL) return <main className="gate-wrap"><p className="empty">VITE_SUPABASE_URL tanımlı değil. .env.example dosyasına bak.</p></main>;
-  if (durum === "yukleniyor") return <main className="gate-wrap"><p className="empty">Yükleniyor…</p></main>;
+  if (!SUPABASE_URL) return <main className="gate-wrap"><p className="empty">{t("VITE_SUPABASE_URL tanımlı değil. .env.example dosyasına bak.")}</p></main>;
+  if (durum === "yukleniyor") return <main className="gate-wrap"><p className="empty">{t("Yükleniyor…")}</p></main>;
   const don = <UygulamayaDon />;
   if (durum === "kayit") return <>{don}<KayitAdi onBitti={() => void yukle()} varsayilan={adOnerisi} /></>;
   const aktif = sunucular.find((s) => s.oda_id === secili) ?? sunucular[0];
@@ -73,19 +74,19 @@ export default function App() {
   return (
     <>
       {don}
-      {davetNotu && <div className="davet-notu" role="status">{davetNotu} <button type="button" className="linkbtn" onClick={() => setDavetNotu("")}>Kapat</button></div>}
+      {davetNotu && <div className="davet-notu" role="status">{davetNotu} <button type="button" className="linkbtn" onClick={() => setDavetNotu("")}>{t("Kapat")}</button></div>}
       {adGerekli && (
         <div className="modal-arka">
           <form className="modal" role="dialog" aria-modal="true" aria-labelledby="davet-ad-baslik" onSubmit={adlaKatil}>
-            <h2 id="davet-ad-baslik">Takma adını seç</h2>
+            <h2 id="davet-ad-baslik">{t("Takma adını seç")}</h2>
             <p className="hint">{adGerekli.mesaj}</p>
             <div className="field">
-              <label htmlFor="davet-yeni-ad">Bu sunucudaki takma adın</label>
+              <label htmlFor="davet-yeni-ad">{t("Bu sunucudaki takma adın")}</label>
               <input id="davet-yeni-ad" type="text" value={yeniAd} maxLength={24} autoFocus onChange={(e) => setYeniAd(e.target.value)} />
             </div>
             <div className="modal-alt">
-              <button type="button" className="linkbtn" onClick={() => { davetiUnut(); setAdGerekli(null); }}>Vazgeç</button>
-              <button type="submit" className="cta" disabled={yeniAd.trim().length < 2}>Katıl</button>
+              <button type="button" className="linkbtn" onClick={() => { davetiUnut(); setAdGerekli(null); }}>{t("Vazgeç")}</button>
+              <button type="submit" className="cta" disabled={yeniAd.trim().length < 2}>{t("Katıl")}</button>
             </div>
           </form>
         </div>

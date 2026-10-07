@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { APK_ADRESI, yeniSurumVarMi } from "./guncelleme";
+import { t } from "./i18n";
 
 const GIZLE = "cember.guncelleme.gizli";
 
@@ -22,9 +23,9 @@ export default function GuncellemeBandi() {
   };
   return (
     <div className="banner info guncelleme" role="status">
-      <span>🆕 Yeni sürüm var.</span>
-      <button className="cta" onClick={() => window.location.assign(APK_ADRESI)}>İndir</button>
-      <button className="ikincil" onClick={sonra} aria-label="Şimdilik kapat">Sonra</button>
+      <span>{t("🆕 Yeni sürüm var.")}</span>
+      <button className="cta" onClick={() => window.location.assign(APK_ADRESI)}>{t("İndir")}</button>
+      <button className="ikincil" onClick={sonra} aria-label={t("Şimdilik kapat")}>{t("Sonra")}</button>
     </div>
   );
 }

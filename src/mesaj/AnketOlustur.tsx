@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Ikon from "./Ikon";
+import { t } from "../i18n";
 
 export type AnketTaslak = { soru: string; secenekler: string[]; sureDk: number | null; coklu: boolean };
 
@@ -48,13 +49,13 @@ export default function AnketOlustur({ onOlustur, onKapat }: Props) {
   return (
     <div className="modal-arka" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onKapat(); }}>
       <form className="modal anket-form" role="dialog" aria-modal="true" aria-labelledby="anket-baslik" onSubmit={gonder} noValidate>
-        <h2 id="anket-baslik">Anket oluştur</h2>
+        <h2 id="anket-baslik">{t("Anket oluştur")}</h2>
         <div className="field">
-          <label htmlFor="anket-soru">Soru</label>
-          <input ref={ilkRef} id="anket-soru" type="text" value={soru} maxLength={200} onChange={(e) => setSoru(e.target.value)} placeholder="Bu akşam ne oynuyoruz?" />
+          <label htmlFor="anket-soru">{t("Soru")}</label>
+          <input ref={ilkRef} id="anket-soru" type="text" value={soru} maxLength={200} onChange={(e) => setSoru(e.target.value)} placeholder={t("Bu akşam ne oynuyoruz?")} />
         </div>
         <div className="field">
-          <span className="alan-etiket" id="anket-sec-etiket">Seçenekler</span>
+          <span className="alan-etiket" id="anket-sec-etiket">{t("Seçenekler")}</span>
           {secenekler.map((s, i) => (
             <div className="anket-satir" key={i}>
               <input type="text" aria-label={`Seçenek ${i + 1}`} value={s} maxLength={100}
@@ -65,19 +66,19 @@ export default function AnketOlustur({ onOlustur, onKapat }: Props) {
             </div>
           ))}
           {secenekler.length < 6 && (
-            <button type="button" className="linkbtn" onClick={() => setSecenekler((x) => [...x, ""])}><Ikon ad="artir" boyut={14} /> Seçenek ekle</button>
+            <button type="button" className="linkbtn" onClick={() => setSecenekler((x) => [...x, ""])}><Ikon ad="artir" boyut={14} />{" "}{t("Seçenek ekle")}</button>
           )}
         </div>
         <div className="field">
-          <label htmlFor="anket-sure">Süre</label>
+          <label htmlFor="anket-sure">{t("Süre")}</label>
           <select id="anket-sure" value={sureDk ?? ""} onChange={(e) => setSureDk(e.target.value === "" ? null : Number(e.target.value))}>
             {SURELER.map((s) => <option key={s.ad} value={s.dk ?? ""}>{s.ad}</option>)}
           </select>
         </div>
-        <label className="onay-satir"><input type="checkbox" checked={coklu} onChange={(e) => setCoklu(e.target.checked)} /> Birden fazla seçenek seçilebilsin</label>
+        <label className="onay-satir"><input type="checkbox" checked={coklu} onChange={(e) => setCoklu(e.target.checked)} />{" "}{t("Birden fazla seçenek seçilebilsin")}</label>
         <div className="err" role="alert">{hata}</div>
         <div className="modal-alt">
-          <button type="button" className="linkbtn" onClick={onKapat}>Vazgeç</button>
+          <button type="button" className="linkbtn" onClick={onKapat}>{t("Vazgeç")}</button>
           <button type="submit" className="cta" disabled={mesgul}>{mesgul ? "Gönderiliyor…" : "Anketi gönder"}</button>
         </div>
       </form>

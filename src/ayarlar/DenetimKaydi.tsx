@@ -4,6 +4,7 @@ import { supabase } from "../supabase";
 import type { Uye } from "../types";
 import { denetimCumlesi, denetimZamani, SUZGEC_ADLARI, suzgecUyar, type DenetimSatiri, type DenetimSuzgeci } from "../sunucu/denetim";
 import { SayfaBasligi } from "./ortak";
+import { t } from "../i18n";
 
 /** Son denetim kayıtları; yeni kayıt gelince canlı eklenir. Yalnızca yetkililer görebilir (RLS). */
 export function useDenetim(odaId: string, limit = 100) {
@@ -29,11 +30,11 @@ export function useDenetim(odaId: string, limit = 100) {
 
 type ListeProps = { satirlar: DenetimSatiri[]; uyeler: Uye[]; sinir?: number };
 
-/** Denetim kaydı satırları: avatar, "<b>eyleyen</b> <b>vurgu</b> …" cümlesi ve zaman. */
+/** Denetim kaydı satırları: avatar, "<b>{t("eyleyen")}</b> <b>{t("vurgu")}</b> …" cümlesi ve zaman. */
 export function DenetimListe({ satirlar, uyeler, sinir }: ListeProps) {
   const harita = new Map(uyeler.map((u) => [u.id, u]));
   const gosterilen = sinir ? satirlar.slice(0, sinir) : satirlar;
-  if (!gosterilen.length) return <p className="hint">Kayıt yok.</p>;
+  if (!gosterilen.length) return <p className="hint">{t("Kayıt yok.")}</p>;
   return (
     <ul className="denetim-liste">
       {gosterilen.map((k) => {
@@ -55,7 +56,7 @@ export function DenetimListe({ satirlar, uyeler, sinir }: ListeProps) {
 
 export function SuzgecCipleri({ deger, onDegis }: { deger: DenetimSuzgeci; onDegis: (s: DenetimSuzgeci) => void }) {
   return (
-    <div className="denetim-ciple" role="group" aria-label="Kayıt türü">
+    <div className="denetim-ciple" role="group" aria-label={t("Kayıt türü")}>
       {(Object.keys(SUZGEC_ADLARI) as DenetimSuzgeci[]).map((s) => (
         <button key={s} type="button" aria-pressed={deger === s} className={"ciple" + (deger === s ? " acik" : "")} onClick={() => onDegis(s)}>{SUZGEC_ADLARI[s]}</button>
       ))}
@@ -73,7 +74,7 @@ export default function DenetimKaydi({ odaId, uyeler }: Props) {
     <div className="ayar-form">
       <SayfaBasligi baslik="Denetim kaydı" aciklama="Yöneticilerin yaptığı işlemler otomatik kaydedilir. Yalnızca yetkililer görür." />
       <SuzgecCipleri deger={suzgec} onDegis={setSuzgec} />
-      {!yuklendi ? <p className="hint">Yükleniyor…</p> : <DenetimListe satirlar={liste} uyeler={uyeler} />}
+      {!yuklendi ? <p className="hint">{t("Yükleniyor…")}</p> : <DenetimListe satirlar={liste} uyeler={uyeler} />}
     </div>
   );
 }

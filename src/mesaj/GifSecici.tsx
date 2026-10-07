@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
+import { t } from "../i18n";
 
 type Sonuc = { id: string; url: string; onizleme: string; genislik: number; yukseklik: number };
 type Props = { onSec: (url: string) => void; onKapat: () => void };
@@ -36,19 +37,19 @@ export default function GifSecici({ onSec, onKapat }: Props) {
   }, [q]);
 
   return (
-    <div className="gif-secici" role="dialog" aria-label="GIF seç">
+    <div className="gif-secici" role="dialog" aria-label={t("GIF seç")}>
       <div className="gif-ust">
-        <label htmlFor="gif-ara" className="sr">GIF ara</label>
-        <input ref={girdiRef} id="gif-ara" type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="GIF ara…" maxLength={60} />
-        <button type="button" className="linkbtn" onClick={onKapat}>Kapat</button>
+        <label htmlFor="gif-ara" className="sr">{t("GIF ara")}</label>
+        <input ref={girdiRef} id="gif-ara" type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("GIF ara…")} maxLength={60} />
+        <button type="button" className="linkbtn" onClick={onKapat}>{t("Kapat")}</button>
       </div>
       <div className="gif-izgara" aria-live="polite">
-        {durum === "yukleniyor" && <p className="hint">Yükleniyor…</p>}
-        {durum === "kurulmadi" && <p className="hint">GIF araması henüz kurulmadı. Yönetici Supabase'e GIPHY_API_KEY (ya da TENOR_API_KEY) eklemeli.</p>}
-        {durum === "hata" && <p className="hint">GIF'ler yüklenemedi, biraz sonra tekrar dene.</p>}
-        {durum === "tamam" && !sonuclar.length && <p className="hint">Sonuç yok.</p>}
+        {durum === "yukleniyor" && <p className="hint">{t("Yükleniyor…")}</p>}
+        {durum === "kurulmadi" && <p className="hint">{t("GIF araması henüz kurulmadı. Yönetici Supabase'e GIPHY_API_KEY (ya da TENOR_API_KEY) eklemeli.")}</p>}
+        {durum === "hata" && <p className="hint">{t("GIF'ler yüklenemedi, biraz sonra tekrar dene.")}</p>}
+        {durum === "tamam" && !sonuclar.length && <p className="hint">{t("Sonuç yok.")}</p>}
         {durum === "tamam" && sonuclar.map((g) => (
-          <button key={g.id} type="button" className="gif-oge" aria-label="Bu GIF'i gönder" onClick={() => onSec(g.url)}>
+          <button key={g.id} type="button" className="gif-oge" aria-label={t("Bu GIF'i gönder")} onClick={() => onSec(g.url)}>
             <img src={g.onizleme} alt="" loading="lazy" referrerPolicy="no-referrer" />
           </button>
         ))}

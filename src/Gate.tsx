@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase, SUPABASE_KEY, SUPABASE_URL } from "./supabase";
 import { googleAcikMi, googleIleGir } from "./google";
+import { t } from "./i18n";
 
 const SOZLER = ["Arkadaşlarınla yaz", "Sesli odada sohbet et", "Ekranını paylaş", "Birlikte film izle", "Çemberine katıl"];
 
@@ -69,22 +70,20 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
             <circle cx="22" cy="22" r="16" fill="none" stroke="#4fd1a5" strokeWidth="7" />
             <circle cx="22" cy="22" r="4" fill="currentColor" />
           </svg>
-          <b>Çember</b>
+          <b>{t("Çember")}</b>
         </div>
         <DonenSoz />
         <p>{google ? "Arkadaşlarla yazış ve konuş. Google ile gir ya da misafir olarak katıl." : "Arkadaşlarla yazış ve konuş. Bir takma ad yazıp misafir olarak katıl."}</p>
         {google && (
           <>
             <button className="cta google-btn" type="button" onClick={googleGir} disabled={bekle}>
-              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.96 10.71A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.17.28-1.71V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/></svg>
-              Google ile devam et
-            </button>
-            <div className="gate-ayrac"><span>ya da misafir olarak</span></div>
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.96 10.71A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.17.28-1.71V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/></svg>{t("Google ile devam et")}</button>
+            <div className="gate-ayrac"><span>{t("ya da misafir olarak")}</span></div>
           </>
         )}
         <div className="field">
-          <label htmlFor="ad">Takma ad</label>
-          <input id="ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder="Örn. Aras" />
+          <label htmlFor="ad">{t("Takma ad")}</label>
+          <input id="ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder={t("Örn. Aras")} />
         </div>
         <div className="err" role="alert">{hata}</div>
         <button className="cta" type="submit" disabled={bekle}>{bekle ? "Giriliyor…" : "Misafir olarak gir"}</button>

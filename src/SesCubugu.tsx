@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { SesArayuzu } from "./sesMotoru";
 import { ekranPaylasilabilirTarayici, KALITE, yerelEkran, type EkranKalite } from "./ekranOrtak";
+import { t } from "./i18n";
 
 type Props = { ses: SesArayuzu; kanalAdi: string; className: string; baskasiPaylasiyor?: string | null };
 
@@ -13,60 +14,58 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
     // Telefonda tek satır: ikonlu düğmeler (uyarılar Chat'te kısa bildirim olarak çıkar)
     const engel = !!baskasiPaylasiyor;
     return (
-      <div className={`voicebar on ${className} vbar-kompakt`} role="region" aria-label="Sesli oda kontrolleri">
+      <div className={`voicebar on ${className} vbar-kompakt`} role="region" aria-label={t("Sesli oda kontrolleri")}>
         <div className="vk-durum"><i aria-hidden="true" /><span>{baglaniyor ? "Bağlanılıyor…" : kanalAdi || "Sesli bağlı"}</span></div>
         <div className="vk-dugmeler">
           <button className="ik mik" aria-pressed={ses.sessiz} onClick={ses.sessizDegistir} disabled={baglaniyor}
             aria-label={ses.sessiz ? "Mikrofonu aç" : "Mikrofonu sessize al"} title={ses.sessiz ? "Mikrofon kapalı" : "Mikrofon açık"}>{ses.sessiz ? "🔇" : "🎙️"}</button>
           {ses.ekranDestegi && (ses.paylasiyorum
-            ? <button className="ik mik" aria-pressed={true} onClick={() => void ses.ekranDurdur()} aria-label="Paylaşımı durdur" title="Paylaşımı durdur">⏹</button>
-            : <button className="ik" onClick={() => void ses.ekranPaylas(kalite)} disabled={baglaniyor || engel} aria-label="Ekranı paylaş"
+            ? <button className="ik mik" aria-pressed={true} onClick={() => void ses.ekranDurdur()} aria-label={t("Paylaşımı durdur")} title={t("Paylaşımı durdur")}>⏹</button>
+            : <button className="ik" onClick={() => void ses.ekranPaylas(kalite)} disabled={baglaniyor || engel} aria-label={t("Ekranı paylaş")}
                 title={engel ? `${baskasiPaylasiyor} ekran paylaşıyor` : "Ekranı paylaş"}>🖥️</button>)}
           <button className="ik" aria-pressed={ses.gurultu} onClick={() => void ses.gurultuDegistir()} disabled={baglaniyor}
-            aria-label={ses.gurultu ? "Gürültü engellemeyi kapat" : "Gürültü engellemeyi aç"} title="Gürültü engelleme">🔕</button>
-          <button className="ik leave" onClick={ses.ayril} aria-label="Sesli odadan ayrıl" title="Ayrıl">✕</button>
+            aria-label={ses.gurultu ? "Gürültü engellemeyi kapat" : "Gürültü engellemeyi aç"} title={t("Gürültü engelleme")}>🔕</button>
+          <button className="ik leave" onClick={ses.ayril} aria-label={t("Sesli odadan ayrıl")} title={t("Ayrıl")}>✕</button>
         </div>
       </div>
     );
   }
   return (
-    <div className={`voicebar on ${className}`} role="region" aria-label="Sesli oda kontrolleri">
-      <div className="vstat"><i aria-hidden="true" />{baglaniyor ? "Bağlanılıyor…" : "Sesli bağlı"}{!baglaniyor && ses.motor === "p2p" && <span className="hint" title="Ücretsiz doğrudan bağlantı modu"> (doğrudan)</span>}<span className="hint" style={{ marginLeft: "auto" }}>{kanalAdi}</span></div>
+    <div className={`voicebar on ${className}`} role="region" aria-label={t("Sesli oda kontrolleri")}>
+      <div className="vstat"><i aria-hidden="true" />{baglaniyor ? "Bağlanılıyor…" : "Sesli bağlı"}{!baglaniyor && ses.motor === "p2p" && <span className="hint" title={t("Ücretsiz doğrudan bağlantı modu")}>{" "}{t("(doğrudan)")}</span>}<span className="hint" style={{ marginLeft: "auto" }}>{kanalAdi}</span></div>
       <div className="vbtns">
         <button className="ib" aria-pressed={ses.sessiz} onClick={ses.sessizDegistir} disabled={baglaniyor}>
           {ses.sessiz ? "🔇 Sessiz" : "🎙️ Sessize al"}
         </button>
-        <button className="ib leave" onClick={ses.ayril}>Ayrıl</button>
+        <button className="ib leave" onClick={ses.ayril}>{t("Ayrıl")}</button>
       </div>
       <div className="vbtns">
         <button className="ib gurultu" aria-pressed={ses.gurultu} onClick={() => void ses.gurultuDegistir()} disabled={baglaniyor}
-          title="Klavye, fan, çevre sesi gibi arka plan gürültüsünü azaltır">
+          title={t("Klavye, fan, çevre sesi gibi arka plan gürültüsünü azaltır")}>
           {ses.gurultu ? "🔕 Gürültü engelleme: açık" : "🔔 Gürültü engelleme: kapalı"}
         </button>
       </div>
       {ses.ekranDestegi && (
         ses.paylasiyorum ? (
           <div className="vbtns">
-            <button className="ib" aria-pressed={true} onClick={() => void ses.ekranDurdur()}>⏹ Paylaşımı durdur</button>
+            <button className="ib" aria-pressed={true} onClick={() => void ses.ekranDurdur()}>{t("⏹ Paylaşımı durdur")}</button>
           </div>
         ) : (
           <>
             <div className="vbtns">
-              <select className="ekran-kalite" aria-label="Ekran paylaşım kalitesi" value={kalite} onChange={(e) => setKalite(e.target.value as EkranKalite)} disabled={baglaniyor}>
+              <select className="ekran-kalite" aria-label={t("Ekran paylaşım kalitesi")} value={kalite} onChange={(e) => setKalite(e.target.value as EkranKalite)} disabled={baglaniyor}>
                 {(Object.keys(KALITE) as EkranKalite[]).map((k) => <option key={k} value={k}>{KALITE[k].etiket}</option>)}
               </select>
               <button className="ib" onClick={() => void ses.ekranPaylas(kalite)} disabled={baglaniyor || !!baskasiPaylasiyor}
-                title={baskasiPaylasiyor ? `${baskasiPaylasiyor} ekran paylaşıyor` : undefined}>
-                🖥️ Ekranı paylaş
-              </button>
+                title={baskasiPaylasiyor ? `${baskasiPaylasiyor} ekran paylaşıyor` : undefined}>{t("🖥️ Ekranı paylaş")}</button>
             </div>
             {baskasiPaylasiyor
               ? <div className="hint">{baskasiPaylasiyor} ekran paylaşıyor; bitince sen paylaşabilirsin.</div>
               : yerelEkran()
-                ? <div className="hint">Android'in açacağı izin penceresinde <b>Başla</b>'ya bas; telefonun tüm ekranı paylaşılır. Sonra paylaşmak istediğin uygulamaya geç.</div>
+                ? <div className="hint">{t("Android'in açacağı izin penceresinde")}{" "}<b>{t("Başla")}</b>'ya bas; telefonun tüm ekranı paylaşılır. Sonra paylaşmak istediğin uygulamaya geç.</div>
                 : ekranPaylasilabilirTarayici()
-                  ? <div className="hint">Dizi için: açılan pencerede <b>Chrome Sekmesi</b>'ni seç ve <b>Sekme sesini paylaş</b>'ı işaretle.</div>
-                  : <div className="hint">Telefonun tüm ekranını paylaşmak için Çember Android uygulaması (APK) gerekir.</div>}
+                  ? <div className="hint">{t("Dizi için: açılan pencerede")}{" "}<b>{t("Chrome Sekmesi")}</b>{t("'ni seç ve")}{" "}<b>{t("Sekme sesini paylaş")}</b>{t("'ı işaretle.")}</div>
+                  : <div className="hint">{t("Telefonun tüm ekranını paylaşmak için Çember Android uygulaması (APK) gerekir.")}</div>}
           </>
         )
       )}

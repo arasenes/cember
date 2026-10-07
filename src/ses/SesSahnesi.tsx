@@ -6,6 +6,7 @@ import Ikon from "../mesaj/Ikon";
 import type { SesArayuzu } from "../sesMotoru";
 import type { Kanal, Uye } from "../types";
 import { tusAdi, type BasKonusAyar } from "./basKonus";
+import { t } from "../i18n";
 
 type BasKonusDurumu = { ayar: BasKonusAyar; basili: boolean; bas: () => void; birak: () => void };
 
@@ -70,12 +71,12 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
           {katilimcilar.length} kişi{paylasanSayisi > 0 ? ` · ${[...paylasanlar].map(yapanAd).join(", ")} ekranını paylaşıyor` : ""}
           {buradayim && ses.motor === "p2p" && " · doğrudan mod"}
         </span>
-        {onSohbet && <button type="button" className="sahne-sohbet" onClick={onSohbet}><Ikon ad="sohbet" boyut={18} /> Sohbet</button>}
+        {onSohbet && <button type="button" className="sahne-sohbet" onClick={onSohbet}><Ikon ad="sohbet" boyut={18} />{" "}{t("Sohbet")}</button>}
       </div>
 
       <div className={"sahne-alan" + (ekranVar ? " ekranli" : "")}>
         {ekranVar && ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={yapanAd(ses.izlenen.uyeId)} />}
-        <ul className="karo-izgara" aria-label="Sesli odadaki katılımcılar">
+        <ul className="karo-izgara" aria-label={t("Sesli odadaki katılımcılar")}>
           {katilimcilar.map((u) => {
             const konusuyor = ses.konusanlar.has(u.id) || (u.id === benId && basKonus.basili);
             const kamera = ses.kameralar.get(u.id);
@@ -91,27 +92,26 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
                   </span>
                 </button>
                 <span className="sahne-rozetler">
-                  {kamera && <span className="sahne-rozet"><Ikon ad="kamera" boyut={12} /> Kamera</span>}
-                  {paylasanlar.has(u.id) && <span className="sahne-rozet sahne-ekran"><Ikon ad="ekran" boyut={12} /> Ekran</span>}
-                  {ses.sorunlu.has(u.id) && <span className="sahne-rozet sahne-sorun">Bağlantı sorunu</span>}
+                  {kamera && <span className="sahne-rozet"><Ikon ad="kamera" boyut={12} />{" "}{t("Kamera")}</span>}
+                  {paylasanlar.has(u.id) && <span className="sahne-rozet sahne-ekran"><Ikon ad="ekran" boyut={12} />{" "}{t("Ekran")}</span>}
+                  {ses.sorunlu.has(u.id) && <span className="sahne-rozet sahne-sorun">{t("Bağlantı sorunu")}</span>}
                 </span>
               </li>
             );
           })}
-          {katilimcilar.length === 0 && <li className="sahne-bos">Odada kimse yok.</li>}
+          {katilimcilar.length === 0 && <li className="sahne-bos">{t("Odada kimse yok.")}</li>}
         </ul>
       </div>
 
       {kameraUyari && <div className="banner" role="alert">{kameraUyari}</div>}
 
-      <div className="kontrol-cubugu" role="toolbar" aria-label="Sesli oda kontrolleri">
+      <div className="kontrol-cubugu" role="toolbar" aria-label={t("Sesli oda kontrolleri")}>
         {!buradayim ? (
           <button type="button" className="kontrol vurgulu" onClick={onKatil} disabled={baglaniyor}>{baglaniyor ? "Bağlanılıyor…" : "Odaya katıl"}</button>
         ) : (
           <>
             <button type="button" className="kontrol" aria-pressed={ses.sessiz} onClick={() => void ses.sessizDegistir()} disabled={baglaniyor}>
-              <Ikon ad={ses.sessiz ? "mikKapali" : "mik"} /> Mikrofon
-            </button>
+              <Ikon ad={ses.sessiz ? "mikKapali" : "mik"} />{" "}{t("Mikrofon")}</button>
             {basKonus.ayar.acik && (
               <button type="button" className={"kontrol" + (basKonus.basili ? " vurgulu" : "")} aria-pressed={basKonus.basili}
                 onPointerDown={(e) => { e.preventDefault(); basKonus.bas(); }} onPointerUp={basKonus.birak} onPointerLeave={basKonus.birak} onPointerCancel={basKonus.birak}
@@ -122,30 +122,27 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
               </button>
             )}
             <button type="button" className="kontrol" aria-pressed={ses.sagir} onClick={() => void ses.sagirDegistir()}>
-              <Ikon ad={ses.sagir ? "kulaklikKapali" : "kulaklik"} /> Sağırlaştır
-            </button>
+              <Ikon ad={ses.sagir ? "kulaklikKapali" : "kulaklik"} />{" "}{t("Sağırlaştır")}</button>
             <button type="button" className="kontrol" aria-pressed={ses.kameraAcik} onClick={() => void kameraTikla()}
               title={ses.motor === "p2p" ? "Kamera yalnızca LiveKit modunda çalışır" : undefined}>
-              <Ikon ad={ses.kameraAcik ? "kamera" : "kameraKapali"} /> Kamera
-            </button>
+              <Ikon ad={ses.kameraAcik ? "kamera" : "kameraKapali"} />{" "}{t("Kamera")}</button>
             {ses.ekranDestegi && (
               ses.paylasiyorum
-                ? <button type="button" className="kontrol vurgulu" aria-pressed={true} onClick={() => void ses.ekranDurdur()}><Ikon ad="ekran" /> Paylaşımı durdur</button>
+                ? <button type="button" className="kontrol vurgulu" aria-pressed={true} onClick={() => void ses.ekranDurdur()}><Ikon ad="ekran" />{" "}{t("Paylaşımı durdur")}</button>
                 : (
                   <span className="kontrol-grup">
                     {ekranPaylasilabilirTarayici() && !yerelEkran() && (
-                      <select className="ekran-kalite" aria-label="Ekran paylaşım kalitesi" value={kalite} onChange={(e) => setKalite(e.target.value as EkranKalite)} disabled={baglaniyor}>
+                      <select className="ekran-kalite" aria-label={t("Ekran paylaşım kalitesi")} value={kalite} onChange={(e) => setKalite(e.target.value as EkranKalite)} disabled={baglaniyor}>
                         {(Object.keys(KALITE) as EkranKalite[]).map((k) => <option key={k} value={k} title={KALITE[k].etiket}>{k}p</option>)}
                       </select>
                     )}
                     <button type="button" className="kontrol" onClick={() => void ses.ekranPaylas(kalite)} disabled={baglaniyor || !!baskasiPaylasiyor}
                       title={baskasiPaylasiyor ? `${baskasiPaylasiyor} ekran paylaşıyor` : undefined}>
-                      <Ikon ad="ekran" /> Ekran
-                    </button>
+                      <Ikon ad="ekran" />{" "}{t("Ekran")}</button>
                   </span>
                 )
             )}
-            <button type="button" className="kontrol tehlike" onClick={() => void ses.ayril()} aria-label="Sesli odadan ayrıl"><Ikon ad="cikis" /> Ayrıl</button>
+            <button type="button" className="kontrol tehlike" onClick={() => void ses.ayril()} aria-label={t("Sesli odadan ayrıl")}><Ikon ad="cikis" />{" "}{t("Ayrıl")}</button>
           </>
         )}
       </div>

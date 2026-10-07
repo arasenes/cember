@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { davetBaglantisi } from "../sunucu/sunucular";
 import { BildirimSatiri, panoyaKopyala, rpcCagir, SayfaBasligi, useBildirim } from "./ortak";
+import { t } from "../i18n";
 
 export type Davet = { kod: string; oda_id: string; bitis: string | null; kullanim_limiti: number | null; kullanim: number; olusturma: string };
 
@@ -64,16 +65,16 @@ export default function Davetler({ odaId }: Props) {
       <SayfaBasligi baslik="Davetler" aciklama="Davet bağlantısıyla Google hesabı olan kişiler sunucuna katılır. Misafir hesaplar davetle katılamaz." />
       <form className="davet-olustur" onSubmit={olustur}>
         <div className="field">
-          <label htmlFor="davet-gun">Süre</label>
+          <label htmlFor="davet-gun">{t("Süre")}</label>
           <select id="davet-gun" value={gun ?? ""} onChange={(e) => setGun(e.target.value === "" ? null : Number(e.target.value))}>
-            <option value="1">1 gün</option><option value="7">7 gün</option><option value="30">30 gün</option><option value="">Süresiz</option>
+            <option value="1">{t("1 gün")}</option><option value="7">{t("7 gün")}</option><option value="30">{t("30 gün")}</option><option value="">{t("Süresiz")}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="davet-limit">Kullanım sınırı</label>
-          <input id="davet-limit" type="number" min={1} max={1000} value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="Sınırsız" />
+          <label htmlFor="davet-limit">{t("Kullanım sınırı")}</label>
+          <input id="davet-limit" type="number" min={1} max={1000} value={limit} onChange={(e) => setLimit(e.target.value)} placeholder={t("Sınırsız")} />
         </div>
-        <button type="submit" className="cta" disabled={mesgul}>Davet oluştur</button>
+        <button type="submit" className="cta" disabled={mesgul}>{t("Davet oluştur")}</button>
       </form>
       <BildirimSatiri b={bildirim} />
       <ul className="davet-liste">
@@ -83,13 +84,13 @@ export default function Davetler({ odaId }: Props) {
           return (
             <li key={d.kod} className={"davet-satir" + (gecerli ? "" : " bitti")}>
               <div className="davet-kutu" title={baglanti}>{baglanti}</div>
-              <button type="button" className="cta" disabled={!gecerli} onClick={() => void panoyaKopyala(baglanti).then((ok) => calistir(ok ? "Bağlantı kopyalandı." : "Kopyalanamadı; bağlantıyı elle seç.", async () => (ok ? null : "Kopyalanamadı")))}>Kopyala</button>
-              <button type="button" className="ib tehlike" disabled={mesgul} onClick={() => void sil(d)} aria-label={`${d.kod} davetini sil`}>Sil</button>
+              <button type="button" className="cta" disabled={!gecerli} onClick={() => void panoyaKopyala(baglanti).then((ok) => calistir(ok ? "Bağlantı kopyalandı." : "Kopyalanamadı; bağlantıyı elle seç.", async () => (ok ? null : "Kopyalanamadı")))}>{t("Kopyala")}</button>
+              <button type="button" className="ib tehlike" disabled={mesgul} onClick={() => void sil(d)} aria-label={`${d.kod} davetini sil`}>{t("Sil")}</button>
               <div className="davet-etiketler">{davetEtiketleri(d).map((t) => <span key={t}>{t}</span>)}</div>
             </li>
           );
         })}
-        {!davetler.length && <li className="hint">Henüz davet yok.</li>}
+        {!davetler.length && <li className="hint">{t("Henüz davet yok.")}</li>}
       </ul>
     </div>
   );

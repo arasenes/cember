@@ -8,6 +8,7 @@ import { gunEtiketi } from "../util";
 import { dmBasligi, karsiUye, mesajaCevir, type DmMesaj } from "./tipler";
 import type { DmDurumu } from "./useDm";
 import { durumMetni } from "./ProfilKarti";
+import { t } from "../i18n";
 
 const SAYFA = 50;
 
@@ -165,14 +166,14 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   return (
     <section className="col chat dm-sohbet" aria-label={`${baslik} ile mesajlaşma`}>
       <div className="head">
-        {onGeri && <button type="button" className="sq dm-geri" onClick={onGeri} aria-label="Mesaj listesine dön"><Ikon ad="geri" /></button>}
+        {onGeri && <button type="button" className="sq dm-geri" onClick={onGeri} aria-label={t("Mesaj listesine dön")}><Ikon ad="geri" /></button>}
         {kanal?.tur === "ikili" && karsiUyesi && <span className="dm-avatar"><Avatar uye={karsiUyesi} className="dm-ust-avatar" /></span>}
         <h2 className="dm-ad-baslik">{baslik}</h2>
         <span className="dm-durum-metni">
           {kanal?.tur === "ikili" && karsiUyesi && [durumMetni(karsiUyesi, cevrimici.has(karsiUyesi.id)), karsiUyesi.durum_metin].filter(Boolean).join(" · ")}
           {kanal?.tur === "grup" && `${grupUyeleri.length} kişi`}
         </span>
-        {kanal?.tur === "grup" && <button type="button" className="head-dugme" onClick={() => void ayril()}>Gruptan ayrıl</button>}
+        {kanal?.tur === "grup" && <button type="button" className="head-dugme" onClick={() => void ayril()}>{t("Gruptan ayrıl")}</button>}
       </div>
 
       {kanal?.tur === "grup" && (
@@ -180,19 +181,19 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
           <span className="hint">Üyeler: {grupUyeleri.map((g) => harita.get(g.uye_id)?.takma_ad ?? "Silinmiş üye").join(", ")}</span>
           {benKurucu && grupUyeleri.length < 10 && eklenebilir.length > 0 && (
             <span className="dm-ekle">
-              <label htmlFor="dm-ekle-sec" className="sr">Gruba kişi ekle</label>
+              <label htmlFor="dm-ekle-sec" className="sr">{t("Gruba kişi ekle")}</label>
               <select id="dm-ekle-sec" value={eklenecek} onChange={(e) => setEklenecek(e.target.value)}>
-                <option value="">Kişi ekle…</option>
+                <option value="">{t("Kişi ekle…")}</option>
                 {eklenebilir.map((u) => <option key={u.id} value={u.id}>{u.takma_ad}</option>)}
               </select>
-              <button type="button" className="pk-btn" onClick={() => void ekle()} disabled={!eklenecek}>Ekle</button>
+              <button type="button" className="pk-btn" onClick={() => void ekle()} disabled={!eklenecek}>{t("Ekle")}</button>
             </span>
           )}
         </div>
       )}
 
-      <div className="msgs" ref={akisRef} role="log" aria-live="polite" aria-label="Özel mesajlar">
-        {dahaVar && <button className="more" onClick={() => void eskileriYukle()}>Eski mesajları yükle</button>}
+      <div className="msgs" ref={akisRef} role="log" aria-live="polite" aria-label={t("Özel mesajlar")}>
+        {dahaVar && <button className="more" onClick={() => void eskileriYukle()}>{t("Eski mesajları yükle")}</button>}
         {!dahaVar && (
           <div className="dm-giris">
             {kanal?.tur === "ikili" && karsiUyesi ? <Avatar uye={karsiUyesi} className="dm-giris-avatar" /> : <span className="dm-ikon dm-giris-avatar dm-grup-ikon">{grupUyeleri.length}+</span>}
@@ -200,21 +201,21 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
             <div className="dm-giris-metin">{kanal?.tur === "grup" ? `${baslik} grubunun başlangıcı.` : `${baslik} ile özel mesajlaşmanın başlangıcı.`}</div>
           </div>
         )}
-        {!mesajlar.length && <div className="empty">Henüz mesaj yok. İlk mesajı sen yaz.</div>}
+        {!mesajlar.length && <div className="empty">{t("Henüz mesaj yok. İlk mesajı sen yaz.")}</div>}
         {satirlar}
       </div>
 
       {iliski === "engelli" ? (
         <div className="dm-engelli" role="status">
           Bu kişiyi engelledin, mesaj gönderemezsin.
-          {karsi && <button type="button" className="pk-btn" onClick={() => void dm.engelKaldir(karsi)}>Engeli kaldır</button>}
+          {karsi && <button type="button" className="pk-btn" onClick={() => void dm.engelKaldir(karsi)}>{t("Engeli kaldır")}</button>}
         </div>
       ) : (
         <div className="composer">
-          <textarea ref={girdiRef} rows={1} value={metin} maxLength={4000} aria-label="Mesaj yaz" placeholder={`${baslik} kişisine mesaj yaz`}
+          <textarea ref={girdiRef} rows={1} value={metin} maxLength={4000} aria-label={t("Mesaj yaz")} placeholder={`${baslik} kişisine mesaj yaz`}
             onChange={(e) => setMetin(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void gonder(); } }} />
-          <button className="sq send" onClick={() => void gonder()} aria-label="Gönder" disabled={!metin.trim() || gonderiliyor}><Ikon ad="gonder" /></button>
+          <button className="sq send" onClick={() => void gonder()} aria-label={t("Gönder")} disabled={!metin.trim() || gonderiliyor}><Ikon ad="gonder" /></button>
         </div>
       )}
     </section>

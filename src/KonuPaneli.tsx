@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Mesaj, Tepki, Uye } from "./types";
 import MessageView from "./MessageView";
+import { t } from "./i18n";
 
 type Props = {
   ana: Mesaj;
@@ -50,10 +51,10 @@ export default function KonuPaneli({ ana, yanitlar, uyeHaritasi, ben, tepkiler, 
   );
 
   return (
-    <aside className="konu-panel" role="complementary" aria-label="Konu">
+    <aside className="konu-panel" role="complementary" aria-label={t("Konu")}>
       <div className="konu-ust">
-        <h2>💬 Konu</h2>
-        <button className="lb-kapat modal-x" onClick={onKapat} aria-label="Konuyu kapat">✕</button>
+        <h2>{t("💬 Konu")}</h2>
+        <button className="lb-kapat modal-x" onClick={onKapat} aria-label={t("Konuyu kapat")}>✕</button>
       </div>
       <div className="konu-akis" ref={akisRef} role="log" aria-live="polite">
         {goster(ana)}
@@ -61,11 +62,11 @@ export default function KonuPaneli({ ana, yanitlar, uyeHaritasi, ben, tepkiler, 
         {yanitlar.map(goster)}
       </div>
       <div className="konu-yaz">
-        <textarea ref={girdiRef} rows={1} value={metin} maxLength={4000} aria-label="Konuya yanıt yaz" disabled={yazamaz}
+        <textarea ref={girdiRef} rows={1} value={metin} maxLength={4000} aria-label={t("Konuya yanıt yaz")} disabled={yazamaz}
           placeholder={yazamaz ? "Susturuldun; yazamazsın" : "Konuya yanıt yaz…"}
           onChange={(e) => setMetin(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void gonder(); } }} />
-        <button className="sq send" onClick={() => void gonder()} aria-label="Yanıtı gönder" disabled={!metin.trim() || mesgul || yazamaz}>{mesgul ? "…" : "➤"}</button>
+        <button className="sq send" onClick={() => void gonder()} aria-label={t("Yanıtı gönder")} disabled={!metin.trim() || mesgul || yazamaz}>{mesgul ? "…" : "➤"}</button>
       </div>
     </aside>
   );

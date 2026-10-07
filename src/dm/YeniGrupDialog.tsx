@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Uye } from "../types";
 import type { Iliski } from "./tipler";
+import { t } from "../i18n";
 
 export const GRUP_MIN_DIGER = 2;
 export const GRUP_MAX_DIGER = 9;
@@ -49,14 +50,14 @@ export default function YeniGrupDialog({ uyeler, benId, iliski, onOlustur, onKap
   return (
     <div className="modal-arka" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onKapat(); }}>
       <form className="modal grup-form" role="dialog" aria-modal="true" aria-labelledby="grup-baslik" onSubmit={gonder} noValidate>
-        <h2 id="grup-baslik">Grup mesajı oluştur</h2>
+        <h2 id="grup-baslik">{t("Grup mesajı oluştur")}</h2>
         <div className="field">
-          <label htmlFor="grup-ad">Grup adı (isteğe bağlı)</label>
-          <input ref={ilkRef} id="grup-ad" type="text" value={ad} maxLength={40} onChange={(e) => setAd(e.target.value)} placeholder="Örn. Cuma akşamı" />
+          <label htmlFor="grup-ad">{t("Grup adı (isteğe bağlı)")}</label>
+          <input ref={ilkRef} id="grup-ad" type="text" value={ad} maxLength={40} onChange={(e) => setAd(e.target.value)} placeholder={t("Örn. Cuma akşamı")} />
         </div>
         <div className="field">
-          <label htmlFor="grup-ara">Kişi ara</label>
-          <input id="grup-ara" type="text" value={filtre} onChange={(e) => setFiltre(e.target.value)} placeholder="Ad yaz…" />
+          <label htmlFor="grup-ara">{t("Kişi ara")}</label>
+          <input id="grup-ara" type="text" value={filtre} onChange={(e) => setFiltre(e.target.value)} placeholder={t("Ad yaz…")} />
         </div>
         <fieldset className="grup-liste">
           <legend className="alan-etiket">Kişiler — {secili.length}/{GRUP_MAX_DIGER} seçili</legend>
@@ -66,11 +67,11 @@ export default function YeniGrupDialog({ uyeler, benId, iliski, onOlustur, onKap
               <span className="grup-renk" style={{ background: u.renk }} aria-hidden="true" /> {u.takma_ad}
             </label>
           ))}
-          {!adaylar.length && <p className="hint">Kimse bulunamadı.</p>}
+          {!adaylar.length && <p className="hint">{t("Kimse bulunamadı.")}</p>}
         </fieldset>
         <div className="err" role="alert">{hata}</div>
         <div className="modal-alt">
-          <button type="button" className="linkbtn" onClick={onKapat}>Vazgeç</button>
+          <button type="button" className="linkbtn" onClick={onKapat}>{t("Vazgeç")}</button>
           <button type="submit" className="cta" disabled={mesgul || !gecerli}>{mesgul ? "Kuruluyor…" : "Grubu kur"}</button>
         </div>
       </form>

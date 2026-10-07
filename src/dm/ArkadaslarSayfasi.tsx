@@ -3,6 +3,7 @@ import Avatar from "../Avatar";
 import type { Uye } from "../types";
 import type { DmDurumu } from "./useDm";
 import { durumMetni } from "./ProfilKarti";
+import { t } from "../i18n";
 
 type Sekme = "tum" | "bekleyen" | "engelli";
 type Props = {
@@ -41,10 +42,10 @@ export default function ArkadaslarSayfasi({ dm, benId, uyeler, cevrimici, onMesa
   ];
 
   return (
-    <section className="arkadaslar" aria-label="Arkadaşlar">
-      <div className="head"><h2>Arkadaşlar</h2></div>
+    <section className="arkadaslar" aria-label={t("Arkadaşlar")}>
+      <div className="head"><h2>{t("Arkadaşlar")}</h2></div>
       <div className="ark-icerik">
-        <div role="tablist" aria-label="Arkadaş listesi" className="ark-sekmeler">
+        <div role="tablist" aria-label={t("Arkadaş listesi")} className="ark-sekmeler">
           {sekmeler.map((s) => (
             <button key={s.id} type="button" role="tab" aria-selected={sekme === s.id} className={"ark-sekme" + (sekme === s.id ? " acik" : "")} onClick={() => setSekme(s.id)}>
               {s.ad}{s.sayi ? ` (${s.sayi})` : ""}
@@ -53,14 +54,14 @@ export default function ArkadaslarSayfasi({ dm, benId, uyeler, cevrimici, onMesa
         </div>
 
         <div className="field ark-ekle">
-          <label htmlFor="ark-ara">Arkadaş ekle</label>
-          <input id="ark-ara" type="text" value={ara} onChange={(e) => setAra(e.target.value)} placeholder="Kullanıcı adı yaz…" />
+          <label htmlFor="ark-ara">{t("Arkadaş ekle")}</label>
+          <input id="ark-ara" type="text" value={ara} onChange={(e) => setAra(e.target.value)} placeholder={t("Kullanıcı adı yaz…")} />
           {aday.length > 0 && (
             <ul className="ark-liste">
               {aday.map((u) => (
                 <li key={u.id} className="ark-satir">
                   <Avatar uye={u} /><span className="ark-ad">{u.takma_ad}</span>
-                  <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasIstek(u.id).then((r) => r.hata), `${u.takma_ad} kişisine istek gönderildi`)}>İstek gönder</button>
+                  <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasIstek(u.id).then((r) => r.hata), `${u.takma_ad} kişisine istek gönderildi`)}>{t("İstek gönder")}</button>
                 </li>
               ))}
             </ul>
@@ -68,15 +69,15 @@ export default function ArkadaslarSayfasi({ dm, benId, uyeler, cevrimici, onMesa
         </div>
 
         {sekme === "tum" && (
-          <ul className="ark-liste" aria-label="Arkadaşlarım">
+          <ul className="ark-liste" aria-label={t("Arkadaşlarım")}>
             {arkadaslar.map((r) => { const u = diger(r); if (!u) return null; return (
               <li key={r.id} className="ark-satir">
                 <Avatar uye={u} /><span className="ark-ad">{u.takma_ad}<small>{durumMetni(u, cevrimici.has(u.id))}</small></span>
-                <button type="button" className="pk-btn" onClick={() => onMesaj(u.id)}>Mesaj</button>
-                <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasSil(u.id))}>Çıkar</button>
+                <button type="button" className="pk-btn" onClick={() => onMesaj(u.id)}>{t("Mesaj")}</button>
+                <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasSil(u.id))}>{t("Çıkar")}</button>
               </li>
             ); })}
-            {!arkadaslar.length && <li className="hint">Henüz arkadaşın yok. Yukarıdan arayıp istek gönder ya da bir kişinin profilinden ekle.</li>}
+            {!arkadaslar.length && <li className="hint">{t("Henüz arkadaşın yok. Yukarıdan arayıp istek gönder ya da bir kişinin profilinden ekle.")}</li>}
           </ul>
         )}
 
@@ -87,34 +88,34 @@ export default function ArkadaslarSayfasi({ dm, benId, uyeler, cevrimici, onMesa
               {gelen.map((r) => { const u = harita.get(r.a); if (!u) return null; return (
                 <li key={r.id} className="ark-satir">
                   <Avatar uye={u} /><span className="ark-ad">{u.takma_ad}</span>
-                  <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasYanit(r.id, true), `${u.takma_ad} ile arkadaş oldunuz`)}>Kabul et</button>
-                  <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasYanit(r.id, false))}>Reddet</button>
+                  <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasYanit(r.id, true), `${u.takma_ad} ile arkadaş oldunuz`)}>{t("Kabul et")}</button>
+                  <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasYanit(r.id, false))}>{t("Reddet")}</button>
                 </li>
               ); })}
-              {!gelen.length && <li className="hint">Bekleyen gelen istek yok.</li>}
+              {!gelen.length && <li className="hint">{t("Bekleyen gelen istek yok.")}</li>}
             </ul>
             <h3 className="pk-baslik">Gönderilen istekler — {giden.length}</h3>
             <ul className="ark-liste">
               {giden.map((r) => { const u = harita.get(r.b); if (!u) return null; return (
                 <li key={r.id} className="ark-satir">
                   <Avatar uye={u} /><span className="ark-ad">{u.takma_ad}</span>
-                  <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasSil(u.id))}>Geri al</button>
+                  <button type="button" className="pk-btn" onClick={() => void calistir(dm.arkadasSil(u.id))}>{t("Geri al")}</button>
                 </li>
               ); })}
-              {!giden.length && <li className="hint">Gönderilmiş istek yok.</li>}
+              {!giden.length && <li className="hint">{t("Gönderilmiş istek yok.")}</li>}
             </ul>
           </>
         )}
 
         {sekme === "engelli" && (
-          <ul className="ark-liste" aria-label="Engellenenler">
+          <ul className="ark-liste" aria-label={t("Engellenenler")}>
             {engelli.map((r) => { const u = harita.get(r.b); if (!u) return null; return (
               <li key={r.id} className="ark-satir">
                 <Avatar uye={u} /><span className="ark-ad">{u.takma_ad}</span>
-                <button type="button" className="pk-btn" onClick={() => void calistir(dm.engelKaldir(u.id), `${u.takma_ad} engeli kaldırıldı`)}>Engeli kaldır</button>
+                <button type="button" className="pk-btn" onClick={() => void calistir(dm.engelKaldir(u.id), `${u.takma_ad} engeli kaldırıldı`)}>{t("Engeli kaldır")}</button>
               </li>
             ); })}
-            {!engelli.length && <li className="hint">Kimseyi engellemedin.</li>}
+            {!engelli.length && <li className="hint">{t("Kimseyi engellemedin.")}</li>}
           </ul>
         )}
       </div>

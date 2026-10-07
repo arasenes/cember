@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase, SUPABASE_URL } from "../supabase";
 import type { Kanal } from "../types";
 import { BildirimSatiri, panoyaKopyala, rpcCagir, SayfaBasligi, useBildirim } from "./ortak";
+import { t } from "../i18n";
 
 type Webhook = { id: string; kanal_id: string; ad: string; olusturma: string };
 type Props = { odaId: string; kanallar: Kanal[] };
@@ -52,29 +53,29 @@ export default function WebhookBotlar({ odaId, kanallar }: Props) {
     <div className="ayar-form">
       <SayfaBasligi baslik="Webhook ve botlar" aciklama="Webhook, dış bir servisin (GitHub, takvim, kendi betiğin) seçili kanala mesaj göndermesini sağlar. Mesajlar webhook adıyla, “bot” olarak görünür." />
       <form className="kanal-form" onSubmit={olustur}>
-        <input type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} placeholder="Webhook adı" aria-label="Webhook adı" disabled={mesgul} />
-        <select value={kanal} onChange={(e) => setKanal(e.target.value)} aria-label="Mesajın gideceği kanal" disabled={mesgul}>
+        <input type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} placeholder={t("Webhook adı")} aria-label={t("Webhook adı")} disabled={mesgul} />
+        <select value={kanal} onChange={(e) => setKanal(e.target.value)} aria-label={t("Mesajın gideceği kanal")} disabled={mesgul}>
           {yazili.map((k) => <option key={k.id} value={k.id}>#{k.ad}</option>)}
         </select>
-        <button className="cta" type="submit" disabled={mesgul || ad.trim().length < 2 || !kanal}>Webhook oluştur</button>
+        <button className="cta" type="submit" disabled={mesgul || ad.trim().length < 2 || !kanal}>{t("Webhook oluştur")}</button>
       </form>
       <BildirimSatiri b={bildirim} />
       {yeni && (
-        <div className="kart webhook-yeni" role="region" aria-label="Yeni webhook bilgileri">
+        <div className="kart webhook-yeni" role="region" aria-label={t("Yeni webhook bilgileri")}>
           <b>{yeni.ad}</b>
           <p className="hint">Bu şifre bir daha gösterilmez; veritabanında yalnızca özeti saklanır. Örnek istek:</p>
           <pre className="md-blok"><code>{webhookOrnegi(yeni.id, yeni.sifre)}</code></pre>
-          <button type="button" className="pk-btn" onClick={() => void panoyaKopyala(webhookOrnegi(yeni.id, yeni.sifre))}>Örneği kopyala</button>
+          <button type="button" className="pk-btn" onClick={() => void panoyaKopyala(webhookOrnegi(yeni.id, yeni.sifre))}>{t("Örneği kopyala")}</button>
         </div>
       )}
       <ul className="yon-liste">
         {liste.map((w) => (
           <li key={w.id} className="yon-uye">
             <div className="mem-ad"><b>{w.ad}</b><small>#{kanallar.find((k) => k.id === w.kanal_id)?.ad ?? "silinmiş kanal"} · {new Date(w.olusturma).toLocaleDateString("tr-TR")}</small></div>
-            <button className="pk-btn tehlike" disabled={mesgul} onClick={() => sil(w)} aria-label={`${w.ad} webhook'unu sil`}>Sil</button>
+            <button className="pk-btn tehlike" disabled={mesgul} onClick={() => sil(w)} aria-label={`${w.ad} webhook'unu sil`}>{t("Sil")}</button>
           </li>
         ))}
-        {!liste.length && <li className="hint">Henüz webhook yok.</li>}
+        {!liste.length && <li className="hint">{t("Henüz webhook yok.")}</li>}
       </ul>
     </div>
   );

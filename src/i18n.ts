@@ -56,10 +56,17 @@ export function dilOku(): Dil {
   try {
     const d = localStorage.getItem(ANAHTAR);
     if (d === "en" || d === "tr") return d;
-    return navigator.language?.toLowerCase().startsWith("tr") === false ? "en" : "tr";
+    return "tr";
   } catch { return "tr"; }
 }
 export function dilYaz(d: Dil) { try { localStorage.setItem(ANAHTAR, d); } catch { /* yok say */ } }
+
+import { EN_METIN } from "./i18n.en";
+
+/** Türkçe metni anahtar olarak kullanır; İngilizce seçiliyse sözlükten çevirir, yoksa olduğu gibi bırakır. */
+export function t(tr: string): string {
+  return dilOku() === "en" ? EN_METIN[tr] ?? tr : tr;
+}
 
 export function cevir(k: Anahtar, dil: Dil = dilOku()): string {
   return (dil === "en" ? EN[k] : undefined) ?? TR[k];

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { Kanal, Mesaj, Uye } from "../types";
+import { t } from "../i18n";
 
 type Props = {
   mesaj: Mesaj;
@@ -28,8 +29,8 @@ export default function IletDialog({ mesaj, yazar, kanallar, aktifKanal, onIlet,
     <div className="modal-arka" onMouseDown={(e) => { if (e.target === e.currentTarget) onKapat(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="ilet-baslik" ref={kutuRef}>
         <div className="modal-ust">
-          <h2 id="ilet-baslik">Mesajı ilet</h2>
-          <button type="button" className="sq modal-x" aria-label="Kapat" onClick={onKapat}>×</button>
+          <h2 id="ilet-baslik">{t("Mesajı ilet")}</h2>
+          <button type="button" className="sq modal-x" aria-label={t("Kapat")} onClick={onKapat}>×</button>
         </div>
         <blockquote className="ilet-onizleme">
           <b>{yazar?.takma_ad ?? "Eski üye"}</b>
@@ -43,7 +44,7 @@ export default function IletDialog({ mesaj, yazar, kanallar, aktifKanal, onIlet,
               </button>
             </li>
           ))}
-          {!kanallar.length && <li className="hint">İletebileceğin kanal yok.</li>}
+          {!kanallar.length && <li className="hint">{t("İletebileceğin kanal yok.")}</li>}
         </ul>
       </div>
     </div>

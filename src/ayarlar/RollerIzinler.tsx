@@ -3,6 +3,7 @@ import { supabase } from "../supabase";
 import type { Uye } from "../types";
 import { IZIN_SATIRLARI, IZIN_TUMU, izinAc, izinVar, VARSAYILAN_HERKES, VARSAYILAN_MODERATOR } from "../sunucu/izin";
 import { BildirimSatiri, RENK_PALETI, rpcCagir, SayfaBasligi, useBildirim } from "./ortak";
+import { t } from "../i18n";
 
 export type Rol = { id: string; ad: string; renk: string; izinler: number; sira: number };
 type Secim = { tur: "sahip" | "moderator" | "herkes" } | { tur: "ozel"; id: string };
@@ -111,7 +112,7 @@ export default function RollerIzinler({ odaId, uyeler, sahipMi }: Props) {
       <SayfaBasligi baslik="Roller ve izinler" aciklama="Her role renk ver, ne yapabileceğini seç. Etkin izin: Herkes + (moderatörse) Moderatör + atanmış rollerin toplamıdır." />
       <div className="roller-govde">
         <div className="roller-liste">
-          {sahipMi && <button type="button" className="cta" onClick={() => void olustur()} disabled={mesgul}>+ Rol oluştur</button>}
+          {sahipMi && <button type="button" className="cta" onClick={() => void olustur()} disabled={mesgul}>{t("+ Rol oluştur")}</button>}
           {liste.map((r) => (
             <button key={r.s.tur + ("id" in r.s ? r.s.id : "")} type="button" aria-pressed={secili(r.s)} className={"rol-satir" + (secili(r.s) ? " acik" : "")} onClick={() => setSecim(r.s)}>
               <span className="rol-nokta" style={{ background: r.renk }} aria-hidden="true" />{r.ad}<small>{sayi(r.s)}</small>
@@ -121,12 +122,12 @@ export default function RollerIzinler({ odaId, uyeler, sahipMi }: Props) {
         <div className="kart roller-editor">
           <div className="roller-ust">
             <div className="field">
-              <label htmlFor="rol-ad">Rol adı</label>
+              <label htmlFor="rol-ad">{t("Rol adı")}</label>
               <input id="rol-ad" type="text" value={ad} maxLength={30} disabled={kilitli || sistem} onChange={(e) => setAd(e.target.value)} />
             </div>
             {secim.tur === "ozel" && (
               <div className="field">
-                <span className="alan-etiket" id="rol-renk-et">Renk</span>
+                <span className="alan-etiket" id="rol-renk-et">{t("Renk")}</span>
                 <div className="renk-secici" role="radiogroup" aria-labelledby="rol-renk-et">
                   {RENK_PALETI.slice(0, 8).map((r) => <button key={r} type="button" role="radio" aria-checked={renk === r} aria-label={`Renk ${r}`} className="renk-nokta" style={{ background: r }} disabled={kilitli} onClick={() => setRenk(r)} />)}
                 </div>
@@ -139,13 +140,13 @@ export default function RollerIzinler({ odaId, uyeler, sahipMi }: Props) {
           <BildirimSatiri b={bildirim} />
           {sahipMi && secim.tur !== "sahip" && (
             <div className="roller-alt">
-              <button type="button" className="cta" disabled={mesgul || !degisti || (secim.tur === "ozel" && ad.trim().length < 1)} onClick={() => void kaydet()}>Kaydet</button>
-              {secim.tur === "ozel" && <button type="button" className="ib tehlike" disabled={mesgul} onClick={() => void sil()}>Rolü sil</button>}
+              <button type="button" className="cta" disabled={mesgul || !degisti || (secim.tur === "ozel" && ad.trim().length < 1)} onClick={() => void kaydet()}>{t("Kaydet")}</button>
+              {secim.tur === "ozel" && <button type="button" className="ib tehlike" disabled={mesgul} onClick={() => void sil()}>{t("Rolü sil")}</button>}
             </div>
           )}
           {sahipMi && (secim.tur === "ozel" || secim.tur === "moderator") && (
             <div className="roller-uyeler">
-              <h3 className="yon-baslik">Bu role sahip olanlar</h3>
+              <h3 className="yon-baslik">{t("Bu role sahip olanlar")}</h3>
               <ul className="yon-liste">
                 {aktifUyeler.filter((u) => u.rol !== "sahip").map((u) => {
                   const var_ = secim.tur === "ozel" ? atamalar.some((a) => a.uye_id === u.id && a.rol_id === secim.id) : u.rol === "moderator";

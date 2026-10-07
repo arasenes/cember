@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { KATEGORILER, emojiAra, sonKullanilanEkle, sonKullanilanlar } from "./emojiVeri";
+import { t } from "./i18n";
 
 type Props = { onSec: (emoji: string) => void; className?: string };
 
@@ -16,8 +17,8 @@ export default function EmojiDeposu({ onSec, className }: Props) {
   function sec(e: string) { sonKullanilanEkle(e); setSon(sonKullanilanlar()); onSec(e); }
 
   return (
-    <div className={`deposu ${className ?? ""}`} role="group" aria-label="Emoji deposu">
-      <input className="deposu-ara" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Emoji ara (kalp, ateş, kedi…)" aria-label="Emoji ara" />
+    <div className={`deposu ${className ?? ""}`} role="group" aria-label={t("Emoji deposu")}>
+      <input className="deposu-ara" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Emoji ara (kalp, ateş, kedi…)")} aria-label={t("Emoji ara")} />
       {!q.trim() && (
         <div className="deposu-sekme" role="tablist">
           {sekmeler.map((k) => (
@@ -27,7 +28,7 @@ export default function EmojiDeposu({ onSec, className }: Props) {
       )}
       <div className="deposu-baslik">{q.trim() ? `“${q.trim()}” sonuçları` : kat === "son" && !son.length ? "Yüzler" : secili.ad}</div>
       <div className="deposu-izgara">
-        {liste.length === 0 && <div className="deposu-bos">Sonuç yok</div>}
+        {liste.length === 0 && <div className="deposu-bos">{t("Sonuç yok")}</div>}
         {liste.map((e) => <button key={e} aria-label={e} onClick={() => sec(e)}>{e}</button>)}
       </div>
     </div>

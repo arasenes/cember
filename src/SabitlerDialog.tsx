@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import Avatar from "./Avatar";
 import type { Mesaj, Uye } from "./types";
 import { gunEtiketi, saat } from "./util";
+import { t } from "./i18n";
 
 type Props = {
   mesajlar: Mesaj[];
@@ -31,9 +32,9 @@ export default function SabitlerDialog({ mesajlar, uyeler, kanalAdi, yonetici, o
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="sabit-baslik" ref={kutuRef}>
         <div className="modal-ust">
           <h2 id="sabit-baslik">📌 Sabitlenenler — #{kanalAdi}</h2>
-          <button className="lb-kapat modal-x" onClick={onKapat} aria-label="Kapat">✕</button>
+          <button className="lb-kapat modal-x" onClick={onKapat} aria-label={t("Kapat")}>✕</button>
         </div>
-        {mesajlar.length === 0 && <div className="hint">Bu kanalda sabitlenmiş mesaj yok.</div>}
+        {mesajlar.length === 0 && <div className="hint">{t("Bu kanalda sabitlenmiş mesaj yok.")}</div>}
         <ul className="sabit-liste">
           {mesajlar.map((m) => {
             const y = uyeler.get(m.uye_id);
@@ -44,7 +45,7 @@ export default function SabitlerDialog({ mesajlar, uyeler, kanalAdi, yonetici, o
                   <div className="mh"><b>{y?.takma_ad ?? "Eski üye"}</b><time dateTime={m.olusturma}>{gunEtiketi(m.olusturma)} {saat(m.olusturma)}</time></div>
                   <div className="txt">{m.metin || (m.ek_yol ? "🖼️ Resim" : "")}</div>
                 </div>
-                {yonetici && <button className="linkbtn" onClick={() => onKaldir(m)} aria-label="Sabitlemeyi kaldır">Kaldır</button>}
+                {yonetici && <button className="linkbtn" onClick={() => onKaldir(m)} aria-label={t("Sabitlemeyi kaldır")}>{t("Kaldır")}</button>}
               </li>
             );
           })}

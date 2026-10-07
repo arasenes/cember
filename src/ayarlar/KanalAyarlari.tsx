@@ -5,6 +5,7 @@ import type { Kanal, Kategori } from "../types";
 import { duzenle, gruplariKur, YAVAS_MOD_SECENEKLERI, type Tasima } from "../sunucu/siralama";
 import { IZIN } from "../sunucu/izin";
 import { BildirimSatiri, rpcCagir, SayfaBasligi, useBildirim } from "./ortak";
+import { t } from "../i18n";
 
 type Props = {
   odaId: string;
@@ -54,7 +55,7 @@ function KanalIzinleri({ kanal, onBildir }: { kanal: Kanal; onBildir: (b: { ok: 
   const bitler = KANAL_IZINLERI.filter((b) => ((b.bit === IZIN.MESAJ_YAZ || b.bit === IZIN.DOSYA) ? kanal.tur === "yazili" : kanal.tur === "sesli"));
   return (
     <div className="kanal-izin kart" role="group" aria-label={`${kanal.ad} kanal izinleri`}>
-      <p className="hint">“Varsayılan”: sunucu izni geçerli. Sahip her zaman her şeyi yapabilir.</p>
+      <p className="hint">{t("“Varsayılan”: sunucu izni geçerli. Sahip her zaman her şeyi yapabilir.")}</p>
       {hedefler.map((h) => (
         <div key={h.hedef + (h.rolId ?? "")} className="izin">
           <div>{h.ad}</div>
@@ -62,7 +63,7 @@ function KanalIzinleri({ kanal, onBildir }: { kanal: Kanal; onBildir: (b: { ok: 
             {bitler.map((b) => (
               <label key={b.bit} className="kanal-izin-alan">{b.ad}
                 <select value={durum(h.hedef, h.rolId, b.bit)} aria-label={`${h.ad}: ${b.ad}`} onChange={(e) => void degistir(h.hedef, h.rolId, b.bit, e.target.value as "varsayilan" | "ver" | "yasak")}>
-                  <option value="varsayilan">Varsayılan</option><option value="ver">İzin ver</option><option value="yasak">Yasakla</option>
+                  <option value="varsayilan">{t("Varsayılan")}</option><option value="ver">{t("İzin ver")}</option><option value="yasak">{t("Yasakla")}</option>
                 </select>
               </label>
             ))}
@@ -177,20 +178,20 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
       <BildirimSatiri b={bildirim} />
 
       <form className="kanal-form" onSubmit={kanalAc}>
-        <input type="text" value={yeniKanal} onChange={(e) => setYeniKanal(e.target.value)} maxLength={40} placeholder="Yeni kanal adı" aria-label="Yeni kanal adı" disabled={mesgul} />
-        <select value={yeniTur} onChange={(e) => setYeniTur(e.target.value as "yazili" | "sesli")} aria-label="Kanal türü" disabled={mesgul}>
-          <option value="yazili"># Yazılı</option><option value="sesli">Sesli</option>
+        <input type="text" value={yeniKanal} onChange={(e) => setYeniKanal(e.target.value)} maxLength={40} placeholder={t("Yeni kanal adı")} aria-label={t("Yeni kanal adı")} disabled={mesgul} />
+        <select value={yeniTur} onChange={(e) => setYeniTur(e.target.value as "yazili" | "sesli")} aria-label={t("Kanal türü")} disabled={mesgul}>
+          <option value="yazili">{t("# Yazılı")}</option><option value="sesli">{t("Sesli")}</option>
         </select>
-        <select value={yeniKategori} onChange={(e) => setYeniKategori(e.target.value)} aria-label="Kategori" disabled={mesgul}>
-          <option value="">Kategorisiz</option>
+        <select value={yeniKategori} onChange={(e) => setYeniKategori(e.target.value)} aria-label={t("Kategori")} disabled={mesgul}>
+          <option value="">{t("Kategorisiz")}</option>
           {kategoriler.map((c) => <option key={c.id} value={c.id}>{c.ad}</option>)}
         </select>
-        <input type="password" value={yeniSifre} onChange={(e) => setYeniSifre(e.target.value)} maxLength={40} placeholder="Şifre (isteğe bağlı)" aria-label="Kanal şifresi (isteğe bağlı)" autoComplete="new-password" disabled={mesgul} />
-        <button className="cta" type="submit" disabled={mesgul || !yeniKanal.trim()}>Kanal aç</button>
+        <input type="password" value={yeniSifre} onChange={(e) => setYeniSifre(e.target.value)} maxLength={40} placeholder={t("Şifre (isteğe bağlı)")} aria-label={t("Kanal şifresi (isteğe bağlı)")} autoComplete="new-password" disabled={mesgul} />
+        <button className="cta" type="submit" disabled={mesgul || !yeniKanal.trim()}>{t("Kanal aç")}</button>
       </form>
       <form className="kanal-form" onSubmit={kategoriAc}>
-        <input type="text" value={yeniKatAd} onChange={(e) => setYeniKatAd(e.target.value)} maxLength={30} placeholder="Yeni kategori adı" aria-label="Yeni kategori adı" disabled={mesgul} />
-        <button className="pk-btn" type="submit" disabled={mesgul || !yeniKatAd.trim()}>Kategori ekle</button>
+        <input type="text" value={yeniKatAd} onChange={(e) => setYeniKatAd(e.target.value)} maxLength={30} placeholder={t("Yeni kategori adı")} aria-label={t("Yeni kategori adı")} disabled={mesgul} />
+        <button className="pk-btn" type="submit" disabled={mesgul || !yeniKatAd.trim()}>{t("Kategori ekle")}</button>
       </form>
 
       {gruplar.map((g) => (
@@ -199,9 +200,9 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
             {...(g.kategori ? { draggable: true, onDragStart: () => setSurukle({ tur: "kategori", id: g.kategori!.id }), onDragEnd: () => setSurukle(null) } : {})}>
             {g.kategori && duzenKat?.id === g.kategori.id ? (
               <form className="yon-eylemler" onSubmit={(e) => { e.preventDefault(); kategoriAdiKaydet(); }}>
-                <input type="text" value={duzenKat.ad} maxLength={30} aria-label="Kategori adı" autoFocus onChange={(e) => setDuzenKat({ id: duzenKat.id, ad: e.target.value })} />
-                <button className="pk-btn" type="submit" disabled={mesgul || !duzenKat.ad.trim()}>Kaydet</button>
-                <button className="pk-btn" type="button" onClick={() => setDuzenKat(null)}>Vazgeç</button>
+                <input type="text" value={duzenKat.ad} maxLength={30} aria-label={t("Kategori adı")} autoFocus onChange={(e) => setDuzenKat({ id: duzenKat.id, ad: e.target.value })} />
+                <button className="pk-btn" type="submit" disabled={mesgul || !duzenKat.ad.trim()}>{t("Kaydet")}</button>
+                <button className="pk-btn" type="button" onClick={() => setDuzenKat(null)}>{t("Vazgeç")}</button>
               </form>
             ) : (
               <>
@@ -210,8 +211,8 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
                   <div className="yon-eylemler">
                     <button className="cb-ibtn" aria-label={`${g.kategori.ad} kategorisini yukarı taşı`} disabled={mesgul} onClick={() => void sirala({ tur: "kategori-yukari", id: g.kategori!.id })}>▲</button>
                     <button className="cb-ibtn" aria-label={`${g.kategori.ad} kategorisini aşağı taşı`} disabled={mesgul} onClick={() => void sirala({ tur: "kategori-asagi", id: g.kategori!.id })}>▼</button>
-                    <button className="pk-btn" disabled={mesgul} onClick={() => setDuzenKat({ id: g.kategori!.id, ad: g.kategori!.ad })}>Adı değiştir</button>
-                    <button className="pk-btn tehlike" disabled={mesgul} onClick={() => kategoriSil(g.kategori!)}>Sil</button>
+                    <button className="pk-btn" disabled={mesgul} onClick={() => setDuzenKat({ id: g.kategori!.id, ad: g.kategori!.ad })}>{t("Adı değiştir")}</button>
+                    <button className="pk-btn tehlike" disabled={mesgul} onClick={() => kategoriSil(g.kategori!)}>{t("Sil")}</button>
                   </div>
                 )}
               </>
@@ -225,7 +226,7 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
                   <button className="cb-ibtn" aria-label={`${k.ad} kanalını yukarı taşı`} disabled={mesgul} onClick={() => void sirala({ tur: "kanal-yukari", id: k.id })}>▲</button>
                   <button className="cb-ibtn" aria-label={`${k.ad} kanalını aşağı taşı`} disabled={mesgul} onClick={() => void sirala({ tur: "kanal-asagi", id: k.id })}>▼</button>
                   <select aria-label={`${k.ad} kategorisi`} value={k.kategori_id ?? ""} disabled={mesgul} onChange={(e) => kategoriDegistir(k, e.target.value)}>
-                    <option value="">Kategorisiz</option>
+                    <option value="">{t("Kategorisiz")}</option>
                     {kategoriler.map((c) => <option key={c.id} value={c.id}>{c.ad}</option>)}
                   </select>
                   {k.tur === "yazili" && (
@@ -235,23 +236,23 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
                   )}
                   {sifreKanal === k.id ? (
                     <form className="yon-eylemler" onSubmit={(e) => { e.preventDefault(); sifreKaydet(k, sifre); }}>
-                      <input type="password" value={sifre} onChange={(e) => setSifre(e.target.value)} maxLength={40} placeholder="Yeni şifre" aria-label={`${k.ad} için yeni şifre`} autoComplete="new-password" />
-                      <button className="pk-btn" type="submit" disabled={mesgul || sifre.length < 3}>Kaydet</button>
-                      <button className="pk-btn" type="button" onClick={() => { setSifreKanal(null); setSifre(""); }}>Vazgeç</button>
+                      <input type="password" value={sifre} onChange={(e) => setSifre(e.target.value)} maxLength={40} placeholder={t("Yeni şifre")} aria-label={`${k.ad} için yeni şifre`} autoComplete="new-password" />
+                      <button className="pk-btn" type="submit" disabled={mesgul || sifre.length < 3}>{t("Kaydet")}</button>
+                      <button className="pk-btn" type="button" onClick={() => { setSifreKanal(null); setSifre(""); }}>{t("Vazgeç")}</button>
                     </form>
                   ) : (
                     <>
                       <button className="pk-btn" disabled={mesgul} onClick={() => { setSifreKanal(k.id); setSifre(""); }}>{k.sifreli ? "Şifreyi değiştir" : "Şifre koy"}</button>
-                      {k.sifreli && <button className="pk-btn" disabled={mesgul} onClick={() => sifreKaydet(k, "")}>Şifreyi kaldır</button>}
+                      {k.sifreli && <button className="pk-btn" disabled={mesgul} onClick={() => sifreKaydet(k, "")}>{t("Şifreyi kaldır")}</button>}
                     </>
                   )}
-                  <button className="pk-btn" aria-expanded={izinKanal === k.id} disabled={mesgul} onClick={() => setIzinKanal(izinKanal === k.id ? null : k.id)}>İzinler</button>
-                  <button className="pk-btn tehlike" disabled={mesgul} onClick={() => kanalSil(k)}>Sil</button>
+                  <button className="pk-btn" aria-expanded={izinKanal === k.id} disabled={mesgul} onClick={() => setIzinKanal(izinKanal === k.id ? null : k.id)}>{t("İzinler")}</button>
+                  <button className="pk-btn tehlike" disabled={mesgul} onClick={() => kanalSil(k)}>{t("Sil")}</button>
                 </div>
                 {izinKanal === k.id && <KanalIzinleri kanal={k} onBildir={(b) => void calistir(b.metin, async () => (b.ok ? null : b.metin))} />}
               </li>
             ))}
-            {!g.kanallar.length && <li className="hint">Bu grupta kanal yok.</li>}
+            {!g.kanallar.length && <li className="hint">{t("Bu grupta kanal yok.")}</li>}
           </ul>
         </section>
       ))}

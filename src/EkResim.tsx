@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { imzaliUrlAl, onbellekTemizle } from "./imzali";
 import { gosterimBoyutu } from "./ekler";
+import { t } from "./i18n";
 
 type Props = { yol: string; genislik: number; yukseklik: number; alt: string };
 
@@ -35,20 +36,19 @@ export default function EkResim({ yol, genislik, yukseklik, alt }: Props) {
     <>
       <div className="ek" style={{ width: g, height: y }}>
         {hata ? (
-          <div className="ek-yok" role="alert">
-            Resim yüklenemedi. <button className="linkbtn" onClick={tekrarDene}>Tekrar dene</button>
+          <div className="ek-yok" role="alert">{t("Resim yüklenemedi.")}{" "}<button className="linkbtn" onClick={tekrarDene}>{t("Tekrar dene")}</button>
           </div>
         ) : url ? (
           <button ref={acanRef} className="ek-ac" onClick={() => setBuyuk(true)} aria-label={`${alt}, büyütmek için tıkla`}>
             <img src={url} alt={alt} width={g} height={y} loading="lazy" decoding="async" onError={() => (deneme < 1 ? tekrarDene() : setHata(true))} />
           </button>
         ) : (
-          <div className="ek-bekle" aria-label="Resim yükleniyor" role="img" />
+          <div className="ek-bekle" aria-label={t("Resim yükleniyor")} role="img" />
         )}
       </div>
       {buyuk && url && (
         <div className="lightbox" role="dialog" aria-modal="true" aria-label={alt} onClick={kapat}>
-          <button ref={kapatRef} className="lb-kapat" onClick={kapat} aria-label="Kapat">✕</button>
+          <button ref={kapatRef} className="lb-kapat" onClick={kapat} aria-label={t("Kapat")}>✕</button>
           <img src={url} alt={alt} onClick={(e) => e.stopPropagation()} />
         </div>
       )}

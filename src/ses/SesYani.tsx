@@ -3,6 +3,7 @@ import Avatar from "../Avatar";
 import { metinOge } from "../mesaj/markdown";
 import type { Mesaj, Uye } from "../types";
 import { DUZEY_MAX, DUZEY_MIN, useSesDuzeyleri } from "./sesDuzeyi";
+import { t } from "../i18n";
 
 type Props = {
   ben: Uye;
@@ -56,8 +57,8 @@ export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yone
 
   return (
     <div className="ses-yani">
-      <h2 className="yan-baslik">Kişi başı ses düzeyi</h2>
-      {satirlar.length === 0 && <p className="hint">Odada başka kimse yok.</p>}
+      <h2 className="yan-baslik">{t("Kişi başı ses düzeyi")}</h2>
+      {satirlar.length === 0 && <p className="hint">{t("Odada başka kimse yok.")}</p>}
       {satirlar.map((s) => {
         const v = d.duzey(s.anahtar);
         return (
@@ -75,10 +76,10 @@ export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yone
 
       {yonetici && (
         <>
-          <h2 className="yan-baslik">Yönetici</h2>
-          <label htmlFor="ses-yonet-kisi" className="sr">İşlem yapılacak kişi</label>
+          <h2 className="yan-baslik">{t("Yönetici")}</h2>
+          <label htmlFor="ses-yonet-kisi" className="sr">{t("İşlem yapılacak kişi")}</label>
           <select id="ses-yonet-kisi" className="yan-sec" value={secili} onChange={(e) => setSecili(e.target.value)}>
-            <option value="">Kişi seç…</option>
+            <option value="">{t("Kişi seç…")}</option>
             {digerleri.filter((u) => islemYapabilir(u)).map((u) => <option key={u.id} value={u.id}>{u.takma_ad}</option>)}
           </select>
           <div className="yan-eylemler">
@@ -87,16 +88,14 @@ export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yone
               {hedef && susturulanlar.has(hedef.id) ? "Susturmayı kaldır" : "Sunucuda sustur"}
             </button>
             <button type="button" className="pk-btn tehlike" disabled={!hedefUygun || mesgul}
-              onClick={() => { if (hedef && confirm(`${hedef.takma_ad} sesli odadan çıkarılsın mı?`)) void calistir(onAt(hedef)); }}>
-              Odadan at
-            </button>
+              onClick={() => { if (hedef && confirm(`${hedef.takma_ad} sesli odadan çıkarılsın mı?`)) void calistir(onAt(hedef)); }}>{t("Odadan at")}</button>
           </div>
         </>
       )}
 
-      <h2 className="yan-baslik">Sesli kanal sohbeti</h2>
+      <h2 className="yan-baslik">{t("Sesli kanal sohbeti")}</h2>
       <div className="yan-sohbet">
-        <ul className="yan-mesajlar" aria-label="Sesli kanal mesajları" aria-live="polite">
+        <ul className="yan-mesajlar" aria-label={t("Sesli kanal mesajları")} aria-live="polite">
           {son.map((m) => {
             const y = uyeHaritasi.get(m.uye_id);
             return (
@@ -106,11 +105,11 @@ export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yone
               </li>
             );
           })}
-          {!son.length && <li className="hint">Henüz mesaj yok.</li>}
+          {!son.length && <li className="hint">{t("Henüz mesaj yok.")}</li>}
         </ul>
         <form className="yan-yaz" onSubmit={gonder}>
-          <label htmlFor="ses-sohbet-girdi" className="sr">Sesli kanal sohbetine mesaj yaz</label>
-          <input id="ses-sohbet-girdi" type="text" value={metin} maxLength={4000} disabled={yazamaz} onChange={(e) => setMetin(e.target.value)} placeholder="Mesaj yaz…" autoComplete="off" />
+          <label htmlFor="ses-sohbet-girdi" className="sr">{t("Sesli kanal sohbetine mesaj yaz")}</label>
+          <input id="ses-sohbet-girdi" type="text" value={metin} maxLength={4000} disabled={yazamaz} onChange={(e) => setMetin(e.target.value)} placeholder={t("Mesaj yaz…")} autoComplete="off" />
         </form>
       </div>
     </div>

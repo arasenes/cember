@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import type { Kanal } from "../types";
 import { BildirimSatiri, rpcCagir, SayfaBasligi, useBildirim } from "./ortak";
+import { t } from "../i18n";
 
 type Props = { odaId: string; kanallar: Kanal[]; duzenleyebilir: boolean };
 
@@ -47,20 +48,20 @@ export default function OtomatikModerasyon({ odaId, kanallar, duzenleyebilir }: 
         <p className="hint">Yalnızca tam kelime eşleşir (“kötü” kelimesi “kötülük” içinde engellenmez); büyük/küçük harf ve Türkçe İ/ı farkı yok sayılır.</p>
       </div>
       <div className="field">
-        <label htmlFor="hosgeldin-mesaji">Hoş geldin mesajı</label>
+        <label htmlFor="hosgeldin-mesaji">{t("Hoş geldin mesajı")}</label>
         <textarea id="hosgeldin-mesaji" rows={3} value={hosgeldin} maxLength={300} disabled={!duzenleyebilir || !yuklendi} onChange={(e) => setHosgeldin(e.target.value)} placeholder="Hoş geldin {ad}! Kuralları okumayı unutma." />
         <p className="hint">{"{ad}"} yeni üyenin adıyla değişir. Boş bırakırsan mesaj gönderilmez. Mesaj sunucu sahibi adına yazılır.</p>
       </div>
       <div className="field">
-        <label htmlFor="hosgeldin-kanal">Hoş geldin kanalı</label>
+        <label htmlFor="hosgeldin-kanal">{t("Hoş geldin kanalı")}</label>
         <select id="hosgeldin-kanal" value={kanal} disabled={!duzenleyebilir || !yuklendi} onChange={(e) => setKanal(e.target.value)}>
-          <option value="">İlk yazılı kanal</option>
+          <option value="">{t("İlk yazılı kanal")}</option>
           {kanallar.filter((k) => k.tur === "yazili").map((k) => <option key={k.id} value={k.id}>#{k.ad}</option>)}
         </select>
       </div>
       <BildirimSatiri b={bildirim} />
       {duzenleyebilir ? <button type="submit" className="cta" disabled={mesgul || !yuklendi}>{mesgul ? "Kaydediliyor…" : "Kaydet"}</button>
-        : <p className="hint">Bu ayarları yalnızca sunucu sahibi değiştirebilir.</p>}
+        : <p className="hint">{t("Bu ayarları yalnızca sunucu sahibi değiştirebilir.")}</p>}
     </form>
   );
 }

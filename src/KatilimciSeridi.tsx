@@ -1,5 +1,6 @@
 import Avatar from "./Avatar";
 import type { Uye } from "./types";
+import { t } from "./i18n";
 
 type Props = {
   katilimcilar: Uye[];
@@ -16,8 +17,8 @@ type Props = {
 // Sesli odanın üstündeki katılımcı şeridi: büyük avatarlar, konuşanın etrafında halka, paylaşanda 🖥️.
 export default function KatilimciSeridi({ katilimcilar, konusanlar, sorunlu, paylasanlar, benimId, buradayim, baglaniyor, onKatil, onProfil }: Props) {
   return (
-    <div className="serit" role="group" aria-label="Sesli odadaki katılımcılar">
-      {katilimcilar.length === 0 && <div className="serit-bos">Odada kimse yok</div>}
+    <div className="serit" role="group" aria-label={t("Sesli odadaki katılımcılar")}>
+      {katilimcilar.length === 0 && <div className="serit-bos">{t("Odada kimse yok")}</div>}
       {katilimcilar.map((u) => {
         const konusuyor = konusanlar.has(u.id);
         return (

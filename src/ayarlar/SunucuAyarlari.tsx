@@ -13,6 +13,7 @@ import OtomatikModerasyon from "./OtomatikModerasyon";
 import DenetimKaydi from "./DenetimKaydi";
 import WebhookBotlar from "./WebhookBotlar";
 import SunucuSil from "./SunucuSil";
+import { t } from "../i18n";
 
 export type Bolum = "genel" | "kanallar" | "roller" | "davetler" | "otomod" | "uyeler" | "denetim" | "webhook" | "sil";
 
@@ -57,8 +58,8 @@ export default function SunucuAyarlari({ baslangic, sunucu, ben, uyeler, kanalla
   const aktif = bolumler.some((b) => b.id === secili) ? secili : bolumler[0].id;
 
   return (
-    <div className="ayarlar-ekran" role="dialog" aria-modal="true" aria-label="Sunucu ayarları">
-      <nav className="ayarlar-menu" aria-label="Sunucu ayar bölümleri">
+    <div className="ayarlar-ekran" role="dialog" aria-modal="true" aria-label={t("Sunucu ayarları")}>
+      <nav className="ayarlar-menu" aria-label={t("Sunucu ayar bölümleri")}>
         <div className="ayarlar-sunucu">{sunucu.ad}</div>
         {bolumler.map((b) => (
           <button key={b.id} type="button" aria-current={aktif === b.id ? "page" : undefined} className={"ayarlar-ogesi" + (aktif === b.id ? " acik" : "") + (b.tehlike ? " tehlike" : "")} onClick={() => setSecili(b.id)}>
@@ -67,7 +68,7 @@ export default function SunucuAyarlari({ baslangic, sunucu, ben, uyeler, kanalla
         ))}
       </nav>
       <main className="ayarlar-icerik">
-        <button type="button" className="ayarlar-kapat" onClick={onKapat} aria-label="Ayarları kapat"><Ikon ad="kapat" boyut={20} /><span>Esc</span></button>
+        <button type="button" className="ayarlar-kapat" onClick={onKapat} aria-label={t("Ayarları kapat")}><Ikon ad="kapat" boyut={20} /><span>{t("Esc")}</span></button>
         {aktif === "genel" && <GenelGorunum odaId={sunucu.oda_id} ad={sunucu.ad} ikonMetin={sunucu.ikon_metin} ikonRenk={sunucu.ikon_renk} duzenleyebilir={sahip} onKaydedildi={onSunucuDegisti} />}
         {aktif === "kanallar" && <KanalAyarlari odaId={sunucu.oda_id} kanallar={kanallar} kategoriler={kategoriler} onDegisti={onKanallarDegisti} />}
         {aktif === "roller" && <RollerIzinler odaId={sunucu.oda_id} uyeler={uyeler} sahipMi={sahip} />}

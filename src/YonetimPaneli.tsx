@@ -4,6 +4,7 @@ import Avatar from "./Avatar";
 import type { Kanal, Uye } from "./types";
 import { rolEtiketi } from "./util";
 import { IZIN, izinVar } from "./sunucu/izin";
+import { t } from "./i18n";
 
 type Yasak = { id: string; takma_ad: string; sebep: string | null; olusturma: string };
 type Onay = { uyeId: string; islem: "at" | "ban" | "mesaj" };
@@ -101,7 +102,7 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
     <div className="ayar-sayfa-ic">
       <div className={"yon-bildirim" + (bildirim?.hata ? " hata" : "")} role="status" aria-live="polite">{bildirim?.metin ?? ""}</div>
       <h3 className="yon-baslik">Üyeler — {liste.length}</h3>
-      {liste.length === 0 && <div className="hint">Sunucuda başka kimse yok.</div>}
+      {liste.length === 0 && <div className="hint">{t("Sunucuda başka kimse yok.")}</div>}
       <ul className="yon-liste">
         {liste.map((u) => {
           const yapabilir = islemYapabilir(ben, u);
@@ -127,19 +128,19 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
                   {susturabilir && (
                     <select aria-label={`${u.takma_ad} kişisini sustur`} value="" disabled={mesgul}
                       onChange={(e) => { const dk = Number(e.target.value); if (!Number.isNaN(dk)) void sustur(u, dk); }}>
-                      <option value="" disabled>Sustur…</option>
+                      <option value="" disabled>{t("Sustur…")}</option>
                       {SUSTURMA_SECENEKLERI.map((s) => <option key={s.dk} value={s.dk}>{s.etiket}</option>)}
-                      {sus && <option value={0}>Susturmayı kaldır</option>}
+                      {sus && <option value={0}>{t("Susturmayı kaldır")}</option>}
                     </select>
                   )}
-                  {mesajYonetebilir && <button className="ib" disabled={mesgul} onClick={() => setOnay({ uyeId: u.id, islem: "mesaj" })}>Mesajlarını sil</button>}
+                  {mesajYonetebilir && <button className="ib" disabled={mesgul} onClick={() => setOnay({ uyeId: u.id, islem: "mesaj" })}>{t("Mesajlarını sil")}</button>}
                   {susturabilir && sesKanal && (
                     <>
-                      <button className="ib" disabled={mesgul} onClick={() => void sesIslem(u, "at")}>Sesten at</button>
+                      <button className="ib" disabled={mesgul} onClick={() => void sesIslem(u, "at")}>{t("Sesten at")}</button>
                       {sesKanallari.length > 1 && (
                         <select aria-label={`${u.takma_ad} kişisini başka sesli odaya taşı`} value="" disabled={mesgul}
                           onChange={(e) => { const k = sesKanallari.find((x) => x.id === e.target.value); if (k) void sesIslem(u, "tasi", k); }}>
-                          <option value="" disabled>Taşı…</option>
+                          <option value="" disabled>{t("Taşı…")}</option>
                           {sesKanallari.filter((k) => k.id !== sesKanal).map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
                         </select>
                       )}
@@ -150,17 +151,17 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
                       {u.rol === "moderator" ? "Moderatörlüğü al" : "Moderatör yap"}
                     </button>
                   )}
-                  {susturabilir && <button className="ib tehlike" disabled={mesgul} onClick={() => setOnay({ uyeId: u.id, islem: "at" })}>At</button>}
-                  {yasaklayabilir && <button className="ib tehlike" disabled={mesgul} onClick={() => setOnay({ uyeId: u.id, islem: "ban" })}>Yasakla</button>}
+                  {susturabilir && <button className="ib tehlike" disabled={mesgul} onClick={() => setOnay({ uyeId: u.id, islem: "at" })}>{t("At")}</button>}
+                  {yasaklayabilir && <button className="ib tehlike" disabled={mesgul} onClick={() => setOnay({ uyeId: u.id, islem: "ban" })}>{t("Yasakla")}</button>}
                 </div>
               )}
               {yapabilir && buOnay && (
-                <div className="yon-onay" role="alertdialog" aria-label="Onay">
+                <div className="yon-onay" role="alertdialog" aria-label={t("Onay")}>
                   <span>{onayMetni[buOnay]}</span>
                   <div className="yon-eylemler">
                     <button className="ib tehlike" disabled={mesgul}
-                      onClick={() => void (buOnay === "mesaj" ? mesajlariSil(u) : at(u, buOnay === "ban"))}>Evet</button>
-                    <button className="ib" disabled={mesgul} onClick={() => setOnay(null)}>Vazgeç</button>
+                      onClick={() => void (buOnay === "mesaj" ? mesajlariSil(u) : at(u, buOnay === "ban"))}>{t("Evet")}</button>
+                    <button className="ib" disabled={mesgul} onClick={() => setOnay(null)}>{t("Vazgeç")}</button>
                   </div>
                 </div>
               )}
@@ -172,12 +173,12 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
       {yasaklayabilir && (
         <>
           <h3 className="yon-baslik">Yasaklananlar — {yasaklar.length}</h3>
-          {yasaklar.length === 0 && <div className="hint">Kimse yasaklı değil.</div>}
+          {yasaklar.length === 0 && <div className="hint">{t("Kimse yasaklı değil.")}</div>}
           <ul className="yon-liste">
             {yasaklar.map((y) => (
               <li key={y.id} className="yon-uye yon-yasak">
                 <div className="mem-ad"><b>{y.takma_ad}</b><small>{new Date(y.olusturma).toLocaleDateString("tr-TR")}{y.sebep ? ` · ${y.sebep}` : ""}</small></div>
-                <button className="ib" disabled={mesgul} onClick={() => void yasagiKaldir(y)} aria-label={`${y.takma_ad} yasağını kaldır`}>Yasağı kaldır</button>
+                <button className="ib" disabled={mesgul} onClick={() => void yasagiKaldir(y)} aria-label={`${y.takma_ad} yasağını kaldır`}>{t("Yasağı kaldır")}</button>
               </li>
             ))}
           </ul>

@@ -2,6 +2,7 @@ import Avatar from "../Avatar";
 import type { Uye } from "../types";
 import { DURUM_BILGI, rolEtiketi } from "../util";
 import type { Iliski } from "./tipler";
+import { t } from "../i18n";
 
 type Props = {
   uye?: Uye;
@@ -26,7 +27,7 @@ export function durumMetni(uye: Uye, cevrimici: boolean, bosta?: boolean): strin
 
 /** DM yanındaki profil kartı: banner, rozetler, hakkında, ortak sunucu ve arkadaşlık/engel işlemleri. */
 export default function ProfilKarti({ uye, benimMi, cevrimici, bosta, iliski, onMesaj, onArkadasEkle, onArkadasSil, onEngelle, onEngelKaldir, onProfil }: Props) {
-  if (!uye) return <aside className="profil-karti" aria-label="Profil"><p className="hint">Kişi bilgisi yok.</p></aside>;
+  if (!uye) return <aside className="profil-karti" aria-label={t("Profil")}><p className="hint">{t("Kişi bilgisi yok.")}</p></aside>;
   const silindi = !!uye.silindi;
   return (
     <aside className="profil-karti" aria-label={`${uye.takma_ad} profili`}>
@@ -39,24 +40,24 @@ export default function ProfilKarti({ uye, benimMi, cevrimici, bosta, iliski, on
         )}
         {uye.durum_metin && !silindi && <p className="pk-metin">“{uye.durum_metin}”</p>}
         {!silindi && (
-          <ul className="pk-rozetler" aria-label="Rozetler">
+          <ul className="pk-rozetler" aria-label={t("Rozetler")}>
             <li className={"pk-rozet rol-" + uye.rol}>{rolEtiketi(uye.rol)}</li>
-            {uye.misafir && <li className="pk-misafir">Misafir</li>}
+            {uye.misafir && <li className="pk-misafir">{t("Misafir")}</li>}
           </ul>
         )}
-        {uye.hakkinda && !silindi && (<><h3 className="pk-baslik">Hakkında</h3><p className="pk-hakkinda">{uye.hakkinda}</p></>)}
-        {!silindi && (<><h3 className="pk-baslik">Ortak sunucular</h3><ul className="pk-sunucular" aria-label="Ortak sunucular"><li title="Çember" className="pk-sunucu">Ç</li></ul></>)}
+        {uye.hakkinda && !silindi && (<><h3 className="pk-baslik">{t("Hakkında")}</h3><p className="pk-hakkinda">{uye.hakkinda}</p></>)}
+        {!silindi && (<><h3 className="pk-baslik">{t("Ortak sunucular")}</h3><ul className="pk-sunucular" aria-label={t("Ortak sunucular")}><li title={t("Çember")} className="pk-sunucu">Ç</li></ul></>)}
         {!benimMi && !silindi && (
           <div className="pk-eylemler">
-            {onMesaj && iliski !== "engelli" && <button type="button" className="cta" onClick={onMesaj}>Mesaj gönder</button>}
-            {iliski === "yok" && <button type="button" className="pk-btn" onClick={onArkadasEkle}>Arkadaş ekle</button>}
-            {iliski === "giden" && <button type="button" className="pk-btn" onClick={onArkadasSil}>İsteği geri al</button>}
-            {iliski === "gelen" && <button type="button" className="pk-btn" onClick={onArkadasEkle}>İsteği kabul et</button>}
-            {iliski === "arkadas" && <button type="button" className="pk-btn" onClick={onArkadasSil}>Arkadaşlıktan çıkar</button>}
+            {onMesaj && iliski !== "engelli" && <button type="button" className="cta" onClick={onMesaj}>{t("Mesaj gönder")}</button>}
+            {iliski === "yok" && <button type="button" className="pk-btn" onClick={onArkadasEkle}>{t("Arkadaş ekle")}</button>}
+            {iliski === "giden" && <button type="button" className="pk-btn" onClick={onArkadasSil}>{t("İsteği geri al")}</button>}
+            {iliski === "gelen" && <button type="button" className="pk-btn" onClick={onArkadasEkle}>{t("İsteği kabul et")}</button>}
+            {iliski === "arkadas" && <button type="button" className="pk-btn" onClick={onArkadasSil}>{t("Arkadaşlıktan çıkar")}</button>}
             {iliski === "engelli"
-              ? <button type="button" className="pk-btn" onClick={onEngelKaldir}>Engeli kaldır</button>
-              : <button type="button" className="pk-btn tehlike" onClick={onEngelle}>Engelle</button>}
-            {onProfil && <button type="button" className="linkbtn" onClick={onProfil}>Tam profili aç</button>}
+              ? <button type="button" className="pk-btn" onClick={onEngelKaldir}>{t("Engeli kaldır")}</button>
+              : <button type="button" className="pk-btn tehlike" onClick={onEngelle}>{t("Engelle")}</button>}
+            {onProfil && <button type="button" className="linkbtn" onClick={onProfil}>{t("Tam profili aç")}</button>}
           </div>
         )}
       </div>

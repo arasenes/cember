@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import { davetKodunuCikar } from "./sunucular";
+import { t } from "../i18n";
 
 type Props = {
   /** Sunucu kuruldu ya da davetle katılındı: yeni sunucunun kimliği. */
@@ -55,26 +56,26 @@ export default function SunucuDialog({ onTamam, onKapat, misafir = false }: Prop
   return (
     <div className="modal-arka" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onKapat(); }}>
       <form className="modal sunucu-form" role="dialog" aria-modal="true" aria-labelledby="sunucu-baslik" onSubmit={gonder} noValidate>
-        <h2 id="sunucu-baslik">Sunucu oluştur veya katıl</h2>
-        <div role="tablist" className="ark-sekmeler" aria-label="Sunucu işlemi">
-          <button type="button" role="tab" aria-selected={sekme === "katil"} className={"ark-sekme" + (sekme === "katil" ? " acik" : "")} onClick={() => { setSekme("katil"); setHata(""); }}>Davetle katıl</button>
-          <button type="button" role="tab" aria-selected={sekme === "kur"} className={"ark-sekme" + (sekme === "kur" ? " acik" : "")} onClick={() => { setSekme("kur"); setHata(""); }}>Sunucu kur</button>
+        <h2 id="sunucu-baslik">{t("Sunucu oluştur veya katıl")}</h2>
+        <div role="tablist" className="ark-sekmeler" aria-label={t("Sunucu işlemi")}>
+          <button type="button" role="tab" aria-selected={sekme === "katil"} className={"ark-sekme" + (sekme === "katil" ? " acik" : "")} onClick={() => { setSekme("katil"); setHata(""); }}>{t("Davetle katıl")}</button>
+          <button type="button" role="tab" aria-selected={sekme === "kur"} className={"ark-sekme" + (sekme === "kur" ? " acik" : "")} onClick={() => { setSekme("kur"); setHata(""); }}>{t("Sunucu kur")}</button>
         </div>
         {sekme === "kur" ? (
           <div className="field">
-            <label htmlFor="sunucu-ad">Sunucu adı</label>
-            <input ref={ilkRef} id="sunucu-ad" type="text" value={ad} maxLength={40} onChange={(e) => setAd(e.target.value)} placeholder="Örn. Oyun gecesi" />
+            <label htmlFor="sunucu-ad">{t("Sunucu adı")}</label>
+            <input ref={ilkRef} id="sunucu-ad" type="text" value={ad} maxLength={40} onChange={(e) => setAd(e.target.value)} placeholder={t("Örn. Oyun gecesi")} />
             <p className="hint">Kurucu olarak sunucunun sahibi olursun; “genel-sohbet” ve “Salon” kanalları hazır gelir.</p>
           </div>
         ) : (
           <>
             <div className="field">
-              <label htmlFor="sunucu-davet">Davet bağlantısı ya da kodu</label>
-              <input ref={ilkRef} id="sunucu-davet" type="text" value={davet} onChange={(e) => setDavet(e.target.value)} placeholder="https://cember.onrender.com/?davet=X7KP2Q9A" autoComplete="off" />
+              <label htmlFor="sunucu-davet">{t("Davet bağlantısı ya da kodu")}</label>
+              <input ref={ilkRef} id="sunucu-davet" type="text" value={davet} onChange={(e) => setDavet(e.target.value)} placeholder={t("https://cember.onrender.com/?davet=X7KP2Q9A")} autoComplete="off" />
             </div>
             {adIste && (
               <div className="field">
-                <label htmlFor="sunucu-takma-ad">Bu sunucudaki takma adın</label>
+                <label htmlFor="sunucu-takma-ad">{t("Bu sunucudaki takma adın")}</label>
                 <input id="sunucu-takma-ad" type="text" value={takmaAd} maxLength={24} onChange={(e) => setTakmaAd(e.target.value)} />
               </div>
             )}
@@ -82,7 +83,7 @@ export default function SunucuDialog({ onTamam, onKapat, misafir = false }: Prop
         )}
         <div className="err" role="alert">{hata}</div>
         <div className="modal-alt">
-          <button type="button" className="linkbtn" onClick={onKapat}>Vazgeç</button>
+          <button type="button" className="linkbtn" onClick={onKapat}>{t("Vazgeç")}</button>
           <button type="submit" className="cta" disabled={mesgul}>{mesgul ? "…" : sekme === "kur" ? "Sunucuyu kur" : "Katıl"}</button>
         </div>
       </form>

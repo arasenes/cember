@@ -3,6 +3,7 @@ import { supabase } from "../supabase";
 import type { Kanal, Mesaj, Uye } from "../types";
 import { gunEtiketi, saat } from "../util";
 import Ikon from "./Ikon";
+import { t } from "../i18n";
 
 export type AramaSuzgec = { q: string; kanal: string; uye: string; bas: string; son: string; ekli: boolean };
 export const BOS_SUZGEC: AramaSuzgec = { q: "", kanal: "", uye: "", bas: "", son: "", ekli: false };
@@ -53,45 +54,45 @@ export default function AramaPaneli({ odaId, kanallar, uyeler, onGit, onKapat }:
   const guncelle = (k: Partial<AramaSuzgec>) => setS((x) => ({ ...x, ...k }));
 
   return (
-    <aside className="arama" role="search" aria-label="Mesaj ara">
+    <aside className="arama" role="search" aria-label={t("Mesaj ara")}>
       <div className="arama-ust">
-        <h2><Ikon ad="ara" /> Ara</h2>
-        <button type="button" className="sq" aria-label="Aramayı kapat" onClick={onKapat}><Ikon ad="kapat" /></button>
+        <h2><Ikon ad="ara" />{" "}{t("Ara")}</h2>
+        <button type="button" className="sq" aria-label={t("Aramayı kapat")} onClick={onKapat}><Ikon ad="kapat" /></button>
       </div>
       <div className="field">
-        <label htmlFor="arama-q">Aranacak kelime</label>
-        <input ref={girdiRef} id="arama-q" type="text" value={s.q} maxLength={100} onChange={(e) => guncelle({ q: e.target.value })} placeholder="Mesajlarda ara…" />
+        <label htmlFor="arama-q">{t("Aranacak kelime")}</label>
+        <input ref={girdiRef} id="arama-q" type="text" value={s.q} maxLength={100} onChange={(e) => guncelle({ q: e.target.value })} placeholder={t("Mesajlarda ara…")} />
       </div>
       <div className="arama-suzgec">
         <div className="field">
-          <label htmlFor="arama-kisi">Kişi</label>
+          <label htmlFor="arama-kisi">{t("Kişi")}</label>
           <select id="arama-kisi" value={s.uye} onChange={(e) => guncelle({ uye: e.target.value })}>
-            <option value="">Herkes</option>
+            <option value="">{t("Herkes")}</option>
             {uyeler.filter((u) => !u.silindi).map((u) => <option key={u.id} value={u.id}>{u.takma_ad}</option>)}
           </select>
         </div>
         <div className="field">
-          <label htmlFor="arama-kanal">Kanal</label>
+          <label htmlFor="arama-kanal">{t("Kanal")}</label>
           <select id="arama-kanal" value={s.kanal} onChange={(e) => guncelle({ kanal: e.target.value })}>
-            <option value="">Tüm kanallar</option>
+            <option value="">{t("Tüm kanallar")}</option>
             {kanallar.filter((k) => k.tur === "yazili").map((k) => <option key={k.id} value={k.id}>#{k.ad}</option>)}
           </select>
         </div>
         <div className="field">
-          <label htmlFor="arama-bas">Başlangıç</label>
+          <label htmlFor="arama-bas">{t("Başlangıç")}</label>
           <input id="arama-bas" type="date" value={s.bas} onChange={(e) => guncelle({ bas: e.target.value })} />
         </div>
         <div className="field">
-          <label htmlFor="arama-son">Bitiş</label>
+          <label htmlFor="arama-son">{t("Bitiş")}</label>
           <input id="arama-son" type="date" value={s.son} onChange={(e) => guncelle({ son: e.target.value })} />
         </div>
       </div>
-      <label className="onay-satir"><input type="checkbox" checked={s.ekli} onChange={(e) => guncelle({ ekli: e.target.checked })} /> Yalnızca resimli mesajlar</label>
+      <label className="onay-satir"><input type="checkbox" checked={s.ekli} onChange={(e) => guncelle({ ekli: e.target.checked })} />{" "}{t("Yalnızca resimli mesajlar")}</label>
       <div className="arama-sonuc" aria-live="polite">
-        {durum === "bos" && <p className="hint">Bir kelime yaz ya da süzgeç seç.</p>}
-        {durum === "araniyor" && <p className="hint">Aranıyor…</p>}
-        {durum === "hata" && <p className="hint">Arama yapılamadı, tekrar dene.</p>}
-        {durum === "tamam" && !sonuclar.length && <p className="hint">Sonuç bulunamadı.</p>}
+        {durum === "bos" && <p className="hint">{t("Bir kelime yaz ya da süzgeç seç.")}</p>}
+        {durum === "araniyor" && <p className="hint">{t("Aranıyor…")}</p>}
+        {durum === "hata" && <p className="hint">{t("Arama yapılamadı, tekrar dene.")}</p>}
+        {durum === "tamam" && !sonuclar.length && <p className="hint">{t("Sonuç bulunamadı.")}</p>}
         {durum === "tamam" && sonuclar.length > 0 && (
           <ul>
             {sonuclar.map((m) => (

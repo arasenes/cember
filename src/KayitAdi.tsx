@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase, SUPABASE_KEY, SUPABASE_URL } from "./supabase";
+import { t } from "./i18n";
 
 /** Google ile ilk kez gelen kişi: takma adını seçip odaya kaydolur. */
 export default function KayitAdi({ onBitti, varsayilan }: { onBitti: () => void; varsayilan?: string }) {
@@ -33,15 +34,15 @@ export default function KayitAdi({ onBitti, varsayilan }: { onBitti: () => void;
   return (
     <main className="gate-wrap" id="kayit">
       <form className="gatecard" onSubmit={gonder} noValidate>
-        <div className="logo"><b>Çember</b></div>
-        <p>Google hesabın doğrulandı. Odada görünecek bir takma ad seç.</p>
+        <div className="logo"><b>{t("Çember")}</b></div>
+        <p>{t("Google hesabın doğrulandı. Odada görünecek bir takma ad seç.")}</p>
         <div className="field">
-          <label htmlFor="kayit-ad">Takma ad</label>
-          <input id="kayit-ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder="Örn. Aras" autoFocus />
+          <label htmlFor="kayit-ad">{t("Takma ad")}</label>
+          <input id="kayit-ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder={t("Örn. Aras")} autoFocus />
         </div>
         <div className="err" role="alert">{hata}</div>
         <button className="cta" type="submit" disabled={bekle}>{bekle ? "Kaydediliyor…" : "Kayıt ol ve gir"}</button>
-        <button className="gate-link" type="button" onClick={() => supabase.auth.signOut({ scope: "local" }).then(onBitti)}>Vazgeç</button>
+        <button className="gate-link" type="button" onClick={() => supabase.auth.signOut({ scope: "local" }).then(onBitti)}>{t("Vazgeç")}</button>
       </form>
     </main>
   );

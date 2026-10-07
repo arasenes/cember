@@ -9,6 +9,7 @@ import ProfilKarti from "./ProfilKarti";
 import YeniGrupDialog from "./YeniGrupDialog";
 import { dmBasligi, karsiUye } from "./tipler";
 import type { DmDurumu } from "./useDm";
+import { t } from "../i18n";
 
 export type DmSayfa = "arkadaslar" | "sohbet";
 
@@ -59,26 +60,26 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
 
   return (
     <>
-      <section className="col side dm-liste" aria-label="Özel mesajlar">
+      <section className="col side dm-liste" aria-label={t("Özel mesajlar")}>
         <div className="head dm-ust">
-          <button type="button" className="head-dugme" onClick={onSunucuya}><Ikon ad="geri" boyut={16} /> Çember</button>
+          <button type="button" className="head-dugme" onClick={onSunucuya}><Ikon ad="geri" boyut={16} />{" "}{t("Çember")}</button>
         </div>
         {sesBilgisi && <div className="banner" role="status">{sesBilgisi}</div>}
         <div className="dm-ara">
           <label className="dm-ara-kutu">
             <Ikon ad="ara" boyut={16} />
-            <input id="dm-ara" type="text" value={ara} onChange={(e) => setAra(e.target.value)} placeholder="Sohbet bul veya başlat" aria-label="Mesajlarda kişi ara" />
+            <input id="dm-ara" type="text" value={ara} onChange={(e) => setAra(e.target.value)} placeholder={t("Sohbet bul veya başlat")} aria-label={t("Mesajlarda kişi ara")} />
           </label>
         </div>
-        <nav className="scroll" aria-label="Özel mesaj listesi">
+        <nav className="scroll" aria-label={t("Özel mesaj listesi")}>
           <button type="button" className={"dm-satir" + (sayfa === "arkadaslar" ? " aktif" : "")} onClick={() => { onArkadaslar(); setMobil("icerik"); }}>
             <span className="dm-ikon"><Ikon ad="kullanici" /></span>
-            <span className="dm-ad">Arkadaşlar</span>
+            <span className="dm-ad">{t("Arkadaşlar")}</span>
             {dm.gelenIstekler.length > 0 && <span className="rozet rozet-istek" aria-label={`${dm.gelenIstekler.length} bekleyen istek`}>{dm.gelenIstekler.length} istek</span>}
           </button>
           <div className="sec dm-sec">
-            <span>Özel mesajlar</span>
-            <button type="button" className="cb-ibtn dm-yeni" onClick={() => setGrupAcik(true)} aria-label="Yeni grup mesajı" title="Yeni grup mesajı"><Ikon ad="artir" /></button>
+            <span>{t("Özel mesajlar")}</span>
+            <button type="button" className="cb-ibtn dm-yeni" onClick={() => setGrupAcik(true)} aria-label={t("Yeni grup mesajı")} title={t("Yeni grup mesajı")}><Ikon ad="artir" /></button>
           </div>
           {dmler.map(({ k, baslik }) => {
             const kisi = k.tur === "ikili" ? harita.get(karsiUye(k, dm.uyeleri, me.id) ?? "") : undefined;
@@ -100,7 +101,7 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
           {!dmler.length && <p className="hint dm-bos">{q ? "Eşleşen kişi yok." : "Henüz özel mesajın yok. Üye listesinden birinin profilinden mesaj gönderebilirsin."}</p>}
         </nav>
         <div className="me dm-me">
-          <button type="button" className="me-profil" onClick={() => onProfil(me.id)} aria-label="Profilimi aç">
+          <button type="button" className="me-profil" onClick={() => onProfil(me.id)} aria-label={t("Profilimi aç")}>
             <Avatar uye={me}><span className="on-dot" style={{ background: DURUM_BILGI[me.durum ?? "cevrimici"].renk }} /></Avatar>
             <div><b>{me.takma_ad}</b><span>{me.durum_metin || DURUM_BILGI[me.durum ?? "cevrimici"].ad}</span></div>
           </button>
@@ -109,17 +110,17 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
 
       {sayfa === "arkadaslar" ? (
         <div className="col chat dm-orta">
-          <button type="button" className="sq dm-geri dm-geri-liste" onClick={() => setMobil("liste")} aria-label="Listeye dön"><Ikon ad="geri" /></button>
+          <button type="button" className="sq dm-geri dm-geri-liste" onClick={() => setMobil("liste")} aria-label={t("Listeye dön")}><Ikon ad="geri" /></button>
           <ArkadaslarSayfasi dm={dm} benId={me.id} uyeler={uyeler} cevrimici={cevrimici} onHata={onHata} onBilgi={onBilgi}
             onMesaj={(id) => void dm.dmAc(id).then((r) => { if (r.hata) onHata(r.hata); else if (r.id) sec(r.id); })} />
         </div>
       ) : aktifDm ? (
         <DmSohbet key={aktifDm} dmId={aktifDm} dm={dm} me={me} uyeler={uyeler} cevrimici={cevrimici} onProfil={onProfil} onHata={onHata} onGeri={() => setMobil("liste")} />
       ) : (
-        <section className="col chat dm-orta"><div className="empty">Bir kişi seç ya da arkadaşlarına göz at.</div></section>
+        <section className="col chat dm-orta"><div className="empty">{t("Bir kişi seç ya da arkadaşlarına göz at.")}</div></section>
       )}
 
-      <aside className="col members dm-sag" aria-label="Profil">
+      <aside className="col members dm-sag" aria-label={t("Profil")}>
         {sayfa === "sohbet" && aktifKanal?.tur === "ikili" ? (
           <ProfilKarti uye={profilUye} benimMi={false} cevrimici={profilUye ? cevrimici.has(profilUye.id) : false} bosta={profilUye ? bosta.has(profilUye.id) : false}
             iliski={karsi ? dm.iliski(karsi) : "yok"}
