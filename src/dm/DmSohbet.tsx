@@ -164,7 +164,7 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   }
 
   return (
-    <section className="col chat dm-sohbet" aria-label={`${baslik} ile mesajlaşma`}>
+    <main className="col chat dm-sohbet" aria-label={`${baslik} ile mesajlaşma`}>
       <div className="head">
         {onGeri && <button type="button" className="sq dm-geri" onClick={onGeri} aria-label={t("Mesaj listesine dön")}><Ikon ad="geri" /></button>}
         {kanal?.tur === "ikili" && karsiUyesi && <span className="dm-avatar"><Avatar uye={karsiUyesi} className="dm-ust-avatar" /></span>}
@@ -218,6 +218,6 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
           <button className="sq send" onClick={() => void gonder()} aria-label={t("Gönder")} disabled={!metin.trim() || gonderiliyor}><Ikon ad="gonder" /></button>
         </div>
       )}
-    </section>
+    </main>
   );
 }

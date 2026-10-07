@@ -146,7 +146,7 @@ export default function RollerIzinler({ odaId, uyeler, sahipMi }: Props) {
           )}
           {sahipMi && (secim.tur === "ozel" || secim.tur === "moderator") && (
             <div className="roller-uyeler">
-              <h3 className="yon-baslik">{t("Bu role sahip olanlar")}</h3>
+              <h2 className="yon-baslik">{t("Bu role sahip olanlar")}</h2>
               <ul className="yon-liste">
                 {aktifUyeler.filter((u) => u.rol !== "sahip").map((u) => {
                   const var_ = secim.tur === "ozel" ? atamalar.some((a) => a.uye_id === u.id && a.rol_id === secim.id) : u.rol === "moderator";

@@ -99,7 +99,7 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
             {mesaj.iletilen_ad && <div className="iletildi"><Ikon ad="ilet" boyut={13} /> {mesaj.iletilen_ad}'ten iletildi</div>}
             {mesaj.yanit_id && (
               <button type="button" className="alinti-satir" onClick={() => zengin?.onAlintiGit?.(mesaj.yanit_id!)}
-                aria-label={zengin?.alinti?.mesaj ? `${zengin.alinti.yazar?.takma_ad ?? "Eski üye"} kişisinin mesajına git` : "Yanıtlanan mesaja git"}>
+                title={zengin?.alinti?.mesaj ? `${zengin.alinti.yazar?.takma_ad ?? "Eski üye"} kişisinin mesajına git` : "Yanıtlanan mesaja git"}>
                 <Ikon ad="yanit" boyut={13} />
                 {zengin?.alinti?.mesaj && !zengin.alinti.mesaj.silindi ? (
                   <>

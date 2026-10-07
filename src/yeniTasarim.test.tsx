@@ -29,7 +29,7 @@ describe("yeni tasarım", () => {
     const { container } = render(<KatilimciSeridi katilimcilar={[uye]} konusanlar={new Set(["u1"])} sorunlu={new Set()} paylasanlar={new Set(["u1"])}
       benimId="x" buradayim={false} baglaniyor={false} onKatil={onKatil} onProfil={vi.fn()} />);
     expect(container.querySelector(".karo.konusuyor.paylasiyor")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Ayşe, konuşuyor, ekran paylaşıyor/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Ayşe.*konuşuyor.*ekran paylaşıyor/ })).toBeTruthy();
     fireEvent.click(screen.getByText("Katıl"));
     expect(onKatil).toHaveBeenCalled();
   });

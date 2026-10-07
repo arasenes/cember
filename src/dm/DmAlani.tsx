@@ -62,6 +62,7 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
     <>
       <section className="col side dm-liste" aria-label={t("Özel mesajlar")}>
         <div className="head dm-ust">
+          <h1 className="sr">{t("Özel mesajlar")}</h1>
           <button type="button" className="head-dugme" onClick={onSunucuya}><Ikon ad="geri" boyut={16} />{" "}{t("Çember")}</button>
         </div>
         {sesBilgisi && <div className="banner" role="status">{sesBilgisi}</div>}
@@ -85,8 +86,8 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
             const kisi = k.tur === "ikili" ? harita.get(karsiUye(k, dm.uyeleri, me.id) ?? "") : undefined;
             const n = dm.okunmamis[k.id] ?? 0;
             return (
-              <button key={k.id} type="button" className={"dm-satir" + (sayfa === "sohbet" && aktifDm === k.id ? " aktif" : "") + (n ? " okunmamis" : "")} onClick={() => sec(k.id)}
-                aria-label={`${baslik}${n ? `, ${n} okunmamış mesaj` : ""}`}>
+              <button key={k.id} type="button" className={"dm-satir" + (sayfa === "sohbet" && aktifDm === k.id ? " aktif" : "") + (n ? " okunmamis" : "")} onClick={() => sec(k.id)}>
+                {n > 0 && <span className="sr">{n} okunmamış mesaj, </span>}
                 {k.tur === "ikili" && kisi
                   ? <span className="dm-avatar"><Avatar uye={kisi} /><span className="durum-nokta" data-durum={!cevrimici.has(kisi.id) ? "cevrimdisi" : bosta.has(kisi.id) ? "bosta" : (kisi.durum ?? "cevrimici")} aria-hidden="true" /></span>
                   : <span className="dm-ikon dm-grup-ikon">{dm.uyeleri.filter((u) => u.dm_id === k.id).length}+</span>}
@@ -101,7 +102,7 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
           {!dmler.length && <p className="hint dm-bos">{q ? "Eşleşen kişi yok." : "Henüz özel mesajın yok. Üye listesinden birinin profilinden mesaj gönderebilirsin."}</p>}
         </nav>
         <div className="me dm-me">
-          <button type="button" className="me-profil" onClick={() => onProfil(me.id)} aria-label={t("Profilimi aç")}>
+          <button type="button" className="me-profil" onClick={() => onProfil(me.id)} title={t("Profilimi aç")}>
             <Avatar uye={me}><span className="on-dot" style={{ background: DURUM_BILGI[me.durum ?? "cevrimici"].renk }} /></Avatar>
             <div><b>{me.takma_ad}</b><span>{me.durum_metin || DURUM_BILGI[me.durum ?? "cevrimici"].ad}</span></div>
           </button>
@@ -109,15 +110,15 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
       </section>
 
       {sayfa === "arkadaslar" ? (
-        <div className="col chat dm-orta">
+        <main className="col chat dm-orta">
           <button type="button" className="sq dm-geri dm-geri-liste" onClick={() => setMobil("liste")} aria-label={t("Listeye dön")}><Ikon ad="geri" /></button>
           <ArkadaslarSayfasi dm={dm} benId={me.id} uyeler={uyeler} cevrimici={cevrimici} onHata={onHata} onBilgi={onBilgi}
             onMesaj={(id) => void dm.dmAc(id).then((r) => { if (r.hata) onHata(r.hata); else if (r.id) sec(r.id); })} />
-        </div>
+        </main>
       ) : aktifDm ? (
         <DmSohbet key={aktifDm} dmId={aktifDm} dm={dm} me={me} uyeler={uyeler} cevrimici={cevrimici} onProfil={onProfil} onHata={onHata} onGeri={() => setMobil("liste")} />
       ) : (
-        <section className="col chat dm-orta"><div className="empty">{t("Bir kişi seç ya da arkadaşlarına göz at.")}</div></section>
+        <main className="col chat dm-orta"><div className="empty">{t("Bir kişi seç ya da arkadaşlarına göz at.")}</div></main>
       )}
 
       <aside className="col members dm-sag" aria-label={t("Profil")}>

@@ -180,13 +180,13 @@ describe("Chat profil", () => {
 
   async function profilimiAc() {
     await hazirla();
-    fireEvent.click(screen.getByLabelText("Profilimi aç ve düzenle"));
+    fireEvent.click(screen.getByTitle("Profilimi aç ve düzenle"));
     return await screen.findByRole("dialog");
   }
 
   it("üye listesinden başka üyenin profilini salt okunur açar (hakkında görünür, form yok)", async () => {
     await hazirla();
-    fireEvent.click(await screen.findByLabelText(/Mehmet profilini aç/));
+    fireEvent.click(await screen.findByTitle(/Mehmet profilini aç/));
     const d = await screen.findByRole("dialog");
     expect(within(d).getByText("Gitar çalarım")).toBeTruthy();
     expect(within(d).queryByLabelText("Takma ad")).toBeNull();

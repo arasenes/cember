@@ -195,10 +195,10 @@ describe("DmAlani", () => {
     const onSec = vi.fn();
     const dm = hazir({ arkadasliklar: [ark("r1", "can", "ben", "bekliyor")], gelenIstekler: [ark("r1", "can", "ben", "bekliyor")] });
     render(<DmAlani dm={dm} aktifDm={null} sayfa="arkadaslar" onSec={onSec} {...ortak} />);
-    expect(screen.getByRole("button", { name: /Ayşe, 3 okunmamış mesaj/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Ekip" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /3 okunmamış mesaj,.*Ayşe/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Ekip/ })).toBeTruthy();
     expect(screen.getByLabelText("1 bekleyen istek")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Ekip" }));
+    fireEvent.click(screen.getByRole("button", { name: /Ekip/ }));
     expect(onSec).toHaveBeenCalledWith("d2");
   });
 
@@ -206,7 +206,7 @@ describe("DmAlani", () => {
     render(<DmAlani dm={hazir()} aktifDm={null} sayfa="arkadaslar" onSec={vi.fn()} {...ortak} />);
     fireEvent.change(screen.getByLabelText("Mesajlarda kişi ara"), { target: { value: "ek" } });
     expect(screen.queryByRole("button", { name: /Ayşe/ })).toBeNull();
-    expect(screen.getByRole("button", { name: "Ekip" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Ekip/ })).toBeTruthy();
   });
 
   it("sunucuya dön ve yeni grup düğmeleri çalışır", () => {

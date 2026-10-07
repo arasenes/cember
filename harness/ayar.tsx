@@ -1,3 +1,5 @@
+import { axeIstenirse } from "./axe-calistir";
+axeIstenirse();
 import { createRoot } from "react-dom/client";
 import "../src/tema.css";
 import "../src/styles.css";

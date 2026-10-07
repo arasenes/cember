@@ -83,12 +83,11 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
             const metin = durumMetni(u);
             return (
               <li key={u.id} className={"sahne-karo" + (konusuyor ? " konusuyor" : "") + (kamera ? " kameralı" : "")}>
-                <button type="button" className="karo-tikla" onClick={() => onProfil(u.id)}
-                  aria-label={`${u.takma_ad}${u.id === benId ? " (sen)" : ""}${metin ? `, ${metin}` : ""}${ses.sorunlu.has(u.id) ? ", bağlantı sorunu" : ""}`}>
+                <button type="button" className="karo-tikla" onClick={() => onProfil(u.id)}>
                   {kamera ? <KameraVideosu akis={kamera} ad={u.takma_ad} /> : <Avatar uye={u} className="karo-avatar" />}
                   <span className="karo-etiket">
                     {sagirlar.has(u.id) ? <Ikon ad="kulaklikKapali" boyut={14} /> : konusuyor ? <Ikon ad="ses" boyut={14} /> : (u.id === benId && ses.sessiz) ? <Ikon ad="mikKapali" boyut={14} /> : null}
-                    {u.id === benId ? "Sen" : u.takma_ad}{metin ? ` · ${metin}` : ""}
+                    {u.id === benId ? "Sen" : u.takma_ad}{metin ? ` · ${metin}` : ""}{ses.sorunlu.has(u.id) && <span className="sr">, bağlantı sorunu</span>}
                   </span>
                 </button>
                 <span className="sahne-rozetler">

@@ -114,7 +114,7 @@ describe("konu düğmesi", () => {
     const alinan = { ...mesaj("ilk mesaj"), id: "m0", uye_id: "u9" };
     render(<MessageView mesaj={{ ...mesaj("cevap"), yanit_id: "m0" }} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()}
       zengin={{ alinti: { mesaj: alinan, yazar: baskasi }, onAlintiGit, onYanitla, onIlet }} />);
-    const satir = screen.getByRole("button", { name: /Mehmet kişisinin mesajına git/ });
+    const satir = screen.getByTitle(/Mehmet kişisinin mesajına git/);
     expect(satir.textContent).toContain("ilk mesaj");
     fireEvent.click(satir);
     expect(onAlintiGit).toHaveBeenCalledWith("m0");

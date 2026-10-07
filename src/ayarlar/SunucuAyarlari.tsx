@@ -68,7 +68,7 @@ export default function SunucuAyarlari({ baslangic, sunucu, ben, uyeler, kanalla
         ))}
       </nav>
       <main className="ayarlar-icerik">
-        <button type="button" className="ayarlar-kapat" onClick={onKapat} aria-label={t("Ayarları kapat")}><Ikon ad="kapat" boyut={20} /><span>{t("Esc")}</span></button>
+        <button type="button" className="ayarlar-kapat" onClick={onKapat} aria-label={`${t("Esc")} – ${t("Ayarları kapat")}`}><Ikon ad="kapat" boyut={20} /><span>{t("Esc")}</span></button>
         {aktif === "genel" && <GenelGorunum odaId={sunucu.oda_id} ad={sunucu.ad} ikonMetin={sunucu.ikon_metin} ikonRenk={sunucu.ikon_renk} duzenleyebilir={sahip} onKaydedildi={onSunucuDegisti} />}
         {aktif === "kanallar" && <KanalAyarlari odaId={sunucu.oda_id} kanallar={kanallar} kategoriler={kategoriler} onDegisti={onKanallarDegisti} />}
         {aktif === "roller" && <RollerIzinler odaId={sunucu.oda_id} uyeler={uyeler} sahipMi={sahip} />}

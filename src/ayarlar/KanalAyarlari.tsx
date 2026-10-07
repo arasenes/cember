@@ -206,7 +206,7 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
               </form>
             ) : (
               <>
-                <h3>{g.kategori?.ad ?? "Kategorisiz"}</h3>
+                <h2>{g.kategori?.ad ?? "Kategorisiz"}</h2>
                 {g.kategori && (
                   <div className="yon-eylemler">
                     <button className="cb-ibtn" aria-label={`${g.kategori.ad} kategorisini yukarı taşı`} disabled={mesgul} onClick={() => void sirala({ tur: "kategori-yukari", id: g.kategori!.id })}>▲</button>

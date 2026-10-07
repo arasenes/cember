@@ -122,7 +122,7 @@
 .mem:hover{background:var(--hover)}
 .mem .dot{width:32px;height:32px;font-size:13px;position:relative}
 .mem .on-dot{width:10px;height:10px;border:2px solid var(--panel);right:-2px;bottom:-2px}
-.mem.off{opacity:.45}
+.mem.off{opacity:.72}
 .mem-ad{flex:1;min-width:0;display:flex;flex-direction:column}
 .mem-ad small{color:var(--muted);font-size:12px;font-weight:500}
 .mem-isim{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -269,7 +269,7 @@
 .kanal-form input[type=text]{flex:1 1 180px}
 .kanal-grup{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .kanal-grup-ust{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
-.kanal-grup-ust h3{margin:0;font:800 12px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kanal-grup-ust h2{margin:0;font:800 12px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .yon-kanal.surukleniyor{opacity:.4}
 .yon-kanal[draggable=true]{cursor:grab}
 .pk-btn.tehlike,.ib.tehlike{color:var(--danger)}

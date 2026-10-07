@@ -101,7 +101,7 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
   return (
     <div className="ayar-sayfa-ic">
       <div className={"yon-bildirim" + (bildirim?.hata ? " hata" : "")} role="status" aria-live="polite">{bildirim?.metin ?? ""}</div>
-      <h3 className="yon-baslik">Üyeler — {liste.length}</h3>
+      <h2 className="yon-baslik">Üyeler — {liste.length}</h2>
       {liste.length === 0 && <div className="hint">{t("Sunucuda başka kimse yok.")}</div>}
       <ul className="yon-liste">
         {liste.map((u) => {
@@ -172,7 +172,7 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
 
       {yasaklayabilir && (
         <>
-          <h3 className="yon-baslik">Yasaklananlar — {yasaklar.length}</h3>
+          <h2 className="yon-baslik">Yasaklananlar — {yasaklar.length}</h2>
           {yasaklar.length === 0 && <div className="hint">{t("Kimse yasaklı değil.")}</div>}
           <ul className="yon-liste">
             {yasaklar.map((y) => (

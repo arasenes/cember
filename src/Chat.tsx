@@ -1126,10 +1126,9 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   }
 
   const uyeSatiri = (u: Uye, acik: boolean) => (
-    <button key={u.id} className={"mem" + (acik ? "" : " off")} onClick={() => setProfilId(u.id)}
-      aria-label={`${u.takma_ad} profilini aç${u.rol !== "uye" ? `, ${rolEtiketi(u.rol).toLowerCase()}` : ""}`}>
+    <button key={u.id} className={"mem" + (acik ? "" : " off")} onClick={() => setProfilId(u.id)} title={`${u.takma_ad} profilini aç`}>
       <Avatar uye={u}>{acik && <span className="on-dot" style={{ background: bosta.has(u.id) && (!u.durum || u.durum === "cevrimici") ? "#f5b94a" : DURUM_BILGI[u.durum ?? "cevrimici"].renk }} />}</Avatar>
-      <div className="mem-ad"><span className={"mem-isim rol-" + u.rol}>{u.takma_ad}</span>{acik && u.durum && u.durum !== "cevrimici" && <small>{DURUM_BILGI[u.durum].ad}</small>}{acik && bosta.has(u.id) && (!u.durum || u.durum === "cevrimici") && <small>{t("Boşta")}</small>}{u.durum_metin && <small className="mem-durum-metin">{u.durum_metin}</small>}{u.hakkinda && <small className="mem-hk">{u.hakkinda}</small>}</div>
+      <div className="mem-ad"><span className={"mem-isim rol-" + u.rol}>{u.takma_ad}</span>{u.rol !== "uye" && <span className="sr">, {rolEtiketi(u.rol).toLowerCase()}</span>}{acik && u.durum && u.durum !== "cevrimici" && <small>{DURUM_BILGI[u.durum].ad}</small>}{acik && bosta.has(u.id) && (!u.durum || u.durum === "cevrimici") && <small>{t("Boşta")}</small>}{u.durum_metin && <small className="mem-durum-metin">{u.durum_metin}</small>}{u.hakkinda && <small className="mem-hk">{u.hakkinda}</small>}</div>
     </button>
   );
 
@@ -1184,7 +1183,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         </nav>
         <SesCubugu className="vbar-side" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
         <div className="me">
-          <button className="me-profil" onClick={() => setProfilId(me.id)} aria-label={t("Profilimi aç ve düzenle")}>
+          <button className="me-profil" onClick={() => setProfilId(me.id)} title={t("Profilimi aç ve düzenle")}>
             <Avatar uye={ben}><span className="on-dot" style={{ background: DURUM_BILGI[ben.durum ?? "cevrimici"].renk }} /></Avatar>
             <div><b>{ben.takma_ad}</b><span>{ben.durum_metin || DURUM_BILGI[ben.durum ?? "cevrimici"].ad}</span></div>
           </button>
@@ -1194,7 +1193,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         </div>
       </section>
 
-      <section className={"col chat sunucu-kolon" + (surukle ? " surukle" : "")} aria-label={t("Sohbet")}
+      <main className={"col chat sunucu-kolon" + (surukle ? " surukle" : "")} aria-label={t("Sohbet")}
         onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setSurukle(true); } }}
         onDragLeave={(e) => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setSurukle(false); }}
         onDrop={(e) => { e.preventDefault(); setSurukle(false); const f = resimBul(e.dataTransfer.files); if (f) void ekSec(f); else if (e.dataTransfer.files.length) setHata("Yalnızca resim dosyaları gönderilebilir."); }}>
@@ -1298,7 +1297,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <button className="sq send" onClick={gonder} aria-label={t("Gönder")} disabled={(!metin.trim() && !ek) || gonderiliyor || yazamaz}>{gonderiliyor ? "…" : <Ikon ad="gonder" />}</button>
         </div>
         </>)}
-      </section>
+      </main>
 
       <aside className="col members sunucu-kolon" aria-label={t("Üyeler")}>
         {aktifKanal?.tur === "sesli" ? (
