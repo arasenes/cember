@@ -30,12 +30,13 @@ m = manifest.read_text(encoding="utf-8")
 if "FOREGROUND_SERVICE_MEDIA_PROJECTION" not in m:
     ek = """    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 """
     m, n = re.subn(r'(\s*<uses-permission android:name="android.permission.INTERNET" />)', r"\1\n" + ek.rstrip("\n"), m)
     if n != 1:
         sys.exit("AndroidManifest.xml içinde INTERNET izni satırı bulunamadı (ekran izinleri)")
-    servis = '        <service android:name="io.livekit.android.room.track.screencapture.ScreenCaptureService" android:exported="false" android:foregroundServiceType="mediaProjection" />\n'
+    servis = '        <service android:name="io.livekit.android.room.track.screencapture.ScreenCaptureService" android:exported="false" android:foregroundServiceType="mediaProjection|microphone" />\n'
     m, n = re.subn(r"(\s*)</application>", "\n" + servis.rstrip("\n") + r"\1</application>", m, count=1)
     if n != 1:
         sys.exit("AndroidManifest.xml içinde </application> bulunamadı")
@@ -55,6 +56,14 @@ if 'android:scheme="com.cember.chat"' not in m:
     if n != 1:
         sys.exit("AndroidManifest.xml içinde </activity> bulunamadı (Google dönüş adresi)")
     manifest.write_text(m, encoding="utf-8")
+
+# 1d) Bildirimler (FCM): Firebase istemci ayarı varsa uygulamaya kat (yoksa bildirim eklentisi çalışmaz ama uygulama derlenir)
+gs = ayar / "google-services.json"
+if gs.exists():
+    shutil.copy(gs, android / "app/google-services.json")
+    print("google-services.json eklendi (bildirimler açık)")
+else:
+    print("UYARI: android-ayar/google-services.json yok; APK bildirimleri çalışmaz")
 
 # Yerel eklenti (Kotlin) ve MainActivity kaydı
 paket = android / "app/src/main/java/com/cember/chat"
