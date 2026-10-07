@@ -19,7 +19,25 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 
 /* giriş */
 #gate,#kayit{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 16px}
-.gatecard{width:min(100%,400px);display:flex;flex-direction:column;gap:18px}
+.gatecard{width:min(100%,400px);display:flex;flex-direction:column;gap:18px;position:relative;z-index:1}
+#gate{position:relative;overflow:hidden}
+.gate-arka{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.gate-arka .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.38;animation:gate-gez 18s ease-in-out infinite alternate}
+.gate-arka .b1{width:46vmax;height:46vmax;left:-12vmax;top:-14vmax;background:#E8A33D}
+.gate-arka .b2{width:40vmax;height:40vmax;right:-14vmax;bottom:-12vmax;background:#0B7A91;animation-duration:22s;animation-delay:-6s}
+.gate-arka .b3{width:30vmax;height:30vmax;left:40%;top:45%;background:#C2548A;opacity:.22;animation-duration:26s;animation-delay:-11s}
+.gate-arka .halka{position:absolute;left:50%;top:50%;border-radius:50%;border:2px solid #E8A33D;opacity:.28;transform:translate(-50%,-50%) scale(.3);animation:gate-halka 9s ease-out infinite}
+.gate-arka .h1{width:70vmin;height:70vmin}
+.gate-arka .h2{width:70vmin;height:70vmin;animation-delay:3s}
+.gate-arka .h3{width:70vmin;height:70vmin;animation-delay:6s}
+.gate-soz{height:1.5em;overflow:hidden;font:600 18px/1.5 var(--display);color:var(--acc,#E8A33D)}
+.gate-soz span{display:block;animation:gate-soz 2.6s ease both}
+.logo svg{animation:gate-don 14s linear infinite}
+@keyframes gate-gez{from{transform:translate(0,0) scale(1)}to{transform:translate(8vmax,6vmax) scale(1.18)}}
+@keyframes gate-halka{0%{transform:translate(-50%,-50%) scale(.3);opacity:.4}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
+@keyframes gate-soz{0%{transform:translateY(100%);opacity:0}15%,85%{transform:none;opacity:1}100%{transform:translateY(-100%);opacity:0}}
+@keyframes gate-don{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.gate-arka .blob,.gate-arka .halka,.logo svg,.gate-soz span{animation:none}.gate-arka .halka{display:none}.gate-soz span{opacity:1}}
 .logo{display:flex;align-items:center;gap:12px}
 .logo svg{flex:none}
 .logo b{font:700 34px/1 var(--display);letter-spacing:-.02em}

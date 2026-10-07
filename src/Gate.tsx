@@ -2,6 +2,17 @@ import { useEffect, useState } from "react";
 import { supabase, SUPABASE_KEY, SUPABASE_URL } from "./supabase";
 import { googleAcikMi, googleIleGir } from "./google";
 
+const SOZLER = ["Arkadaşlarınla yaz", "Sesli odada sohbet et", "Ekranını paylaş", "Birlikte film izle", "Çemberine katıl"];
+
+function DonenSoz() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((x) => (x + 1) % SOZLER.length), 2600);
+    return () => clearInterval(t);
+  }, []);
+  return <div className="gate-soz" aria-hidden="true"><span key={i}>{SOZLER[i]}</span></div>;
+}
+
 export default function Gate({ onJoined }: { onJoined: () => void }) {
   const [ad, setAd] = useState("");
   const [hata, setHata] = useState("");
@@ -48,6 +59,10 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
 
   return (
     <main className="gate-wrap" id="gate">
+      <div className="gate-arka" aria-hidden="true">
+        <i className="blob b1" /><i className="blob b2" /><i className="blob b3" />
+        <i className="halka h1" /><i className="halka h2" /><i className="halka h3" />
+      </div>
       <form className="gatecard" onSubmit={gonder} noValidate>
         <div className="logo">
           <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
@@ -56,6 +71,7 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
           </svg>
           <b>Çember</b>
         </div>
+        <DonenSoz />
         <p>{google ? "Arkadaşlarla yazış ve konuş. Google ile gir ya da misafir olarak katıl." : "Arkadaşlarla yazış ve konuş. Bir takma ad yazıp misafir olarak katıl."}</p>
         {google && (
           <>
