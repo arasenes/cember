@@ -14,8 +14,8 @@ export async function googleAcikMi(): Promise<boolean> {
   }
 }
 
-// Android uygulamasında Google, gömülü pencerede açılmaz: giriş sistem tarayıcısında yapılır, sonra bu adresle uygulamaya dönülür
-const UYGULAMA_DONUS = "com.cember.chat://giris";
+// Android uygulamasında Google, gömülü pencerede açılmaz: giriş sistem tarayıcısında yapılır ve site adresine dönülür;
+// oradaki "Uygulamada aç" şeridi (UygulamayaDon) oturumu uygulamaya taşır.
 
 async function tarayicidaAc(url?: string): Promise<boolean> {
   if (!url) return false;
@@ -25,7 +25,7 @@ async function tarayicidaAc(url?: string): Promise<boolean> {
 
 export async function googleIleGir(): Promise<string> {
   const app = uygulamaIci();
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: app ? UYGULAMA_DONUS : window.location.origin, skipBrowserRedirect: app } });
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin, skipBrowserRedirect: app } });
   if (error) return "Google ile giriş başlatılamadı.";
   if (app && !(await tarayicidaAc(data?.url))) return "Google ile giriş başlatılamadı.";
   return "";
@@ -33,7 +33,7 @@ export async function googleIleGir(): Promise<string> {
 
 export async function googleBagla(): Promise<string> {
   const app = uygulamaIci();
-  const { data, error } = await supabase.auth.linkIdentity({ provider: "google", options: { redirectTo: app ? UYGULAMA_DONUS : window.location.origin, skipBrowserRedirect: app } });
+  const { data, error } = await supabase.auth.linkIdentity({ provider: "google", options: { redirectTo: window.location.origin, skipBrowserRedirect: app } });
   if (error) return "Google hesabı bağlanamadı.";
   if (app && !(await tarayicidaAc(data?.url))) return "Google hesabı bağlanamadı.";
   return "";
