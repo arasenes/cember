@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { googleAcikMi, googleBagla, googleBagliMi } from "./google";
 import { TEMA_BILGI, type Tema } from "./tema";
 import type { YaziBoyutu } from "./yerel";
+import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushSadeceEtiket, pushTercih } from "./push";
 
 type Props = {
   tema: Tema; onTema: (t: Tema) => void;
@@ -25,6 +26,25 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
     })();
     return () => { iptal = true; };
   }, []);
+  const [pushAcik, setPushAcik] = useState(pushAcikMi());
+  const [sadeceEtiket, setSadeceEtiket] = useState(pushSadeceEtiket());
+  const [pushHata, setPushHata] = useState("");
+  const [pushMesgul, setPushMesgul] = useState(false);
+  async function pushDegistir() {
+    setPushHata("");
+    setPushMesgul(true);
+    if (pushAcik) { await pushKapat(); setPushAcik(false); }
+    else {
+      const s = await pushAc(sadeceEtiket);
+      if (s.ok) setPushAcik(true); else setPushHata(s.mesaj ?? "Bildirim açılamadı.");
+    }
+    setPushMesgul(false);
+  }
+  async function etiketDegistir(v: boolean) {
+    setSadeceEtiket(v);
+    const s = await pushTercih(v);
+    if (!s.ok) setPushHata(s.mesaj ?? "Kaydedilemedi.");
+  }
   useEffect(() => {
     kutu.current?.querySelector<HTMLElement>("button[aria-checked=true]")?.focus();
     const tus = (e: KeyboardEvent) => { if (e.key === "Escape") onKapat(); };
@@ -65,6 +85,23 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
             <span className="anahtar" aria-hidden="true" />
           </button>
         </div>
+
+        {pushDestekli() && (
+          <div className="ayar-grup">
+            <div className="yon-baslik">Bildirimler</div>
+            <button className="ayar-anahtar" role="switch" aria-checked={pushAcik} disabled={pushMesgul} onClick={() => void pushDegistir()}>
+              <span>{pushAcik ? "📲 Açık" : "📴 Kapalı"} <small>uygulama kapalıyken de yeni mesajda haber ver</small></span>
+              <span className="anahtar" aria-hidden="true" />
+            </button>
+            {pushAcik && (
+              <div className="segment" role="radiogroup" aria-label="Bildirim kapsamı">
+                <button role="radio" aria-checked={!sadeceEtiket} onClick={() => void etiketDegistir(false)}>Tüm mesajlar</button>
+                <button role="radio" aria-checked={sadeceEtiket} onClick={() => void etiketDegistir(true)}>Sadece etiketlenince</button>
+              </div>
+            )}
+            {pushHata && <p className="err" role="alert">{pushHata}</p>}
+          </div>
+        )}
 
         {googleDurum !== "yok" && (
           <div className="ayar-grup">

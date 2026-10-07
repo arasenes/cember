@@ -8,6 +8,7 @@ import type { Durum, Kanal, Mesaj, Tepki, Uye } from "./types";
 import MessageView from "./MessageView";
 import { DURUM_BILGI, gunEtiketi, rolEtiketi } from "./util";
 import AyarlarDialog from "./AyarlarDialog";
+import { pushKapat, pushYenile } from "./push";
 import KatilimciSeridi from "./KatilimciSeridi";
 import { katlanmisOku, katlanmisYaz, okunduOku, okunduYaz, sessizOku, sessizYaz, siraOku, siraYaz, sirala, yaziBoyutuKaydet, yaziBoyutuOku } from "./yerel";
 import EmojiDeposu from "./EmojiDeposu";
@@ -126,6 +127,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   uyelerRef.current = uyeler;
   mesajlarRef.current = mesajlar;
   useEffect(() => sesleriHazirla(), []);
+  useEffect(() => { void pushYenile(); }, [me.id]);
   const etiketAday = useMemo(() => {
     const x = /(?:^|\s)@([^\s@]*)$/.exec(metin);
     if (!x) return [];
@@ -611,11 +613,13 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           body: JSON.stringify({ misafir_sil: true }),
         });
       } catch { /* ağ yoksa yine de çık; bayat misafirler sonradan temizlenir */ }
+      await pushKapat();
       await supabase.auth.signOut().catch(() => {});
       onExit();
       return;
     }
-    if (!confirm("Çıkış yapılsın mı? Bu takma adla bu tarayıcıdan tekrar giremezsin; oda sahibi seni silerse yeniden katılabilirsin.")) return;
+    if (!confirm("Çıkış yapılsın mı? Google ile istediğin zaman tekrar girebilirsin.")) return;
+    await pushKapat();
     await supabase.auth.signOut();
     onExit();
   }
