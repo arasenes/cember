@@ -47,7 +47,8 @@ export function useSesMotoru(
     if (mevcut === "p2p") { await p2pBaglan(hedef); return; }
 
     const r = await lk.baglan(hedef);
-    if (r.ok || r.neden === "iptal") return;
+    if (r.ok) { if (r.mikYok) setBilgi("Mikrofon bulunamadı; odaya yalnızca dinleyici olarak katıldın."); return; }
+    if (r.neden === "iptal") return;
     // Kullanıcıdan kaynaklı ya da oda dolu hatalarında yedeğe geçme
     if (r.neden === "izin" || r.neden === "dolu") { setHata(r.mesaj ?? "Sese bağlanılamadı."); return; }
     // Odada zaten LiveKit kullanan biri varsa, yedek mod onlarla konuşamaz

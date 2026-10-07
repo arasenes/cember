@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { googleAcikMi, googleBagla, googleBagliMi } from "./google";
 import { TEMA_BILGI, type Tema } from "./tema";
 import type { YaziBoyutu } from "./yerel";
 
@@ -13,6 +14,17 @@ const BOYUTLAR: { id: YaziBoyutu; ad: string }[] = [{ id: "kucuk", ad: "Küçük
 
 export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSesler, onKapat }: Props) {
   const kutu = useRef<HTMLDivElement>(null);
+  const [googleDurum, setGoogleDurum] = useState<"yok" | "bagla" | "bagli">("yok");
+  const [googleHata, setGoogleHata] = useState("");
+  useEffect(() => {
+    let iptal = false;
+    (async () => {
+      if (!(await googleAcikMi())) return;
+      const bagli = await googleBagliMi();
+      if (!iptal) setGoogleDurum(bagli ? "bagli" : "bagla");
+    })();
+    return () => { iptal = true; };
+  }, []);
   useEffect(() => {
     kutu.current?.querySelector<HTMLElement>("button[aria-checked=true]")?.focus();
     const tus = (e: KeyboardEvent) => { if (e.key === "Escape") onKapat(); };
@@ -53,6 +65,22 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
             <span className="anahtar" aria-hidden="true" />
           </button>
         </div>
+
+        {googleDurum !== "yok" && (
+          <div className="ayar-grup">
+            <div className="yon-baslik">Hesap</div>
+            {googleDurum === "bagli" ? (
+              <p className="ayar-not">✓ Google hesabın bağlı. Başka cihazdan Google ile girebilirsin.</p>
+            ) : (
+              <>
+                <button className="ayar-anahtar" onClick={async () => setGoogleHata(await googleBagla())}>
+                  <span>Google hesabını bağla <small>başka cihazdan da aynı hesapla girmek için</small></span>
+                </button>
+                {googleHata && <p className="err" role="alert">{googleHata}</p>}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
-import { gurultuTercihi, gurultuUygula } from "./gurultu";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Room } from "livekit-client";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
+import { gurultuTercihi, gurultuUygula } from "./gurultu";
 import { ekranHatasi, ekranPaylasilabilirTarayici, KALITE, uygulamaIci, yerelEkran, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
 
 /** Yerel eklenti yanıt vermese bile bağlantı akışını kilitlemesin diye zaman aşımı ile durdurur. */
@@ -10,7 +10,7 @@ async function yerelDurdur(y: { durdur(): Promise<void> }) {
 }
 
 export type SesDurumu = "kapali" | "baglaniyor" | "bagli";
-export type BaglanSonuc = { ok: boolean; neden?: "limit" | "kurulmadi" | "dolu" | "izin" | "ag" | "iptal"; mesaj?: string };
+export type BaglanSonuc = { ok: boolean; neden?: "limit" | "kurulmadi" | "dolu" | "izin" | "ag" | "iptal"; mesaj?: string; mikYok?: boolean };
 
 export function sesHatasiMetni(e: unknown): string {
   const ad = (e as { name?: string })?.name ?? "";
@@ -133,15 +133,21 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
         document.removeEventListener("keydown", sesiAc, true);
       });
       await room.connect(j.url, j.token);
-      await room.localParticipant.setMicrophoneEnabled(true);
+      // Mikrofon yoksa odaya yine de girilir (yalnızca dinleyici olarak)
+      let mikYok = false;
+      try { await room.localParticipant.setMicrophoneEnabled(true); } catch (e) {
+        if ((e as { name?: string })?.name === "NotFoundError" || /requested device not found/i.test(String((e as Error)?.message ?? ""))) mikYok = true;
+        else throw e;
+      }
       if (islem !== islemRef.current) { await room.disconnect(); return { ok: false, neden: "iptal" }; }
 
       nabizRef.current = setInterval(() => {
         if (oturumRef.current) supabase.rpc("ses_nabiz", { p_oturum: oturumRef.current }).then(() => {});
       }, 30000);
       setDurum("bagli");
+      if (mikYok) setSessiz(true);
       onKanal(hedef);
-      return { ok: true };
+      return { ok: true, mikYok };
     } catch (e) {
       if (islem !== islemRef.current) return { ok: false, neden: "iptal" };
       const kod = (e as { kod?: string }).kod;
@@ -159,19 +165,15 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   }, [temizle, ayril, onKanal, onKoptu]);
 
   const gurultuAyarla = useCallback(async (acik: boolean) => {
-
     const pub = odaRef.current?.localParticipant.getTrackPublications().find((p) => p.kind === "audio" && p.source === "microphone");
-
     await gurultuUygula(pub?.track?.mediaStreamTrack, acik);
-
   }, []);
-
 
   const sessizDegistir = useCallback(async () => {
     const room = odaRef.current;
     if (!room) return;
     const yeni = !sessiz;
-    await room.localParticipant.setMicrophoneEnabled(!yeni);
+    try { await room.localParticipant.setMicrophoneEnabled(!yeni); } catch { return; }
     setSessiz(yeni);
   }, [sessiz]);
 
