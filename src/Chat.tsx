@@ -17,6 +17,9 @@ import { bildirim, bildirimIzniIste, duyur, etiketVar, seslerAcik, seslerKaydet,
 import { islemYapabilir, susturulmus, yonetCagir } from "./YonetimPaneli";
 import SunucuAyarlari, { type Bolum } from "./ayarlar/SunucuAyarlari";
 import SunucuDialog from "./sunucu/SunucuDialog";
+import KomutPaleti from "./komut/KomutPaleti";
+import type { Komut } from "./komut/komutlar";
+import { cevir } from "./i18n";
 import { sunucuBasHarf, type Sunucu } from "./sunucu/sunucular";
 import { IZIN, useIzinler } from "./sunucu/izin";
 import { gruplariKur } from "./sunucu/siralama";
@@ -76,6 +79,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [yonetimAcik, setYonetimAcik] = useState(false);
   const [ayarBolum, setAyarBolum] = useState<Bolum>("genel");
   const [sunucuDialogAcik, setSunucuDialogAcik] = useState(false);
+  const [paletAcik, setPaletAcik] = useState(false);
   const [kategoriler, setKategoriler] = useState<Kategori[]>([]);
   const [yonBilgi, setYonBilgi] = useState("");
   const [sabitler, setSabitler] = useState<Mesaj[]>([]);
@@ -162,6 +166,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const { anketler, oyla: anketOyla } = useAnketler(mesajlar.map((m) => m.id), me.id);
   const dmGoruluyor = gorunum === "dm" && dmSayfa === "sohbet";
   const dm = useDm(me.id, dmGoruluyor ? aktifDm : null, {
+    odaId: me.oda_id,
     // Yeni özel mesaj: ses + küçük bildirim (açık DM'deysek ve sekme görünürse sessiz)
     onYeniMesaj: (m: DmMesaj) => {
       if (dmGoruluyor && aktifDmRefDm.current === m.dm_id && document.visibilityState === "visible") return;
@@ -881,6 +886,35 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     }
   }
 
+  const paletKomutlari: Komut[] = [
+    ...kanallar.map((k): Komut => ({
+      id: "k-" + k.id, ad: k.ad, tur: cevir(k.tur === "sesli" ? "palet.ses" : "palet.kanal"), ikon: k.tur === "sesli" ? "ses" : "hash",
+      calistir: () => { setGorunum("sunucu"); kanalaGir(k, () => { setAktif(k.id); setPane("chat"); }); },
+    })),
+    ...sunucular.filter((x) => x.oda_id !== me.oda_id).map((x): Komut => ({ id: "s-" + x.oda_id, ad: x.ad, tur: cevir("palet.sunucu"), ikon: "grup", calistir: () => onSunucuSec?.(x.oda_id) })),
+    { id: "c-arama", ad: cevir("komut.arama"), tur: cevir("palet.komut"), ikon: "ara", calistir: () => { setGorunum("sunucu"); setAramaAcik(true); } },
+    { id: "c-dm", ad: cevir("komut.dm"), tur: cevir("palet.komut"), ikon: "sohbet", calistir: () => { setGorunum("dm"); setDmMobil("liste"); setDmSayfa(aktifDm ? "sohbet" : "arkadaslar"); } },
+    { id: "c-arkadas", ad: cevir("komut.arkadaslar"), tur: cevir("palet.komut"), ikon: "kullanici", calistir: () => { setGorunum("dm"); setDmSayfa("arkadaslar"); setDmMobil("icerik"); } },
+    { id: "c-profil", ad: cevir("komut.profil"), tur: cevir("palet.komut"), ikon: "kullanici", calistir: () => setProfilId(me.id) },
+    { id: "c-ayar", ad: cevir("komut.ayarlar"), tur: cevir("palet.komut"), ikon: "ayar", calistir: () => setAyarAcik(true) },
+    ...(ayarGoster ? [{ id: "c-sunucu-ayar", ad: cevir("komut.sunucuAyar"), tur: cevir("palet.komut"), ikon: "kalkan", calistir: () => ayarAc("genel") } as Komut] : []),
+    ...(onSunucularYenile ? [{ id: "c-sunucu-kur", ad: cevir("komut.sunucuKur"), tur: cevir("palet.komut"), ikon: "grup", calistir: () => setSunucuDialogAcik(true) } as Komut] : []),
+  ];
+  // Kısayollar: Ctrl/Cmd+K palet, Alt+↑/↓ kanal değiştir
+  useEffect(() => {
+    const tus = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPaletAcik((a) => !a); return; }
+      if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && gorunum === "sunucu") {
+        const yazili = kanallar.filter((k) => k.tur === "yazili" && girebilir(k));
+        const i = yazili.findIndex((k) => k.id === aktif);
+        const hedef = yazili[i + (e.key === "ArrowUp" ? -1 : 1)];
+        if (hedef) { e.preventDefault(); setAktif(hedef.id); setPane("chat"); }
+      }
+    };
+    window.addEventListener("keydown", tus);
+    return () => window.removeEventListener("keydown", tus);
+  }, [kanallar, aktif, gorunum, girebilir]);
+
   async function kanallariYenile() {
     const [k, c] = await Promise.all([
       supabase.from("kanallar").select("*").eq("oda_id", me.oda_id).order("sira"),
@@ -1320,6 +1354,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           onSunucuDegisti={() => onSunucularYenile?.(me.oda_id)}
           onSunucuSilindi={() => { setYonetimAcik(false); onSunucularYenile?.(sunucular.find((x) => x.oda_id !== me.oda_id)?.oda_id); }} />
       )}
+      {paletAcik && <KomutPaleti komutlar={paletKomutlari} onKapat={() => setPaletAcik(false)} />}
       {sunucuDialogAcik && (
         <SunucuDialog misafir={!!ben.misafir} onKapat={() => setSunucuDialogAcik(false)}
           onTamam={(id) => { setSunucuDialogAcik(false); onSunucularYenile?.(id); }} />
@@ -1355,11 +1390,21 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       </div>
       {ses.kabiRefleri.map((r, i) => <div key={i} ref={r} className="sr" aria-hidden="true" />)}
       <SesCubugu className="vbar-dock" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
-      {gorunum === "sunucu" && <nav className="nav" aria-label="Bölme seçimi">
-        <button aria-current={pane === "side"} onClick={() => setPane("side")}>Kanallar</button>
-        <button aria-current={pane === "chat"} onClick={() => setPane("chat")}>Sohbet</button>
-        <button aria-current={pane === "mem"} onClick={() => setPane("mem")}>Üyeler</button>
-      </nav>}
+      <nav className="nav" aria-label="Ana sekmeler">
+        <button aria-current={gorunum === "sunucu" && pane !== "mem"} onClick={() => { setGorunum("sunucu"); setPane(gorunum === "sunucu" && pane === "chat" ? "side" : "chat"); }}>
+          <Ikon ad="hash" boyut={22} />{cevir("sekme.sunucu")}{gorunum !== "sunucu" && Object.values(okunmamis).some((o) => o.n > 0) && <span className="nokta nav-nokta" aria-hidden="true" />}
+        </button>
+        <button aria-current={gorunum === "dm" && dmSayfa !== "arkadaslar"} onClick={() => { setGorunum("dm"); setDmMobil("liste"); setDmSayfa(aktifDm ? "sohbet" : "arkadaslar"); }}>
+          <Ikon ad="sohbet" boyut={22} />{cevir("sekme.mesajlar")}{dm.toplamOkunmamis > 0 && <span className="rozet nav-rozet" aria-label={`${dm.toplamOkunmamis} okunmamış`}>{dm.toplamOkunmamis}</span>}
+        </button>
+        <button aria-current={gorunum === "dm" && dmSayfa === "arkadaslar"} onClick={() => { setGorunum("dm"); setDmSayfa("arkadaslar"); setDmMobil("icerik"); }}>
+          <Ikon ad="kullanici" boyut={22} />{cevir("sekme.arkadaslar")}{dm.gelenIstekler.length > 0 && <span className="rozet nav-rozet" aria-label={`${dm.gelenIstekler.length} arkadaş isteği`}>{dm.gelenIstekler.length}</span>}
+        </button>
+        <button aria-current={gorunum === "sunucu" && pane === "mem"} onClick={() => { setGorunum("sunucu"); setPane("mem"); }}>
+          <Ikon ad="grup" boyut={22} />{cevir("sekme.uyeler")}
+        </button>
+        <button onClick={() => setProfilId(me.id)}><Ikon ad="ayar" boyut={22} />{cevir("sekme.ben")}</button>
+      </nav>
     </div>
   );
 }

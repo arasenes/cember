@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import { iliskiBul, type Arkadaslik, type DmKanal, type DmMesaj, type DmUyesi, type Iliski } from "./tipler";
 
-type Secenek = { onYeniMesaj?: (m: DmMesaj) => void };
+type Secenek = { onYeniMesaj?: (m: DmMesaj) => void; odaId?: string };
 
 /** DM listesi, arkadaşlıklar ve okunmamış sayıları; Realtime ile canlı. Chat'te sunucu görünümünde de çalışır (rozet için). */
 export function useDm(benId: string, aktifDm: string | null, secenek: Secenek = {}) {
@@ -23,7 +23,8 @@ export function useDm(benId: string, aktifDm: string | null, secenek: Secenek = 
       supabase.from("arkadasliklar").select("*"),
       supabase.rpc("dm_okunmamis"),
     ]);
-    if (k.data) setKanallar(k.data as DmKanal[]);
+    // Çoklu sunucu: yalnızca bu sunucunun konuşmaları (oda_id boş eski kayıtlar da gösterilir)
+    if (k.data) setKanallar((k.data as DmKanal[]).filter((d) => !secenekRef.current.odaId || !d.oda_id || d.oda_id === secenekRef.current.odaId));
     if (u.data) setUyeleri(u.data as DmUyesi[]);
     if (a.data) setArkadasliklar(a.data as Arkadaslik[]);
     const sayilar: Record<string, number> = {};
@@ -98,7 +99,10 @@ export function useDm(benId: string, aktifDm: string | null, secenek: Secenek = 
   }), [benId, yukle]);
 
   const iliski = useCallback((hedefId: string): Iliski => iliskiBul(arkadasliklar, benId, hedefId), [arkadasliklar, benId]);
-  const toplamOkunmamis = useMemo(() => Object.values(okunmamis).reduce((a, b) => a + b, 0), [okunmamis]);
+  const toplamOkunmamis = useMemo(() => {
+    const bu = new Set(kanallar.map((d) => d.id));
+    return Object.entries(okunmamis).reduce((a, [id, n]) => a + (bu.has(id) ? n : 0), 0);
+  }, [okunmamis, kanallar]);
   const gelenIstekler = useMemo(() => arkadasliklar.filter((r) => r.durum === "bekliyor" && r.b === benId), [arkadasliklar, benId]);
 
   return { kanallar, uyeleri, arkadasliklar, okunmamis, toplamOkunmamis, gelenIstekler, hazir, iliski, okundu, yenile: yukle, ...eylemler };

@@ -3,6 +3,7 @@ import { googleAcikMi, googleBagla, googleBagliMi } from "./google";
 import { TEMA_BILGI, type Tema } from "./tema";
 import type { YaziBoyutu } from "./yerel";
 import { tusAdi, tusAtanabilir, type BasKonusAyar } from "./ses/basKonus";
+import { cevir, dilOku, dilYaz, type Dil } from "./i18n";
 import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushSadeceEtiket, pushTercih } from "./push";
 
 type Props = {
@@ -90,6 +91,15 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
           <div className="segment">
             {BOYUTLAR.map((b) => (
               <button key={b.id} role="radio" aria-checked={yazi === b.id} onClick={() => onYazi(b.id)}>{b.ad}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="ayar-grup" role="radiogroup" aria-label={cevir("ayar.dil")}>
+          <div className="yon-baslik">{cevir("ayar.dil")}</div>
+          <div className="segment">
+            {([["tr", "Türkçe"], ["en", "English"]] as [Dil, string][]).map(([d, ad]) => (
+              <button key={d} role="radio" aria-checked={dilOku() === d} onClick={() => { dilYaz(d); location.reload(); }}>{ad}</button>
             ))}
           </div>
         </div>

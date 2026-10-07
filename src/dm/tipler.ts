@@ -1,6 +1,6 @@
 import type { Mesaj, Uye } from "../types";
 
-export type DmKanal = { id: string; tur: "ikili" | "grup"; ad: string | null; olusturan: string | null; olusturma: string; son_mesaj: string };
+export type DmKanal = { id: string; tur: "ikili" | "grup"; ad: string | null; olusturan: string | null; olusturma: string; son_mesaj: string; oda_id?: string | null };
 export type DmUyesi = { dm_id: string; uye_id: string; son_okuma: string };
 export type DmMesaj = { id: string; dm_id: string; uye_id: string; metin: string; olusturma: string; duzenleme: string | null; silindi: boolean };
 export type Arkadaslik = { id: string; a: string; b: string; durum: "bekliyor" | "kabul" | "engelli"; olusturma: string };
