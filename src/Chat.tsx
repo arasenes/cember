@@ -546,6 +546,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
             const buradayim = ses.kanalId === k.id && ses.durum !== "kapali";
             return (
               <div key={k.id}>
+                <div className="ch-satir">
                 <button className="ch" aria-pressed={buradayim} disabled={ses.durum === "baglaniyor"}
                   onClick={() => (buradayim ? ses.ayril() : kanalaGir(k, () => { void ses.baglan(k.id); }))}
                   aria-label={`${k.ad} sesli odası${k.sifreli ? ", şifreli" : ""}, ${buradayim ? "ayrılmak için tıkla" : "katılmak için tıkla"}`}>
@@ -553,6 +554,10 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
                   {k.sifreli && <span className="kilit" aria-hidden="true">🔒</span>}
                   {buradayim && <span className="soon">bağlı</span>}
                 </button>
+                <button className="ch-sohbet" aria-current={k.id === aktif} title="Bu odanın yazılı sohbetini aç"
+                  aria-label={`${k.ad} sesli odasının yazılı sohbetini aç`}
+                  onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); })}>💬</button>
+                </div>
                 {icindekiler.length > 0 && (
                   <ul className="vlist" aria-label={`${k.ad} katılımcıları`}>
                     {icindekiler.map((u) => (
@@ -589,7 +594,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         onDrop={(e) => { e.preventDefault(); setSurukle(false); const f = resimBul(e.dataTransfer.files); if (f) void ekSec(f); else if (e.dataTransfer.files.length) setHata("Yalnızca resim dosyaları gönderilebilir."); }}>
         <div className="head">
           <div className="kanal-baslik">
-            <h2># {aktifKanal?.ad ?? "…"}</h2>
+            <h2>{aktifKanal?.tur === "sesli" ? "🔊" : "#"} {aktifKanal?.ad ?? "…"}</h2>
             {konuDuzen !== null ? (
               <form className="kanal-konu-duzen" onSubmit={(e) => { e.preventDefault(); void konuKaydet(); }}>
                 <input type="text" value={konuDuzen} onChange={(e) => setKonuDuzen(e.target.value)} maxLength={200} placeholder="Kanal açıklaması" aria-label="Kanal açıklaması" autoFocus />

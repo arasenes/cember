@@ -284,3 +284,8 @@ mark.etiket-ben{background:color-mix(in srgb,var(--acc) 40%,transparent);color:i
 .konu-sayac{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:1.5px solid var(--line);padding-top:10px}
 .konu-yaz{display:flex;gap:8px;align-items:flex-end;padding:10px 16px;border-top:1.5px solid var(--line)}
 .konu-yaz textarea{flex:1}
+.ch-satir{display:flex;align-items:stretch;gap:4px}
+.ch-satir .ch{flex:1;min-width:0}
+.ch-sohbet{flex:none;min-width:44px;border:0;border-radius:12px;background:transparent;color:var(--fg);font-size:16px}
+.ch-sohbet:hover,.ch-sohbet:focus-visible{background:var(--hover)}
+.ch-sohbet[aria-current=true]{background:var(--fg);color:var(--bg)}
