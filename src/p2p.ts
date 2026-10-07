@@ -17,7 +17,7 @@ const VARSAYILAN_ICE: RTCIceServer[] = [{ urls: ["stun:stun.cloudflare.com:3478"
 
 // Ekran paylaşımı için ayrı "ekran-*" sinyalleri kullanılır: ses bağlantılarına dokunmaz ve ekran paylaşımını bilmeyen eski sürümler bunları yok sayar.
 // Ekranı paylaşan her izleyiciye ayrı bir bağlantı kurar (teklifi her zaman paylaşan verir).
-type Sinyal = { to: string; from: string; tur: "offer" | "answer" | "ice" | "ekran-offer" | "ekran-answer" | "ekran-ice"; veri: unknown };
+type Sinyal = { to: string; from: string; tur: "offer" | "answer" | "ice" | "ekran-offer" | "ekran-answer" | "ekran-ice" | "kamera-offer" | "kamera-answer" | "kamera-ice"; veri: unknown };
 type EkranEs = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean };
 type Es = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean; baslatan: boolean; el?: HTMLAudioElement; analiz?: AnalyserNode; sonlandir: () => void; sorunZamani?: number };
 
@@ -50,6 +50,9 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const [turnVar, setTurnVar] = useState<boolean | null>(null);
   const [izlenen, setIzlenen] = useState<Izlenen | null>(null);
   const [paylasiyorum, setPaylasiyorum] = useState(false);
+  const [kameralar, setKameralar] = useState<Map<string, MediaStream>>(new Map());
+  const [kameraAcik, setKameraAcik] = useState(false);
+  const kameraRef = useRef<{ degistir: () => Promise<{ ok: boolean; mesaj?: string }> } | null>(null);
   const ekranRef = useRef<{ baslat: (k: EkranKalite) => Promise<EkranSonuc>; durdur: () => Promise<void> } | null>(null);
 
   const temizle = useCallback(async () => {
@@ -58,6 +61,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     if (k) await k();
     yerelRef.current = null;
     ekranRef.current = null;
+    kameraRef.current = null;
+    setKameralar(new Map()); setKameraAcik(false);
     setKonusanlar(new Set()); setSorunlu(new Set());
     setIzlenen(null); setPaylasiyorum(false);
   }, []);
@@ -90,6 +95,11 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     const ekranGiden = new Map<string, EkranEs>(); // paylaşan olarak: izleyici -> bağlantı
     let ekranGelen: { peerId: string; es: EkranEs } | null = null; // izleyen olarak
     const ekranIcePeer = new Map<string, RTCIceCandidateInit[]>();
+    // Kamera: her çift için ayrı bağlantı (ekran paylaşımındaki gibi); aynı anda birden çok kişi açabilir
+    let kameraAkis: MediaStream | null = null;
+    const kameraGiden = new Map<string, EkranEs>();
+    const kameraGelen = new Map<string, EkranEs>();
+    const kameraIcePeer = new Map<string, RTCIceCandidateInit[]>();
 
     const kapat = async () => {
       kapandi = true;
@@ -102,6 +112,9 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       for (const e of ekranGiden.values()) { try { e.pc.close(); } catch { /* yoksay */ } }
       ekranGiden.clear();
       if (ekranGelen) { try { ekranGelen.es.pc.close(); } catch { /* yoksay */ } ekranGelen = null; }
+      kameraAkis?.getTracks().forEach((t) => t.stop());
+      for (const e of [...kameraGiden.values(), ...kameraGelen.values()]) { try { e.pc.close(); } catch { /* yoksay */ } }
+      kameraGiden.clear(); kameraGelen.clear();
       stream?.getTracks().forEach((t) => t.stop());
       if (kanal) { try { await kanal.untrack(); } catch { /* yoksay */ } await supabase.removeChannel(kanal); }
       if (ctx) { try { await ctx.close(); } catch { /* yoksay */ } }
@@ -302,7 +315,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         for (const e of ekranGiden.values()) { try { e.pc.close(); } catch { /* yoksay */ } }
         ekranGiden.clear();
         setPaylasiyorum(false);
-        if (!kapandi && kanal) { try { await kanal.track({ t: benimT, ekran: false }); } catch { /* yoksay */ } }
+        if (!kapandi && kanal) { try { await kanal.track({ t: benimT, ekran: false, kamera: kameraAkis !== null }); } catch { /* yoksay */ } }
       };
 
       ekranRef.current = {
@@ -317,7 +330,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             const v = yakalanan.getVideoTracks()[0];
             if (v) { v.contentHint = "motion"; v.onended = () => { void ekranBirak(); }; }
             setPaylasiyorum(true);
-            await kanal?.track({ t: benimT, ekran: true });
+            await kanal?.track({ t: benimT, ekran: true, kamera: kameraAkis !== null });
             // Odadakilere hemen başla (yeni gelenler için presence senkronu devam ettirir)
             for (const id of Object.keys(kanal?.presenceState() ?? {})) {
               if (id !== uyeId && !ekranGiden.has(id)) kuyruk = kuyruk.then(() => ekranTeklif(id)).catch(() => {});
@@ -328,6 +341,86 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           }
         },
         durdur: ekranBirak,
+      };
+
+
+      // ===== Kamera (doğrudan mod) =====
+      const kameraTeklif = async (peerId: string) => {
+        const akis = kameraAkis;
+        if (!akis || kapandi) return;
+        try { kameraGiden.get(peerId)?.pc.close(); } catch { /* yoksay */ }
+        const pc = new RTCPeerConnection({ iceServers });
+        const e: EkranEs = { pc, bekleyenIce: [], uzakVar: false };
+        kameraGiden.set(peerId, e);
+        akis.getTracks().forEach((t) => pc.addTrack(t, akis));
+        pc.onicecandidate = (ev) => { if (ev.candidate) gonder(peerId, "kamera-ice", { c: ev.candidate.toJSON(), rol: "gonderen" }); };
+        pc.onconnectionstatechange = () => {
+          if (kapandi || pc.connectionState !== "failed" || kameraGiden.get(peerId) !== e) return;
+          try { pc.close(); } catch { /* yoksay */ }
+          kameraGiden.delete(peerId);
+          setTimeout(() => { if (!kapandi && kameraAkis && !kameraGiden.has(peerId)) kuyruk = kuyruk.then(() => kameraTeklif(peerId)).catch(() => {}); }, 1500);
+        };
+        const teklif = await pc.createOffer();
+        await pc.setLocalDescription(teklif);
+        gonder(peerId, "kamera-offer", pc.localDescription?.toJSON());
+        await bitHiziSinirla(pc, 600_000);
+      };
+      const kameraGelenKapat = (peerId: string) => {
+        const e = kameraGelen.get(peerId);
+        if (e) { try { e.pc.close(); } catch { /* yoksay */ } kameraGelen.delete(peerId); }
+        setKameralar((x) => { if (!x.has(peerId)) return x; const y = new Map(x); y.delete(peerId); return y; });
+      };
+      const kameraTeklifiAl = async (s: Sinyal) => {
+        kameraGelenKapat(s.from);
+        const pc = new RTCPeerConnection({ iceServers });
+        const es: EkranEs = { pc, bekleyenIce: kameraIcePeer.get(s.from) ?? [], uzakVar: false };
+        kameraIcePeer.delete(s.from);
+        kameraGelen.set(s.from, es);
+        pc.onicecandidate = (ev) => { if (ev.candidate) gonder(s.from, "kamera-ice", { c: ev.candidate.toJSON(), rol: "alici" }); };
+        pc.ontrack = (ev) => {
+          const akis = ev.streams[0] ?? new MediaStream([ev.track]);
+          setKameralar((x) => (x.get(s.from) === akis ? x : new Map(x).set(s.from, akis)));
+        };
+        pc.onconnectionstatechange = () => { if (pc.connectionState === "failed" && kameraGelen.get(s.from) === es) kameraGelenKapat(s.from); };
+        await pc.setRemoteDescription(s.veri as RTCSessionDescriptionInit);
+        es.uzakVar = true;
+        for (const c of es.bekleyenIce) await pc.addIceCandidate(c).catch(() => {});
+        es.bekleyenIce = [];
+        const cevap = await pc.createAnswer();
+        await pc.setLocalDescription(cevap);
+        gonder(s.from, "kamera-answer", pc.localDescription?.toJSON());
+      };
+      const kameraKapat = async () => {
+        const akis = kameraAkis;
+        kameraAkis = null;
+        akis?.getTracks().forEach((t) => { t.onended = null; t.stop(); });
+        for (const e of kameraGiden.values()) { try { e.pc.close(); } catch { /* yoksay */ } }
+        kameraGiden.clear();
+        setKameraAcik(false);
+        setKameralar((x) => { if (!x.has(uyeId)) return x; const y = new Map(x); y.delete(uyeId); return y; });
+        if (!kapandi && kanal) { try { await kanal.track({ t: benimT, ekran: ekranAkis !== null, kamera: false }); } catch { /* yoksay */ } }
+      };
+      kameraRef.current = {
+        degistir: async () => {
+          if (kameraAkis) { await kameraKapat(); return { ok: true }; }
+          try {
+            const yakalanan = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 24, max: 30 } } });
+            if (kapandi) { yakalanan.getTracks().forEach((t) => t.stop()); return { ok: false }; }
+            kameraAkis = yakalanan;
+            const v = yakalanan.getVideoTracks()[0];
+            if (v) v.onended = () => { void kameraKapat(); };
+            setKameraAcik(true);
+            setKameralar((x) => new Map(x).set(uyeId, yakalanan));
+            await kanal?.track({ t: benimT, ekran: ekranAkis !== null, kamera: true });
+            for (const id of Object.keys(kanal?.presenceState() ?? {})) {
+              if (id !== uyeId && !kameraGiden.has(id)) kuyruk = kuyruk.then(() => kameraTeklif(id)).catch(() => {});
+            }
+            return { ok: true };
+          } catch (e) {
+            const ad = (e as { name?: string })?.name;
+            return { ok: false, mesaj: ad === "NotAllowedError" ? "Kamera izni verilmedi. Tarayıcının adres çubuğundan kameraya izin ver." : ad === "NotFoundError" ? "Kamera bulunamadı." : "Kamera açılamadı." };
+          }
+        },
       };
 
       const sinyalIsle = async (s: Sinyal) => {
@@ -366,6 +459,21 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           if (e && e.uzakVar) await e.pc.addIceCandidate(c).catch(() => {});
           else if (e) e.bekleyenIce.push(c);
           else if (rol === "gonderen") ekranIcePeer.set(s.from, [...(ekranIcePeer.get(s.from) ?? []), c]);
+        } else if (s.tur === "kamera-offer") {
+          await kameraTeklifiAl(s);
+        } else if (s.tur === "kamera-answer") {
+          const e = kameraGiden.get(s.from);
+          if (!e || e.uzakVar) return;
+          await e.pc.setRemoteDescription(s.veri as RTCSessionDescriptionInit);
+          e.uzakVar = true;
+          for (const c of e.bekleyenIce) await e.pc.addIceCandidate(c).catch(() => {});
+          e.bekleyenIce = [];
+        } else if (s.tur === "kamera-ice") {
+          const { c, rol } = s.veri as { c: RTCIceCandidateInit; rol: "gonderen" | "alici" };
+          const e = rol === "alici" ? kameraGiden.get(s.from) : kameraGelen.get(s.from);
+          if (e && e.uzakVar) await e.pc.addIceCandidate(c).catch(() => {});
+          else if (e) e.bekleyenIce.push(c);
+          else if (rol === "gonderen") kameraIcePeer.set(s.from, [...(kameraIcePeer.get(s.from) ?? []), c]);
         } else if (s.tur === "ice") {
           const es = esler.get(s.from);
           if (es && es.uzakVar) await es.pc.addIceCandidate(s.veri as RTCIceCandidateInit).catch(() => {});
@@ -380,8 +488,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       });
       kanal.on("presence", { event: "sync" }, () => {
         if (kapandi || !kanal) return;
-        const durumlar = kanal.presenceState<{ t: number; ekran?: boolean }>();
-        const kisiler = Object.entries(durumlar).map(([id, m]) => ({ id, t: m[0]?.t ?? 0, ekran: !!m[m.length - 1]?.ekran }));
+        const durumlar = kanal.presenceState<{ t: number; ekran?: boolean; kamera?: boolean }>();
+        const kisiler = Object.entries(durumlar).map(([id, m]) => ({ id, t: m[0]?.t ?? 0, ekran: !!m[m.length - 1]?.ekran, kamera: !!m[m.length - 1]?.kamera }));
         kisiler.sort((a, b) => a.t - b.t || a.id.localeCompare(b.id));
         // Kapasite: ilk P2P_MAX_KISI kişi sığar
         const sira = kisiler.findIndex((k) => k.id === uyeId);
@@ -404,6 +512,19 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           for (const k of kisiler) {
             if (k.id !== uyeId && !ekranGiden.has(k.id)) kuyruk = kuyruk.then(() => ekranTeklif(k.id)).catch(() => {});
           }
+        }
+        // Kamera: açıksam yeni gelenlere de yayınla; ayrılan ya da kamerasını kapatan kişinin görüntüsünü kaldır
+        for (const [id, e] of kameraGiden) {
+          if (!varOlanlar.has(id)) { try { e.pc.close(); } catch { /* yoksay */ } kameraGiden.delete(id); }
+        }
+        if (kameraAkis) {
+          for (const k of kisiler) {
+            if (k.id !== uyeId && !kameraGiden.has(k.id)) kuyruk = kuyruk.then(() => kameraTeklif(k.id)).catch(() => {});
+          }
+        }
+        for (const id of [...kameraGelen.keys()]) {
+          const k = kisiler.find((x) => x.id === id);
+          if (!k || !k.kamera) kameraGelenKapat(id);
         }
         // Başkasının yayınını izliyorsam ve o paylaşımı bıraktıysa / odadan çıktıysa kapat
         if (ekranGelen) {
@@ -446,9 +567,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     setSessiz(yeni);
   }, []);
   const sessizDegistir = useCallback(async () => { await sessizAyarla(!sessiz); }, [sessiz, sessizAyarla]);
-  // Doğrudan (P2P) modda kamera yok: arayüz bunu açıklayıcı bir uyarıyla bildirir
-  const kameralar = useRef<Map<string, MediaStream>>(new Map()).current;
-  const kameraDegistir = useCallback(async (): Promise<{ ok: boolean; mesaj?: string }> => ({ ok: false, mesaj: "Kamera yalnızca LiveKit modunda çalışır; doğrudan (ücretsiz) modda yok." }), []);
+  const kameraDegistir = useCallback(async (): Promise<{ ok: boolean; mesaj?: string }> => kameraRef.current ? kameraRef.current.degistir() : { ok: false, mesaj: "Önce sesli odaya katıl." }, []);
 
   useEffect(() => {
     const kapat = () => { void temizle(); };
@@ -459,5 +578,5 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const ekranPaylas = useCallback(async (kalite: EkranKalite): Promise<EkranSonuc> => ekranRef.current ? ekranRef.current.baslat(kalite) : { ok: false, mesaj: "Önce sesli odaya katıl." }, []);
   const ekranDurdur = useCallback(async () => { await ekranRef.current?.durdur(); }, []);
 
-  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur, kameralar, kameraAcik: false, kameraDegistir };
+  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur, kameralar, kameraAcik, kameraDegistir };
 }

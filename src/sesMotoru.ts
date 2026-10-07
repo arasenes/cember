@@ -108,8 +108,8 @@ export function useSesMotoru(
       setSunucuSusturState(v);
       if (v) await aktif.sessizAyarla(true);
     },
-    kameralar: motor === "livekit" ? lk.kameralar : BOS_KAMERALAR,
-    kameraAcik: motor === "livekit" ? lk.kameraAcik : false,
+    kameralar: motor === "livekit" ? lk.kameralar : motor === "p2p" ? p2p.kameralar : BOS_KAMERALAR,
+    kameraAcik: motor === "livekit" ? lk.kameraAcik : motor === "p2p" ? p2p.kameraAcik : false,
     kameraDegistir: async () => {
       const r = await (motor === "p2p" ? p2p : lk).kameraDegistir();
       if (!r.ok && r.mesaj) setHata(r.mesaj);
