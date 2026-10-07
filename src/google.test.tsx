@@ -36,7 +36,7 @@ describe("google", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ external: { google: false } }) }));
     render(<Gate onJoined={() => {}} />);
     await waitFor(() => expect(screen.queryByText("Google ile devam et")).toBeNull());
-    expect(screen.getByLabelText("Davet kodu")).toBeTruthy();
+    expect(screen.queryByLabelText("Davet kodu")).toBeNull();
   });
   it("KayitAdi: kısa takma adı reddeder", async () => {
     render(<KayitAdi onBitti={() => {}} />);
