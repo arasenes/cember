@@ -10,5 +10,7 @@ export type Mesaj = {
   olusturma: string; duzenleme: string | null; silindi: boolean;
   ek_yol: string | null; ek_tur: string | null; ek_boyut: number | null; ek_genislik: number | null; ek_yukseklik: number | null;
   sabit: boolean; sabit_zaman: string | null; ust_mesaj_id: string | null;
+  yanit_id?: string | null; iletilen_ad?: string | null; onizleme?: Onizleme | null;
 };
+export type Onizleme = { url: string; baslik: string | null; aciklama: string | null; resim: string | null; site: string | null };
 export type Tepki = { id: string; mesaj_id: string; uye_id: string; emoji: string };

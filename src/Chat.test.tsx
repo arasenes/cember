@@ -52,7 +52,7 @@ vi.mock("./supabase", () => {
     }
     return sonucOlustur([]);
   };
-  const kanal = { on() { return kanal; }, subscribe(cb: (d: string) => void) { cb("SUBSCRIBED"); return kanal; }, track: async () => {}, presenceState: () => ({}) };
+  const kanal = { on() { return kanal; }, subscribe(cb?: (d: string) => void) { cb?.("SUBSCRIBED"); return kanal; }, track: async () => {}, send: async () => "ok", presenceState: () => ({}) };
   return {
     SUPABASE_URL: "http://x", SUPABASE_KEY: "k",
     supabase: {

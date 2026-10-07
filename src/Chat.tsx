@@ -21,6 +21,12 @@ import KanalSifre from "./KanalSifre";
 import SabitlerDialog from "./SabitlerDialog";
 import KonuPaneli from "./KonuPaneli";
 import { useYaziyorTakip, YAZIYOR_YAYIN_ARALIK_MS } from "./mesaj/yaziyor";
+import { useAnketler } from "./mesaj/anket";
+import AnketOlustur, { type AnketTaslak } from "./mesaj/AnketOlustur";
+import AramaPaneli from "./mesaj/AramaPaneli";
+import GifSecici from "./mesaj/GifSecici";
+import IletDialog from "./mesaj/IletDialog";
+import Ikon from "./mesaj/Ikon";
 import ProfilDialog, { type ProfilDegisiklik } from "./ProfilDialog";
 import { boyutMetni, ekHazirla, ekYolu, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
 
@@ -64,6 +70,18 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [simdi, setSimdi] = useState(() => Date.now());
   const [yanitlar, setYanitlar] = useState<Mesaj[]>([]);
   const [konuId, setKonuId] = useState<string | null>(null);
+  const [yanitlanan, setYanitlanan] = useState<Mesaj | null>(null);
+  const [iletMesaj, setIletMesaj] = useState<Mesaj | null>(null);
+  const [aramaAcik, setAramaAcik] = useState(false);
+  const [anketAcik, setAnketAcik] = useState(false);
+  const [gifAcik, setGifAcik] = useState(false);
+  const [vurguId, setVurguId] = useState<string | null>(null);
+  const [alintiOnbellek, setAlintiOnbellek] = useState<Map<string, Mesaj>>(new Map());
+  const alintiSorulan = useRef(new Set<string>());
+  const gitRef = useRef<Mesaj | null>(null);
+  const [bolucu, setBolucu] = useState<{ kanal: string; zaman: string } | null>(null);
+  const [okumaHazir, setOkumaHazir] = useState(false);
+  const okunduGonderim = useRef<Record<string, number>>({});
   const [sesler, setSesler] = useState(seslerAcik);
   const [tema, setTema] = useState(temaTercihi);
   const [yazi, setYazi] = useState(yaziBoyutuOku);
@@ -90,6 +108,12 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     okunduRef.current = { ...okunduRef.current, [kanalId]: zaman && zaman > simdi ? zaman : simdi };
     okunduYaz(okunduRef.current);
     setOkunmamis((x) => { if (!x[kanalId]) return x; const y = { ...x }; delete y[kanalId]; return y; });
+    // Cihazlar arası okundu bilgisi: kanal başına en fazla 3 saniyede bir sunucuya yaz
+    const t = Date.now();
+    if (t - (okunduGonderim.current[kanalId] ?? 0) > 3000) {
+      okunduGonderim.current[kanalId] = t;
+      void supabase.rpc("okundu_isaretle", { p_kanal: kanalId }).then(() => {});
+    }
   }, []);
   const oncekiKonumRef = useRef<{ kanal: string | null; konum: Map<string, string> }>({ kanal: null, konum: new Map() });
   const uyelerRef = useRef<Uye[]>([]);
@@ -111,6 +135,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const yaziyor = useYaziyorTakip(aktif);
   const yaziyorRef = useRef(yaziyor);
   yaziyorRef.current = yaziyor;
+  const { anketler, oyla: anketOyla } = useAnketler(mesajlar.map((m) => m.id), me.id);
   const sonYaziyorYayin = useRef(0);
   const duyuruRef = useRef<{ ses: string | null; motor: Motor | null }>({ ses: null, motor: null });
   const kanalDuyur = useCallback((k: string | null, motor: Motor | null) => {
@@ -140,6 +165,21 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     return uyeler.filter((u) => !u.silindi && u.id !== me.id && u.takma_ad.toLocaleLowerCase("tr").includes(q)).slice(0, 5);
   }, [metin, uyeler, me.id]);
   const uyeHaritasi = useMemo(() => new Map(uyeler.map((u) => [u.id, u])), [uyeler]);
+  // Alıntılanan mesajlar: yüklü olanlar + gerekirse tek tek getirilenler
+  const mesajIndex = useMemo(() => {
+    const m = new Map<string, Mesaj>(alintiOnbellek);
+    for (const x of yanitlar) m.set(x.id, x);
+    for (const x of mesajlar) m.set(x.id, x);
+    return m;
+  }, [alintiOnbellek, yanitlar, mesajlar]);
+  useEffect(() => {
+    const eksik = [...new Set([...mesajlar, ...yanitlar].map((m) => m.yanit_id).filter((id): id is string => !!id && !mesajIndex.has(id) && !alintiSorulan.current.has(id)))];
+    if (!eksik.length) return;
+    eksik.forEach((id) => alintiSorulan.current.add(id));
+    supabase.from("mesajlar").select("*").in("id", eksik).then(({ data }) => {
+      if (data) setAlintiOnbellek((x) => { const y = new Map(x); for (const r of data as Mesaj[]) y.set(r.id, r); return y; });
+    });
+  }, [mesajlar, yanitlar, mesajIndex]);
   const aktifKanal = kanallar.find((k) => k.id === aktif);
   const ben = uyeHaritasi.get(me.id) ?? me;
   const paylasanId = ses.kanalId ? [...sesKonum].find(([uid, v]) => uid !== me.id && v.kanal === ses.kanalId && v.ekran)?.[0] ?? null : null;
@@ -149,7 +189,13 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const benSusturuldu = susturulmus(ben, simdi);
 
   // Okunmamış göstergesi: kanal açılınca / sekme görünür olunca okundu say
-  useEffect(() => { if (aktif) okunduIsaretle(aktif); }, [aktif, okunduIsaretle]);
+  useEffect(() => {
+    if (!aktif || !okumaHazir) return;
+    // "Yeni mesajlar" çizgisi: kanal açılmadan önceki son okuma zamanı
+    const onceki = okunduRef.current[aktif];
+    setBolucu(onceki ? { kanal: aktif, zaman: onceki } : null);
+    okunduIsaretle(aktif);
+  }, [aktif, okunduIsaretle, okumaHazir]);
   useEffect(() => {
     const g = () => { if (document.visibilityState === "visible" && aktifRef.current) okunduIsaretle(aktifRef.current); };
     document.addEventListener("visibilitychange", g);
@@ -159,6 +205,14 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   useEffect(() => {
     if (ozetRef.current || !kanallar.length || !uyeler.length) return;
     ozetRef.current = true;
+    void (async () => {
+    // Sunucudaki okuma zamanlarını (diğer cihazlar dahil) yerel kayıtla birleştir: en yenisi geçerli
+    const { data: sunucu } = await supabase.from("kanal_okuma").select("kanal_id, son_okuma");
+    for (const r of (sunucu ?? []) as { kanal_id: string; son_okuma: string }[]) {
+      if (!okunduRef.current[r.kanal_id] || r.son_okuma > okunduRef.current[r.kanal_id]) okunduRef.current[r.kanal_id] = r.son_okuma;
+    }
+    okunduYaz(okunduRef.current);
+    setOkumaHazir(true);
     const simdi = new Date().toISOString();
     let yeni = false;
     for (const k of kanallar) if (!okunduRef.current[k.id]) { okunduRef.current[k.id] = simdi; yeni = true; }
@@ -180,6 +234,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         }
         setOkunmamis((x) => ({ ...toplam, ...x }));
       });
+    })();
   }, [kanallar, uyeler, me.id, me.takma_ad]);
   useEffect(() => {
     const e = Object.entries(okunmamis).filter(([id]) => !sessiz.includes(id)).reduce((a, [, v]) => a + v.etiket, 0);
@@ -287,6 +342,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         const { data: t } = await supabase.from("tepkiler").select("*").in("mesaj_id", liste.map((m) => m.id));
         if (!iptal && t) setTepkiler(t as Tepki[]);
       }
+      if (!iptal) void gitIsle(liste);
     })();
     return () => { iptal = true; };
   }, [aktif]);
@@ -472,7 +528,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   useEffect(() => () => { if (ekRef.current) URL.revokeObjectURL(ekRef.current.onizleme); }, []);
 
   // Hazırlanan resim yanlış kanala gitmesin diye kanal değişince bırakılır
-  useEffect(() => { ekTemizle(); }, [aktif]);
+  useEffect(() => { ekTemizle(); setYanitlanan(null); setGifAcik(false); }, [aktif]);
 
   // Oda sahibi için aylık ses kullanımı (bağlantı durumu değişince yenilenir)
   useEffect(() => {
@@ -500,6 +556,91 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     return liste ? [...liste].find((f) => f.type.startsWith("image/")) : undefined;
   }
 
+  const mesajaKaydir = useCallback((id: string) => {
+    setTimeout(() => {
+      const el = document.getElementById(`mesaj-${id}`);
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      setVurguId(id);
+      setTimeout(() => setVurguId((v) => (v === id ? null : v)), 2200);
+    }, 60);
+  }, []);
+
+  /** Aranan / alıntılanan mesaja gider; yüklü değilse etrafındaki mesajları yükler. */
+  async function gitIsle(liste?: Mesaj[]) {
+    const h = gitRef.current;
+    if (!h || h.kanal_id !== aktifRef.current) return;
+    gitRef.current = null;
+    const anaId = h.ust_mesaj_id ?? h.id;
+    if (h.ust_mesaj_id) setKonuId(h.ust_mesaj_id);
+    if (!(liste ?? mesajlarRef.current).some((m) => m.id === anaId)) {
+      let ana: Mesaj | undefined = h.ust_mesaj_id ? undefined : h;
+      if (!ana) {
+        const { data } = await supabase.from("mesajlar").select("*").eq("id", anaId).maybeSingle();
+        ana = (data as Mesaj | null) ?? undefined;
+      }
+      if (!ana) return setHata("Mesaj bulunamadı.");
+      const [once, sonra] = await Promise.all([
+        supabase.from("mesajlar").select("*").eq("kanal_id", ana.kanal_id).is("ust_mesaj_id", null).lte("olusturma", ana.olusturma).order("olusturma", { ascending: false }).limit(25),
+        supabase.from("mesajlar").select("*").eq("kanal_id", ana.kanal_id).is("ust_mesaj_id", null).gt("olusturma", ana.olusturma).order("olusturma", { ascending: true }).limit(25),
+      ]);
+      const pencere = birlestir([], [...((once.data ?? []) as Mesaj[]), ...((sonra.data ?? []) as Mesaj[])]);
+      altaKaydir.current = false;
+      setMesajlar(pencere);
+      setDahaVar(true);
+      const { data: t } = await supabase.from("tepkiler").select("*").in("mesaj_id", pencere.map((m) => m.id));
+      if (t) setTepkiler(t as Tepki[]);
+    }
+    mesajaKaydir(anaId);
+  }
+
+  function mesajaGit(m: Mesaj) {
+    setAramaAcik(false);
+    gitRef.current = m;
+    if (m.kanal_id === aktifRef.current) return void gitIsle();
+    const k = kanallar.find((x) => x.id === m.kanal_id);
+    if (k) kanalaGir(k, () => { setAktif(k.id); setPane("chat"); });
+  }
+
+  async function alintiyaGit(id: string) {
+    if (document.getElementById(`mesaj-${id}`)) return mesajaKaydir(id);
+    const m = mesajIndex.get(id) ?? ((await supabase.from("mesajlar").select("*").eq("id", id).maybeSingle()).data as Mesaj | null);
+    if (!m) return toastAt("Mesaj bulunamadı.", "hata");
+    if (m.silindi) return toastAt("Bu mesaj silindi.");
+    gitRef.current = m;
+    await gitIsle();
+  }
+
+  async function gifGonder(url: string) {
+    if (!aktif) return;
+    setGifAcik(false);
+    const { data, error } = await supabase.from("mesajlar").insert({ kanal_id: aktif, uye_id: me.id, metin: url, yanit_id: yanitlanan?.id ?? null }).select().single();
+    if (error) return setHata("GIF gönderilemedi.");
+    setYanitlanan(null);
+    altaKaydir.current = true;
+    setMesajlar((x) => birlestir(x, [data as Mesaj]));
+  }
+
+  async function anketOlustur(t: AnketTaslak): Promise<string | null> {
+    if (!aktif) return "Kanal seçili değil.";
+    const { error } = await supabase.rpc("anket_olustur", { p_kanal: aktif, p_soru: t.soru, p_secenekler: t.secenekler, p_sure_dk: t.sureDk, p_coklu: t.coklu });
+    if (error) return error.message;
+    setAnketAcik(false);
+    altaKaydir.current = true;
+    return null;
+  }
+
+  async function iletGonder(k: Kanal) {
+    const m = iletMesaj;
+    if (!m) return;
+    const yazarAd = uyeHaritasi.get(m.uye_id)?.takma_ad ?? "Eski üye";
+    const { data, error } = await supabase.from("mesajlar").insert({ kanal_id: k.id, uye_id: me.id, metin: m.metin, iletilen_ad: yazarAd.slice(0, 24) }).select().single();
+    setIletMesaj(null);
+    if (error) return setHata("Mesaj iletilemedi.");
+    toastAt(`İletildi: #${k.ad}`);
+    if (k.id === aktifRef.current) { altaKaydir.current = true; setMesajlar((x) => birlestir(x, [data as Mesaj])); }
+  }
+
   function yaziyorYayinla() {
     const simdi = Date.now();
     if (!aktif || simdi - sonYaziyorYayin.current < YAZIYOR_YAYIN_ARALIK_MS) return;
@@ -522,7 +663,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         if (yErr) { yol = null; return setHata("Resim yüklenemedi. Biraz sonra tekrar dene."); }
       }
       const { data, error } = await supabase.from("mesajlar").insert({
-        kanal_id: aktif, uye_id: me.id, metin: t,
+        kanal_id: aktif, uye_id: me.id, metin: t, yanit_id: yanitlanan?.id ?? null,
         ...(gonderilenEk && yol ? {
           ek_yol: yol, ek_tur: gonderilenEk.tur, ek_boyut: gonderilenEk.boyut,
           ek_genislik: gonderilenEk.genislik, ek_yukseklik: gonderilenEk.yukseklik,
@@ -532,9 +673,10 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         if (yol) void supabase.storage.from("ekler").remove([yol]);
         return setHata("Mesaj gönderilemedi.");
       }
-      setMetin(""); setEmojiAcik(false); ekTemizle();
+      setMetin(""); setEmojiAcik(false); ekTemizle(); setYanitlanan(null);
       altaKaydir.current = true;
       setMesajlar((x) => birlestir(x, [data as Mesaj]));
+      if (/https?:\/\//i.test(t)) void supabase.functions.invoke("onizleme", { body: { mesaj_id: (data as Mesaj).id } });
       metinRef.current?.focus();
     } finally {
       setGonderiliyor(false);
@@ -708,6 +850,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
 
   let sonGun = "";
   let onceki: Mesaj | null = null;
+  let bolucuYazildi = false;
   const satirlar: React.ReactNode[] = [];
   for (const m of mesajlar) {
     const g = gunEtiketi(m.olusturma);
@@ -715,8 +858,20 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     const devam = !!onceki && onceki.uye_id === m.uye_id && !onceki.silindi && !m.silindi
       && new Date(m.olusturma).getTime() - new Date(onceki.olusturma).getTime() < 5 * 60000;
     onceki = m;
+    if (bolucu && bolucu.kanal === aktif && !bolucuYazildi && m.olusturma > bolucu.zaman && m.uye_id !== me.id) {
+      bolucuYazildi = true;
+      satirlar.push(<div className="yeni-cizgi" role="separator" aria-label="Buradan sonrası yeni mesajlar" key={"yeni" + m.id}><span>Yeni mesajlar</span></div>);
+    }
+    const alintilanan = m.yanit_id ? mesajIndex.get(m.yanit_id) : undefined;
     satirlar.push(
-      <MessageView key={m.id} devam={devam} mesaj={m} yazar={uyeHaritasi.get(m.uye_id)} benim={ben}
+      <MessageView key={m.id} devam={devam} vurgu={vurguId === m.id} mesaj={m}
+        zengin={{
+          alinti: m.yanit_id ? { mesaj: alintilanan, yazar: alintilanan ? uyeHaritasi.get(alintilanan.uye_id) : undefined } : undefined,
+          onAlintiGit: (id) => void alintiyaGit(id),
+          onYanitla: benSusturuldu ? undefined : (x) => { setYanitlanan(x); metinRef.current?.focus(); },
+          onIlet: (x) => setIletMesaj(x),
+          anket: anketler.get(m.id), onOyla: anketOyla, onHata: (h) => toastAt(h, "hata"),
+        }} yazar={uyeHaritasi.get(m.uye_id)} benim={ben}
         tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} onDuzenle={mesajDuzenle} onSabitle={sabitle} onProfil={setProfilId}
         yanitSayisi={yanitlar.filter((y) => y.ust_mesaj_id === m.id && !y.silindi).length} onKonu={(x) => setKonuId(x.id)} />,
     );
@@ -844,6 +999,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
               <button className="head-dugme" aria-pressed={sessiz.includes(aktifKanal.id)} onClick={() => sessizDegistir(aktifKanal.id)}
                 aria-label={sessiz.includes(aktifKanal.id) ? "Kanalın sesini aç" : "Kanalı sessize al"} title={sessiz.includes(aktifKanal.id) ? "Sessizde: ses ve sayaç yok" : "Sessize al"}>{sessiz.includes(aktifKanal.id) ? "🔕" : "🔔"}</button>
             )}
+            <button className="head-dugme" onClick={() => setAramaAcik(true)} aria-label="Mesajlarda ara" aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /> Ara</button>
             {sabitler.length > 0 && (
               <button className="head-dugme" onClick={() => setSabitAcik(true)} aria-label={`${sabitler.length} sabitlenmiş mesajı göster`}>📌 {sabitler.length}</button>
             )}
@@ -880,6 +1036,13 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           </div>
         )}
         <div className="yaziyor" aria-hidden="true">{yaziyor.metin}</div>
+        {yanitlanan && (
+          <div className="yanit-cubugu" role="status">
+            <Ikon ad="yanit" boyut={14} />
+            <span><b>{uyeHaritasi.get(yanitlanan.uye_id)?.takma_ad ?? "Eski üye"}</b> kişisine yanıt veriyorsun</span>
+            <button type="button" className="sq" aria-label="Yanıtı iptal et" onClick={() => setYanitlanan(null)}><Ikon ad="kapat" boyut={14} /></button>
+          </div>
+        )}
         <div className="composer">
           {etiketAday.length > 0 && (
             <div className="etiket-liste" role="listbox" aria-label="Etiketlenecek kişi">
@@ -894,13 +1057,19 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           )}
           <button className="sq" onClick={() => setEmojiAcik(!emojiAcik)} aria-label="Emoji seçici" aria-expanded={emojiAcik}>🙂</button>
           <button className="sq" onClick={() => dosyaRef.current?.click()} aria-label="Resim ekle" disabled={gonderiliyor || benSusturuldu}>📎</button>
+          <button className="sq" onClick={() => setAnketAcik(true)} aria-label="Anket oluştur" disabled={benSusturuldu || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
+          <button className="sq" onClick={() => setGifAcik((x) => !x)} aria-label="GIF seç" aria-expanded={gifAcik} disabled={benSusturuldu || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
+          {gifAcik && <GifSecici onSec={(u) => void gifGonder(u)} onKapat={() => setGifAcik(false)} />}
           <input ref={dosyaRef} type="file" accept={IZINLI_TURLER.join(",")} hidden
             onChange={(e) => { void ekSec(e.target.files?.[0]); e.target.value = ""; }} />
           <textarea ref={metinRef} rows={1} value={metin} maxLength={4000} aria-label="Mesaj yaz" disabled={benSusturuldu}
             placeholder={benSusturuldu ? `Susturuldun; ${new Date(ben.susturma_bitis!).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}'e kadar yazamazsın` : `#${aktifKanal?.ad ?? ""} kanalına yaz`}
             onChange={(e) => { setMetin(e.target.value); if (e.target.value.trim()) yaziyorYayinla(); }}
             onPaste={(e) => { const f = resimBul(e.clipboardData.files); if (f) { e.preventDefault(); void ekSec(f, "Ekran görüntüsü"); } }}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); gonder(); } }} />
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); gonder(); }
+              else if (e.key === "Escape" && yanitlanan) setYanitlanan(null);
+            }} />
           <button className="sq send" onClick={gonder} aria-label="Gönder" disabled={(!metin.trim() && !ek) || gonderiliyor || benSusturuldu}>{gonderiliyor ? "…" : "➤"}</button>
         </div>
       </section>
@@ -933,6 +1102,12 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
       {yonetimAcik && yonetici && (
         <YonetimPaneli ben={ben} uyeler={uyeler} kanallar={kanallar} sesKonum={sesKonum} cevrimici={cevrimici}
           onKapat={() => setYonetimAcik(false)} />
+      )}
+      {aramaAcik && <AramaPaneli odaId={me.oda_id} kanallar={kanallar} uyeler={uyeler} onGit={mesajaGit} onKapat={() => setAramaAcik(false)} />}
+      {anketAcik && <AnketOlustur onOlustur={anketOlustur} onKapat={() => setAnketAcik(false)} />}
+      {iletMesaj && (
+        <IletDialog mesaj={iletMesaj} yazar={uyeHaritasi.get(iletMesaj.uye_id)} aktifKanal={aktif}
+          kanallar={kanallar.filter((k) => k.tur === "yazili" && girebilir(k))} onIlet={(k) => void iletGonder(k)} onKapat={() => setIletMesaj(null)} />
       )}
       {sabitAcik && (
         <SabitlerDialog mesajlar={sabitler} uyeler={uyeHaritasi} kanalAdi={aktifKanal?.ad ?? ""} yonetici={yonetici}

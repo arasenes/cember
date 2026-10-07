@@ -107,4 +107,39 @@ describe("konu düğmesi", () => {
     expect(screen.queryByRole("textbox", { name: "Mesajı düzenle" })).toBeNull();
     expect(onDuzenle).not.toHaveBeenCalled();
   });
+
+  it("alıntılı yanıt: alıntı satırı yazar ve metni gösterir, tıklayınca mesaja gider; Yanıtla/İlet düğmeleri çalışır", () => {
+    const onAlintiGit = vi.fn(); const onYanitla = vi.fn(); const onIlet = vi.fn();
+    const baskasi: Uye = { ...uye, id: "u9", takma_ad: "Mehmet" };
+    const alinan = { ...mesaj("ilk mesaj"), id: "m0", uye_id: "u9" };
+    render(<MessageView mesaj={{ ...mesaj("cevap"), yanit_id: "m0" }} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()}
+      zengin={{ alinti: { mesaj: alinan, yazar: baskasi }, onAlintiGit, onYanitla, onIlet }} />);
+    const satir = screen.getByRole("button", { name: /Mehmet kişisinin mesajına git/ });
+    expect(satir.textContent).toContain("ilk mesaj");
+    fireEvent.click(satir);
+    expect(onAlintiGit).toHaveBeenCalledWith("m0");
+    fireEvent.click(screen.getByRole("button", { name: "Yanıtla" }));
+    expect(onYanitla).toHaveBeenCalledWith(expect.objectContaining({ id: "m1" }));
+    fireEvent.click(screen.getByRole("button", { name: "İlet" }));
+    expect(onIlet).toHaveBeenCalled();
+  });
+
+  it("silinmiş alıntı için 'Bu mesaj silindi.' gösterir; iletilen mesajda etiket çıkar", () => {
+    render(<MessageView mesaj={{ ...mesaj("x"), yanit_id: "m0", iletilen_ad: "Can" }} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()}
+      zengin={{ alinti: { mesaj: { ...mesaj("gizli"), id: "m0", silindi: true } } }} />);
+    expect(screen.getByText("Bu mesaj silindi.")).toBeTruthy();
+    expect(screen.queryByText("gizli")).toBeNull();
+    expect(screen.getByText(/Can'ten iletildi/)).toBeTruthy();
+  });
+
+  it("resimli mesajda İlet düğmesi yoktur; GIF bağlantısı resim olarak gösterilir; bağlantı kartı güvenli açılır", () => {
+    const { container, rerender } = render(<MessageView mesaj={{ ...mesaj("yazı"), ek_yol: "a/b/c.webp" }} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} zengin={{ onIlet: vi.fn() }} />);
+    expect(screen.queryByRole("button", { name: "İlet" })).toBeNull();
+    rerender(<MessageView mesaj={mesaj("https://media.giphy.com/media/abc/giphy.gif")} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} />);
+    expect(container.querySelector("img.gif-mesaj")!.getAttribute("src")).toBe("https://media.giphy.com/media/abc/giphy.gif");
+    rerender(<MessageView mesaj={{ ...mesaj("bak https://ornek.com"), onizleme: { url: "https://ornek.com", baslik: "Ornek", aciklama: null, resim: "javascript:x", site: "ornek.com" } }} yazar={uye} benim={uye} tepkiler={[]} onTepki={vi.fn()} onSil={vi.fn()} />);
+    const kart = container.querySelector("a.onizleme")!;
+    expect(kart.getAttribute("rel")).toContain("noopener");
+    expect(kart.querySelector("img")).toBeNull();
+  });
 });

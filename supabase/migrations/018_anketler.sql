@@ -87,3 +87,15 @@ begin
     delete from public.anket_oylari where anket_id = v_anket and uye_id = v_uye and secenek_id = p_secenek;
   end if;
 end $$;
+
+alter publication supabase_realtime add table public.anket_oylari;
+revoke execute on function public.anket_olustur(uuid, text, text[], integer, boolean) from public, anon;
+revoke execute on function public.anket_oyla(uuid, boolean) from public, anon;
+revoke execute on function public.okundu_isaretle(uuid, timestamptz) from public, anon;
+revoke execute on function public.yanit_gecerli(uuid, uuid) from public, anon;
+revoke execute on function public.anket_mesaji(uuid) from public, anon;
+grant execute on function public.anket_olustur(uuid, text, text[], integer, boolean) to authenticated;
+grant execute on function public.anket_oyla(uuid, boolean) to authenticated;
+grant execute on function public.okundu_isaretle(uuid, timestamptz) to authenticated;
+grant execute on function public.yanit_gecerli(uuid, uuid) to authenticated;
+grant execute on function public.anket_mesaji(uuid) to authenticated;
