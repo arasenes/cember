@@ -1,6 +1,6 @@
 export type Durum = "cevrimici" | "mesgul" | "rahatsiz";
 export type Uye = {
-  id: string; oda_id: string; user_id: string; takma_ad: string;
+  id: string; oda_id: string; user_id: string | null; takma_ad: string; misafir?: boolean; silindi?: boolean;
   renk: string; rol: "sahip" | "moderator" | "uye"; son_gorulme: string; susturma_bitis?: string | null;
   avatar_yol?: string | null; hakkinda?: string | null; durum?: Durum;
 };

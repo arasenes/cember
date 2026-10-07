@@ -43,4 +43,10 @@ describe("google", () => {
     (screen.getByText("Kayıt ol ve gir") as HTMLButtonElement).click();
     expect(await screen.findByText("Takma ad en az 2 harf olmalı.")).toBeTruthy();
   });
+  it("Gate: misafir düğmesi kısa takma adı reddeder", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ external: { google: false } }) }));
+    render(<Gate onJoined={() => {}} />);
+    (screen.getByText("Misafir olarak gir") as HTMLButtonElement).click();
+    expect(await screen.findByText("Takma ad en az 2 harf olmalı.")).toBeTruthy();
+  });
 });

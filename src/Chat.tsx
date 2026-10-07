@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { supabase } from "./supabase";
+import { supabase, SUPABASE_KEY, SUPABASE_URL } from "./supabase";
 import { useSesMotoru, type Motor } from "./sesMotoru";
 import SesCubugu from "./SesCubugu";
 import EkranPaneli from "./EkranPaneli";
@@ -30,6 +30,9 @@ function birlestir(eski: Mesaj[], yeni: Mesaj[]): Mesaj[] {
   for (const x of [...eski, ...yeni]) m.set(x.id, x);
   return [...m.values()].sort((a, b) => a.olusturma.localeCompare(b.olusturma));
 }
+
+// Silinen misafirin mesajları kalır; adı ve fotoğrafı gizlenir
+const silinmisGoster = (u: Uye): Uye => (u.silindi ? { ...u, takma_ad: "Silinmiş üye", avatar_yol: null, hakkinda: null } : u);
 
 export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   const [odaAdi, setOdaAdi] = useState("Çember");
@@ -126,7 +129,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     const x = /(?:^|\s)@([^\s@]*)$/.exec(metin);
     if (!x) return [];
     const q = x[1].toLocaleLowerCase("tr");
-    return uyeler.filter((u) => u.id !== me.id && u.takma_ad.toLocaleLowerCase("tr").includes(q)).slice(0, 5);
+    return uyeler.filter((u) => !u.silindi && u.id !== me.id && u.takma_ad.toLocaleLowerCase("tr").includes(q)).slice(0, 5);
   }, [metin, uyeler, me.id]);
   const uyeHaritasi = useMemo(() => new Map(uyeler.map((u) => [u.id, u])), [uyeler]);
   const aktifKanal = kanallar.find((k) => k.id === aktif);
@@ -233,7 +236,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
         const ilk = (k.data as Kanal[]).find((x) => x.tur === "yazili" && (!x.sifreli || yon !== "uye" || acikSet.has(x.id)));
         if (ilk) setAktif(ilk.id);
       }
-      if (u.data) setUyeler(u.data as Uye[]);
+      if (u.data) setUyeler((u.data as Uye[]).map(silinmisGoster));
     })();
   }, [me.oda_id]);
 
@@ -378,7 +381,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
           if (u.id === me.id) { supabase.auth.signOut().then(onExit); return; }
           setUyeler((x) => x.filter((y) => y.id !== u.id));
         } else {
-          const u = p.new as Uye;
+          const u = silinmisGoster(p.new as Uye);
           setUyeler((x) => (x.some((y) => y.id === u.id) ? x.map((y) => (y.id === u.id ? u : y)) : [...x, u]));
         }
       })
@@ -597,6 +600,20 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
   }
 
   async function cikis() {
+    if (ben.misafir) {
+      if (!confirm("Misafir hesabın silinecek ve bir daha girilemeyecek. Mesajların odada \"Silinmiş üye\" adıyla kalır. Çıkılsın mı?")) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch(`${SUPABASE_URL}/functions/v1/katil`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ""}` },
+          body: JSON.stringify({ misafir_sil: true }),
+        });
+      } catch { /* ağ yoksa yine de çık; bayat misafirler sonradan temizlenir */ }
+      await supabase.auth.signOut().catch(() => {});
+      onExit();
+      return;
+    }
     if (!confirm("Çıkış yapılsın mı? Bu takma adla bu tarayıcıdan tekrar giremezsin; oda sahibi seni silerse yeniden katılabilirsin.")) return;
     await supabase.auth.signOut();
     onExit();
@@ -630,8 +647,9 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
     const o = okunmamisBilgi(k.id);
     return o ? `, ${o.n} okunmamış mesaj${o.etiket ? `, ${o.etiket} etiket` : ""}` : "";
   };
-  const cevrimiciUyeler = uyeler.filter((u) => cevrimici.has(u.id) || u.id === me.id);
-  const cevrimdisiUyeler = uyeler.filter((u) => !cevrimiciUyeler.includes(u));
+  const aktifUyeler = uyeler.filter((u) => !u.silindi);
+  const cevrimiciUyeler = aktifUyeler.filter((u) => cevrimici.has(u.id) || u.id === me.id);
+  const cevrimdisiUyeler = aktifUyeler.filter((u) => !cevrimiciUyeler.includes(u));
 
   let sonGun = "";
   let onceki: Mesaj | null = null;
@@ -831,7 +849,7 @@ export default function Chat({ me, onExit }: { me: Uye; onExit: () => void }) {
       </section>
 
       <aside className="col members" aria-label="Üyeler">
-        <div className="head"><h2>Üyeler — {uyeler.length}</h2></div>
+        <div className="head"><h2>Üyeler — {aktifUyeler.length}</h2></div>
         <div className="scroll">
           <div className="sec">Çevrimiçi — {cevrimiciUyeler.length}</div>
           {cevrimiciUyeler.map((u) => uyeSatiri(u, true))}

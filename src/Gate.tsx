@@ -18,17 +18,17 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
     if (h) { setHata(h); setBekle(false); }
   }
 
-  async function gonder(e: React.FormEvent) {
+  async function gonder(e: React.FormEvent, misafir = false) {
     e.preventDefault();
     setHata("");
     if (ad.trim().length < 2) return setHata("Takma ad en az 2 harf olmalı.");
-    if (!kod.trim()) return setHata("Davet kodunu yaz.");
+    if (!misafir && !kod.trim()) return setHata("Davet kodunu yaz.");
     setBekle(true);
     try {
       const r = await fetch(`${SUPABASE_URL}/functions/v1/katil`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY },
-        body: JSON.stringify({ kod, takma_ad: ad }),
+        body: JSON.stringify(misafir ? { misafir: true, takma_ad: ad } : { kod, takma_ad: ad }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -78,7 +78,8 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
         </div>
         <div className="err" role="alert">{hata}</div>
         <button className="cta" type="submit" disabled={bekle}>{bekle ? "Giriliyor…" : "Odaya gir"}</button>
-        <p className="hint">E-posta ya da şifre yok. Bu tarayıcıda oturumun açık kalır.</p>
+        <button className="cta ikincil" type="button" disabled={bekle} onClick={(e) => gonder(e, true)}>Misafir olarak gir</button>
+        <p className="hint">Misafir hesabı kod gerektirmez; Çıkış'a basınca hesabın silinir, mesajların "Silinmiş üye" adıyla kalır.</p>
       </form>
     </main>
   );
