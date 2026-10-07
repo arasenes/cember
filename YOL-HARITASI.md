@@ -9,14 +9,14 @@ Teknoloji: React + Supabase (RLS + realtime) + LiveKit. Yeni her tablo RLS ile g
 - [x] Konular / yanıt dizileri (`ust_mesaj_id`, `KonuPaneli`)
 - [x] Sabitlenmiş mesajlar (`sabit`)
 - [x] @bahsetme otomatik tamamlama (Chat.tsx ~satır 132); etiketli mesaj bildirimi
-- [ ] **Mesaja alıntılı yanıt** (konu açmadan): `mesajlar.yanit_id uuid references mesajlar`, üstte alıntı kartı
-- [ ] **Mesaj arama**: `mesajlar.metin` üzerinde `tsvector` (turkish) + GIN dizin, arama kutusu, kanal/kişi/tarih süzgeci
-- [ ] **"Yazıyor…" göstergesi**: Supabase Realtime presence/broadcast, kanal başına
-- [ ] **Anket**: `anketler`, `anket_secenekleri`, `anket_oylari` tabloları; mesaj türü "anket"
-- [ ] **GIF**: Tenor/Giphy API anahtarı (edge function üzerinden), seçici
-- [ ] **Bağlantı önizleme** (Open Graph): edge function `onizleme`, `mesajlar.onizleme jsonb`
-- [ ] Mesaj iletme, Markdown (kalın/italik/kod/alıntı), spoiler `||metin||`
-- [ ] Okunmamış işareti ve "buradan itibaren okunmadı" çizgisi (`kanal_okuma(uye_id, kanal_id, son_okuma)`)
+- [x] **Mesaja alıntılı yanıt** (konu açmadan): `mesajlar.yanit_id uuid references mesajlar`, üstte alıntı kartı
+- [x] **Mesaj arama**: `mesajlar.metin` üzerinde `tsvector` (turkish) + GIN dizin, arama kutusu, kanal/kişi/tarih süzgeci
+- [x] **"Yazıyor…" göstergesi**: Supabase Realtime presence/broadcast, kanal başına
+- [x] **Anket**: `anketler`, `anket_secenekleri`, `anket_oylari` tabloları; mesaj türü "anket"
+- [x] **GIF**: Tenor/Giphy API anahtarı (edge function üzerinden), seçici (kod hazır; `GIPHY_API_KEY` ya da `TENOR_API_KEY` Supabase sırrı eklenince çalışır)
+- [x] **Bağlantı önizleme** (Open Graph): edge function `onizleme`, `mesajlar.onizleme jsonb`
+- [x] Mesaj iletme, Markdown (kalın/italik/kod/alıntı), spoiler `||metin||`
+- [x] Okunmamış işareti ve "buradan itibaren okunmadı" çizgisi (`kanal_okuma(uye_id, kanal_id, son_okuma)`)
 
 ## 2. Özel mesaj ve sosyal
 - [x] Profil, avatar, hakkında, durum (çevrimiçi/meşgul/rahatsız etme)

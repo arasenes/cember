@@ -63,3 +63,19 @@ Arkadaşlar için Discord benzeri sohbet + sesli oda uygulaması. Yönetici: Ara
 - Web bildirimine dokununca ilgili kanal açılıyor (`sw.js` → `postMessage` / `?kanal=`). APK'da FCM tarafı Firebase kurulunca ayrıca bağlanmalı.
 - Düzeltme: `livekit-client` zaten ayrı (lazy) parça olarak yükleniyor; "kod bölme yapılmadı" notu yanlıştı.
 - Yapılmadı (gerçek cihaz/Firebase gerekir): telefon ses paylaşımı doğrulaması, FCM, sesli odada arka plan servisi, resim dışı dosya gönderme, P2P'de yalnızca dinleyici.
+
+
+## Aşama 1 (mesaj özellikleri): tamamlandı, 7 Ekim 2026
+Yeni kod `src/mesaj/` altında; `Chat.tsx` yalnızca bağlar. Her özelliğin birim testi var (135 test geçiyor, `tsc` temiz).
+- **Alıntılı yanıt** (`mesajlar.yanit_id`): mesaj araç çubuğunda Yanıtla; yazı alanı üstünde "X kişisine yanıt veriyorsun" çubuğu; mesajda alıntı satırı, tıklayınca o mesaja kayar (yüklü değilse etrafındaki 50 mesajı yükler). RLS: alıntılanan mesaj aynı kanalda olmalı (`yanit_gecerli`).
+- **Yazıyor göstergesi**: Realtime broadcast (`yaziyor`), 3 sn'de bir yayın, 5 sn'de söner (`mesaj/yaziyor.ts`).
+- **Mesaj arama** (`mesaj_ara` işlevi, `mesajlar.arama` tsvector `turkish` + GIN): kelime önek eşleşmeli; süzgeçler kişi/kanal/tarih/resimli. İşlev SECURITY INVOKER, yani şifreli kanal ve üyelik kuralları aynen geçerli.
+- **Markdown + spoiler** (`mesaj/markdown.tsx`): React öğeleriyle üretilir, HTML'e çevrilmez; yalnızca http/https bağlantı.
+- **Okunmamış**: `kanal_okuma` + `okundu_isaretle` işlevi; yerel kayıtla birleşir (en yeni geçerli), cihazlar arası çalışır. Kanal açılınca "Yeni mesajlar" çizgisi.
+- **Anket** (`anketler`, `anket_secenekleri`, `anket_oylari`): oluşturma ve oy yalnızca `anket_olustur` / `anket_oyla` işlevleriyle (tek oy kuralı, süre, susturma kontrolü sunucuda). Oylar Realtime ile canlı.
+- **GIF**: `gif-ara` edge function + `GifSecici`. **Çalışması için Supabase sırlarına `GIPHY_API_KEY` (ya da `TENOR_API_KEY`) eklenmeli**; yoksa seçici "henüz kurulmadı" der. Seçilen GIF bağlantısı mesaj olarak gider (yalnızca giphy/tenor alan adları resim olarak gösterilir).
+- **Bağlantı önizleme**: `onizleme` edge function (Open Graph; SSRF korumalı: özel/yerel IP engeli, yönlendirmeler tek tek doğrulanır, 3 sn, 512 KB). Mesaj gönderilince istemci çağırır, sonuç `mesajlar.onizleme`'ye yazılır. **Canlıda gerçek bir bağlantıyla elle denenmedi.** DNS yeniden bağlama (rebinding) için kalan küçük risk: adres doğrulaması ile `fetch` arasında DNS değişebilir.
+- **Mesaj iletme**: başka yazılı kanala kopya, "X'ten iletildi" etiketi. Resimli mesajlar iletilmez (ek yolu kanala bağlı).
+- Migration'lar canlıya parça parça uygulandı (adları `015a/b/c`, `016a/b`, `017`, `018a-e`, `019a/b`); depodaki `015-019` dosyaları aynı içeriğin birleşik halidir. Güvenlik denetiminde (`get_advisors`) benim eklediğim işlevler için uyarı kalmadı; eski `anon` SECURITY DEFINER uyarıları (`mesaj_bildir` vb.) bu aşamanın dışında.
+- `katil`: misafir silinince `kanal_okuma` da silinir. Canlı sürümler: katil v15, onizleme v1, gif-ara v1.
+- Elle denenecekler: iki tarayıcıyla yanıt/yazıyor/anket oyu/okunmadı çizgisi; telefon genişliğinde (390 px) taşma; bağlantı önizleme; GIF (anahtar eklenince).
