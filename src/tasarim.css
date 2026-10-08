@@ -368,3 +368,15 @@
 .ses-sohbet-kolon .ust-ara{width:auto}
 #app.ses-modu.ses-sohbetli .ses-sohbet-kolon .ust-ara span{display:none}
 #app.ses-modu.ses-sohbetli .ses-sohbet-kolon .composer{margin:0 8px 8px}
+
+/* Sesli oda düzeni: öğeler üst üste binmesin; içerik sığmazsa alan kendi içinde kayar */
+.sahne-alan{overflow-x:hidden;overflow-y:auto;min-height:0}
+.sahne-alan>*{flex-shrink:0}
+.sahne-alan>.ekran-panel{flex:1 0 240px}
+.sahne-alan>.karo-izgara{flex:1 0 auto;grid-auto-rows:auto;align-content:start}
+.ekranli .karo-izgara{flex:none;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));grid-auto-rows:auto}
+.sahne-karo{aspect-ratio:16/9;min-height:160px}
+.ekranli .sahne-karo{min-height:120px}
+.kendi-ekran{flex:none;width:100%;max-width:320px}
+.kontrol-cubugu{flex:none;position:static}
+.karo-tikla:focus-visible,.ch-sohbet:focus-visible,.sahne-sohbet:focus-visible{outline-offset:-3px}
