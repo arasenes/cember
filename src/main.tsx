@@ -6,10 +6,11 @@ import "./tema.css";
 import "./styles.css";
 import "./tasarim.css";
 import "./guvenli-alan.css";
-import { temaTercihi, temaUygula } from "./tema";
+import "./temalar.css";
+import { temaOku, temaUygula } from "./temalar";
 import { yaziBoyutuOku, yaziBoyutuUygula } from "./yerel";
 
-temaUygula(temaTercihi());
+temaUygula(temaOku());
 yaziBoyutuUygula(yaziBoyutuOku());
 
 createRoot(document.getElementById("root")!).render(

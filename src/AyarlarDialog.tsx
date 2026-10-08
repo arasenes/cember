@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { googleAcikMi, googleBagla, googleBagliMi } from "./google";
-import { TEMA_BILGI, type Tema } from "./tema";
+import { TEMALAR, type TemaId } from "./temalar";
 import type { YaziBoyutu } from "./yerel";
 import { tusAdi, tusAtanabilir, type BasKonusAyar } from "./ses/basKonus";
 import { cevir, dilOku, dilYaz, type Dil, t } from "./i18n";
 import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushSadeceEtiket, pushTercih } from "./push";
 
 type Props = {
-  tema: Tema; onTema: (t: Tema) => void;
+  tema: TemaId; onTema: (t: TemaId) => void;
   yazi: YaziBoyutu; onYazi: (b: YaziBoyutu) => void;
   sesler: boolean; onSesler: (a: boolean) => void;
   basKonus?: BasKonusAyar; onBasKonus?: (a: BasKonusAyar) => void;
@@ -77,11 +77,27 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
           <button className="lb-kapat modal-x" onClick={onKapat} aria-label={t("Kapat")}>✕</button>
         </div>
 
-        <div className="ayar-grup" role="radiogroup" aria-label={t("Tema")}>
-          <div className="yon-baslik">{t("Tema")}</div>
-          <div className="segment">
-            {(Object.keys(TEMA_BILGI) as Tema[]).map((t) => (
-              <button key={t} role="radio" aria-checked={tema === t} onClick={() => onTema(t)}>{TEMA_BILGI[t].simge} {t === "otomatik" ? "Otomatik" : TEMA_BILGI[t].ad}</button>
+        <div className="ayar-grup">
+          <div className="yon-baslik" id="palet-baslik">{t("Görünüm")}</div>
+          <div className="palet-kartlari" role="radiogroup" aria-labelledby="palet-baslik"
+            onKeyDown={(e) => {
+              const yon = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+              if (!yon) return;
+              e.preventDefault();
+              const i = TEMALAR.findIndex((x) => x.id === tema);
+              const s = TEMALAR[(i + yon + TEMALAR.length) % TEMALAR.length];
+              onTema(s.id);
+              requestAnimationFrame(() => e.currentTarget.querySelector<HTMLButtonElement>(`[data-palet="${s.id}"]`)?.focus());
+            }}>
+            {TEMALAR.map((p) => (
+              <button key={p.id} type="button" role="radio" data-palet={p.id} aria-checked={tema === p.id} tabIndex={tema === p.id ? 0 : -1}
+                className={"palet-kart" + (tema === p.id ? " secili" : "")} onClick={() => onTema(p.id)}>
+                <span className="palet-onizleme" aria-hidden="true">
+                  {p.renkler.map((r, k) => <i key={k} style={{ background: r }} />)}
+                </span>
+                <span className="palet-ad">{p.ad}{tema === p.id && <span className="palet-tik" aria-hidden="true"> ✓</span>}</span>
+                <small>{p.not}</small>
+              </button>
             ))}
           </div>
         </div>

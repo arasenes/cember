@@ -8,6 +8,7 @@ export const EN_METIN: Record<string, string> = {
   "Vazgeç": "Cancel",
   "Katıl": "Join",
   "Tema": "Theme",
+  "Görünüm": "Appearance",
   "Yazı boyutu": "Text size",
   "Bildirim kapsamı": "Notification scope",
   "Ayarlar": "Settings",

@@ -5,14 +5,15 @@ import "../src/tema.css";
 import "../src/styles.css";
 import "../src/tasarim.css";
 import "../src/guvenli-alan.css";
-import { temaUygula } from "../src/tema";
+import "../src/temalar.css";
+import { temaUygula } from "../src/temalar";
 import SesSahnesi from "../src/ses/SesSahnesi";
 import SesYani from "../src/ses/SesYani";
 import type { SesArayuzu } from "../src/sesMotoru";
 import type { Kanal, Mesaj, Uye } from "../src/types";
 import { demoUyeler } from "./demoSupabase";
 
-temaUygula("gece");
+temaUygula(new URLSearchParams(location.search).get("tema") as never ?? "komur-turuncu");
 const uyeler = demoUyeler as unknown as Uye[];
 const ben = uyeler[0];
 const kanal: Kanal = { id: "k6", oda_id: "o1", ad: "Salon", tur: "sesli", sira: 1, sifreli: false, aciklama: null };

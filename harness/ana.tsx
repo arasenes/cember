@@ -5,12 +5,13 @@ import "../src/tema.css";
 import "../src/styles.css";
 import "../src/tasarim.css";
 import "../src/guvenli-alan.css";
-import { temaUygula } from "../src/tema";
+import "../src/temalar.css";
+import { temaUygula } from "../src/temalar";
 import Chat from "../src/Chat";
 import type { Uye } from "../src/types";
 import { demoBen } from "./demoSupabase";
 
-temaUygula("gece");
+temaUygula(new URLSearchParams(location.search).get("tema") as never ?? "komur-turuncu");
 createRoot(document.getElementById("root")!).render(
   <Chat me={demoBen as unknown as Uye} onExit={() => {}} />,
 );

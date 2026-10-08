@@ -33,13 +33,13 @@ describe("yeni tasarım", () => {
     fireEvent.click(screen.getByText("Katıl"));
     expect(onKatil).toHaveBeenCalled();
   });
-  it("ayarlar: tema, yazı boyutu ve ses seçimi geri bildirir", () => {
+  it("ayarlar: palet, yazı boyutu ve ses seçimi geri bildirir", () => {
     const onTema = vi.fn(), onYazi = vi.fn(), onSesler = vi.fn();
-    render(<AyarlarDialog tema="otomatik" onTema={onTema} yazi="orta" onYazi={onYazi} sesler={true} onSesler={onSesler} onKapat={vi.fn()} />);
-    fireEvent.click(screen.getByRole("radio", { name: /Gündüz/ }));
+    render(<AyarlarDialog tema="komur-turuncu" onTema={onTema} yazi="orta" onYazi={onYazi} sesler={true} onSesler={onSesler} onKapat={vi.fn()} />);
+    fireEvent.click(screen.getByRole("radio", { name: /Mor Gece/ }));
     fireEvent.click(screen.getByRole("radio", { name: "Büyük" }));
     fireEvent.click(screen.getByRole("switch"));
-    expect(onTema).toHaveBeenCalledWith("gunduz");
+    expect(onTema).toHaveBeenCalledWith("mor-gece");
     expect(onYazi).toHaveBeenCalledWith("buyuk");
     expect(onSesler).toHaveBeenCalledWith(false);
   });

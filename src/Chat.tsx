@@ -12,7 +12,7 @@ import { pushKapat, pushYenile } from "./push";
 import KatilimciSeridi from "./KatilimciSeridi";
 import { katlanmisOku, katlanmisYaz, okunduOku, okunduYaz, sessizOku, sessizYaz, siraOku, siraYaz, sirala, yaziBoyutuKaydet, yaziBoyutuOku } from "./yerel";
 import EmojiDeposu from "./EmojiDeposu";
-import { temaKaydet, temaTercihi } from "./tema";
+import { temaBulutaYaz, temaBuluttanOku, temaKaydet, temaOku, type TemaId } from "./temalar";
 import { bildirim, bildirimIzniIste, duyur, etiketVar, seslerAcik, seslerKaydet, sesleriHazirla } from "./uyari";
 import { islemYapabilir, susturulmus, yonetCagir } from "./YonetimPaneli";
 import SunucuAyarlari, { type Bolum } from "./ayarlar/SunucuAyarlari";
@@ -111,7 +111,14 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [okumaHazir, setOkumaHazir] = useState(false);
   const okunduGonderim = useRef<Record<string, number>>({});
   const [sesler, setSesler] = useState(seslerAcik);
-  const [tema, setTema] = useState(temaTercihi);
+  const [tema, setTema] = useState<TemaId>(temaOku);
+  // Girişte hesabın kayıtlı paleti varsa uygula (cihazlar arası aynı görünüm)
+  useEffect(() => {
+    if (!me.user_id) return;
+    let iptal = false;
+    void temaBuluttanOku(me.user_id).then((id) => { if (id && !iptal && id !== temaOku()) { temaKaydet(id); setTema(id); } });
+    return () => { iptal = true; };
+  }, [me.user_id]);
   const [yazi, setYazi] = useState(yaziBoyutuOku);
   const [ayarAcik, setAyarAcik] = useState(false);
   const [okunmamis, setOkunmamis] = useState<Record<string, { n: number; etiket: number }>>({});
@@ -1404,7 +1411,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           }} />
       )}
       {ayarAcik && (
-        <AyarlarDialog tema={tema} onTema={(t) => { setTema(t); temaKaydet(t); }}
+        <AyarlarDialog tema={tema} onTema={(id) => { setTema(id); temaKaydet(id); if (me.user_id) void temaBulutaYaz(me.user_id, id); }}
           yazi={yazi} onYazi={(b) => { setYazi(b); yaziBoyutuKaydet(b); }}
           sesler={sesler} onSesler={(a) => { setSesler(a); seslerKaydet(a); if (a) bildirimIzniIste(); }}
           basKonus={basKonusAyar} onBasKonus={(a) => { setBasKonusAyar(a); basKonusAyarYaz(a); }}

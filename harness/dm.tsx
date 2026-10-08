@@ -5,14 +5,15 @@ import "../src/tema.css";
 import "../src/styles.css";
 import "../src/tasarim.css";
 import "../src/guvenli-alan.css";
-import { temaUygula } from "../src/tema";
+import "../src/temalar.css";
+import { temaUygula } from "../src/temalar";
 import DmAlani from "../src/dm/DmAlani";
 import { iliskiBul } from "../src/dm/tipler";
 import type { DmDurumu } from "../src/dm/useDm";
 import type { Uye } from "../src/types";
 import { demoCevrimici, demoUyeler } from "./demoSupabase";
 
-temaUygula("gece");
+temaUygula(new URLSearchParams(location.search).get("tema") as never ?? "komur-turuncu");
 const uyeler = demoUyeler as unknown as Uye[];
 const ben = uyeler[0];
 const sayfa = (new URLSearchParams(location.search).get("sayfa") ?? "sohbet") as "sohbet" | "arkadaslar";

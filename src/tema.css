@@ -67,7 +67,7 @@
 .cb-chip.ben { background: var(--vurgu-zemin); border-color: var(--vurgu); color: var(--vurgu-acik); }
 .cb-kart { border: 1px solid var(--cizgi); background: var(--zemin-panel); border-radius: var(--yaricap-b); padding: 18px; }
 .cb-ana-dugme { height: var(--dokunma); padding: 0 16px; border: 0; border-radius: var(--yaricap-m); background: var(--vurgu); color: var(--vurgu-yazi); font-family: inherit; font-weight: 700; cursor: pointer; }
-.cb-anahtar { width: 44px; height: 26px; border-radius: 13px; background: #444444; position: relative; flex: none; }
+.cb-anahtar { width: 44px; height: 26px; border-radius: 13px; background: var(--anahtar-kapali, #444444); position: relative; flex: none; }
 .cb-anahtar::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--yazi); }
 .cb-anahtar.acik { background: var(--vurgu); }
 .cb-anahtar.acik::after { left: 21px; background: var(--vurgu-yazi); }

@@ -4,12 +4,13 @@ import { createRoot } from "react-dom/client";
 import "../src/tema.css";
 import "../src/styles.css";
 import "../src/tasarim.css";
-import { temaUygula } from "../src/tema";
+import "../src/temalar.css";
+import { temaUygula } from "../src/temalar";
 import SunucuAyarlari, { type Bolum } from "../src/ayarlar/SunucuAyarlari";
 import type { Kanal, Kategori, Uye } from "../src/types";
 import { demoBen, demoUyeler } from "./demoSupabase";
 
-temaUygula("gece");
+temaUygula(new URLSearchParams(location.search).get("tema") as never ?? "komur-turuncu");
 const bolum = (new URLSearchParams(location.search).get("bolum") ?? "genel") as Bolum;
 const k = (id: string, ad: string, tur: "yazili" | "sesli", sira: number, kategori_id: string | null, yavas_mod = 0): Kanal =>
   ({ id, oda_id: "o1", ad, tur, sira, sifreli: id === "k3", aciklama: null, kategori_id, yavas_mod }) as Kanal;
