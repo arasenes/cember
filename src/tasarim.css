@@ -364,7 +364,6 @@
   #app.ses-modu.ses-sohbetli .ses-sahne{flex:0 0 45%}
   #app.ses-modu.ses-sohbetli .ses-sohbet-kolon{flex:1 1 0;width:auto;border-left:0;border-top:1px solid var(--line)}
 }
-}
 .ses-sohbet-kolon .ust-ara{width:auto}
 #app.ses-modu.ses-sohbetli .ses-sohbet-kolon .ust-ara span{display:none}
 #app.ses-modu.ses-sohbetli .ses-sohbet-kolon .composer{margin:0 8px 8px}
