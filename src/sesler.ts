@@ -89,6 +89,13 @@ function ayarYukle(): SesAyar {
 
 export function sesAyarOku(): SesAyar { return { ...ayar }; }
 
+// Sağırlaştırılmışken yalnızca bu sesler çalar (kendi durumunu bildiren sesler ve hata)
+const SAGIRKEN_CALAN: ReadonlySet<SesOlayi> = new Set<SesOlayi>(["mikAc", "mikKapat", "sagir", "hata"]);
+let sagirMi = false;
+/** Kullanıcı sağırlaştırıldı mı? Uygulama durumu değişince çağrılır. */
+export function sesSagirAyarla(sagir: boolean): void { sagirMi = sagir; }
+
+
 export function sesAyarKaydet(yeni: Partial<SesAyar>): SesAyar {
   ayar = {
     acik: yeni.acik ?? ayar.acik,
@@ -149,6 +156,7 @@ function sentezle(olay: SesOlayi, takimAdi: SesTakimi): void {
 /** Uygulama içinden çağır: ayar kapalıysa ya da çok sık çağrıldıysa çalmaz. */
 export function sesCal(olay: SesOlayi): void {
   if (!ayar.acik || ayar.seviye === 0) return;
+  if (sagirMi && !SAGIRKEN_CALAN.has(olay)) return;
   const simdi = Date.now();
   if (simdi - (sonCalinan.get(olay) ?? 0) < AYNI_SES_ARALIGI_MS) return;
   sonCalinan.set(olay, simdi);

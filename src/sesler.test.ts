@@ -74,4 +74,13 @@ describe("sesler", () => {
     for (const o of Object.keys(s.OLAYLAR) as (keyof typeof s.OLAYLAR)[]) s.sesOnizle(o);
     expect(osc).toBeGreaterThan(20);
   });
+
+  it("sağırlaştırılmışken yalnızca mikAc, mikKapat, sagir ve hata çalar", async () => {
+    const s = await yukle();
+    s.sesSagirAyarla(true);
+    for (const o of ["mesaj", "bahsetme", "dm", "gonder", "katil", "ayril", "ekran"] as const) { s.sesCal(o); expect(osc, o).toBe(0); }
+    for (const o of ["mikAc", "mikKapat", "sagir", "hata"] as const) { const once = osc; s.sesCal(o); expect(osc, o).toBeGreaterThan(once); }
+    s.sesSagirAyarla(false);
+    const once = osc; s.sesCal("mesaj"); expect(osc).toBeGreaterThan(once);
+  });
 });

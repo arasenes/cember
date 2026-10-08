@@ -1,3 +1,5 @@
+import SeslerAyari from "./SeslerAyari";
+import type { SesAyar } from "./sesler";
 import { useEffect, useRef, useState } from "react";
 import { googleAcikMi, googleBagla, googleBagliMi } from "./google";
 import { TEMALAR, type TemaId } from "./temalar";
@@ -11,14 +13,14 @@ type Props = {
   /** Dil seçilince (hesaba kaydetmek için). */
   onDil?: (d: Dil) => void;
   yazi: YaziBoyutu; onYazi: (b: YaziBoyutu) => void;
-  sesler: boolean; onSesler: (a: boolean) => void;
+  onSesAyar?: (a: SesAyar) => void; onSeslerAcildi?: () => void;
   basKonus?: BasKonusAyar; onBasKonus?: (a: BasKonusAyar) => void;
   onKapat: () => void;
 };
 
 const BOYUTLAR: { id: YaziBoyutu; ad: string }[] = [{ id: "kucuk", ad: t("Küçük") }, { id: "orta", ad: t("Orta") }, { id: "buyuk", ad: t("Büyük") }];
 
-export default function AyarlarDialog({ tema, onTema, onDil, yazi, onYazi, sesler, onSesler, basKonus, onBasKonus, onKapat }: Props) {
+export default function AyarlarDialog({ tema, onTema, onDil, yazi, onYazi, onSesAyar, onSeslerAcildi, basKonus, onBasKonus, onKapat }: Props) {
   const [tusBekleniyor, setTusBekleniyor] = useState(false);
   const kutu = useRef<HTMLDivElement>(null);
   const [googleDurum, setGoogleDurum] = useState<"yok" | "bagla" | "bagli">("yok");
@@ -122,13 +124,7 @@ export default function AyarlarDialog({ tema, onTema, onDil, yazi, onYazi, sesle
           </div>
         </div>
 
-        <div className="ayar-grup">
-          <div className="yon-baslik">{t("Uyarı sesleri")}</div>
-          <button className="ayar-anahtar" role="switch" aria-checked={sesler} onClick={() => onSesler(!sesler)}>
-            <span>{sesler ? "🔔 Açık" : "🔕 Kapalı"} <small>{t("mesaj, etiket, odaya giriş/çıkış")}</small></span>
-            <span className="anahtar" aria-hidden="true" />
-          </button>
-        </div>
+        <SeslerAyari onDegisti={onSesAyar} onAcildi={onSeslerAcildi} />
 
         {basKonus && onBasKonus && (
           <div className="ayar-grup">

@@ -4,6 +4,7 @@ import { useSes } from "./voice";
 import { useSesP2P } from "./p2p";
 import { gurultuTercihi, gurultuTercihiKaydet } from "./gurultu";
 import { IOS_PAYLASIM_MESAJI, ekranPaylasilabilir, ekranPaylasilabilirTarayici, iosMu, type EkranKalite, type EkranSonuc } from "./ekranOrtak";
+import { sesCal } from "./sesler";
 
 export type Motor = "livekit" | "p2p";
 const BOS_KUME: Set<string> = new Set();
@@ -35,13 +36,15 @@ export function useSesMotoru(
   const lk = useSes(uyeId, (k) => onKanal(k, k ? "livekit" : null), (k) => {
     // LiveKit beklenmedik şekilde koptu: ücretsiz moda geç
     setBilgi("LiveKit bağlantısı koptu, ücretsiz doğrudan moda geçiliyor.");
+    sesCal("hata");
     void p2pBaglan(k);
   });
   const p2p = useSesP2P(uyeId, (k) => onKanal(k, k ? "p2p" : null));
 
   async function p2pBaglan(k: string) {
     const r = await p2p.baglan(k);
-    if (!r.ok && r.neden !== "iptal") setHata(r.mesaj ?? "Sese bağlanılamadı.");
+    if (r.ok) sesCal("katil");
+    else if (r.neden !== "iptal") setHata(r.mesaj ?? "Sese bağlanılamadı.");
   }
 
   const baglan = useCallback(async (hedef: string) => {
@@ -53,6 +56,7 @@ export function useSesMotoru(
     if (mevcut === "p2p") { await p2pBaglan(hedef); return; }
 
     const r = await lk.baglan(hedef);
+    if (r.ok) sesCal("katil");
     if (r.ok) { if (r.izinYok) setBilgi("Bu sunucuda sesli odada konuşma iznin yok; yalnızca dinleyici olarak katıldın."); else if (r.mikYok) setBilgi("Mikrofon bulunamadı; odaya yalnızca dinleyici olarak katıldın."); return; }
     if (r.neden === "iptal") return;
     // Kullanıcıdan kaynaklı ya da oda dolu hatalarında yedeğe geçme
@@ -82,11 +86,13 @@ export function useSesMotoru(
     bilgi,
     kabiRefleri: [lk.sesKabi, p2p.sesKabi],
     baglan,
-    ayril: async () => { await Promise.all([lk.ayril(), p2p.ayril()]); sagirSifirla(); },
+    ayril: async () => { const baglantiVardi = aktif.durum !== "kapali"; await Promise.all([lk.ayril(), p2p.ayril()]); sagirSifirla(); if (baglantiVardi) sesCal("ayril"); },
     sessizDegistir: async () => {
       if (sunucuSustur) { setBilgi("Bir yönetici seni sustur; sesin yönetici kaldırınca açılır."); return; }
       if (sagir) { setBilgi("Sağırlaştırma açıkken mikrofon da kapalıdır. Önce sağırlaştırmayı kapat."); return; }
+      const acilacak = aktif.sessiz; // şu an kapalıysa bu dokunuşla açılır
       await aktif.sessizDegistir();
+      sesCal(acilacak ? "mikAc" : "mikKapat");
     },
     /** Bas-konuş için: mikrofonu doğrudan aç/kapat (sunucu susturması ve sağırlaştırma varsa yok sayılır). */
     mikAyarla: async (acik: boolean) => { if (sunucuSustur || sagir) return; await aktif.sessizAyarla(!acik); },
@@ -95,6 +101,7 @@ export function useSesMotoru(
     sagirDegistir: async () => {
       if (!sagir) {
         sagirOncesiSessiz.current = aktif.sessiz;
+        sesCal("sagir");
         sesYoneticisi.sagirlastir(true); setSagir(true);
         await aktif.sessizAyarla(true);
       } else {

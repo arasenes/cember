@@ -52,6 +52,7 @@ Teknoloji: React + Supabase (RLS + realtime) + LiveKit. Yeni her tablo RLS ile g
 
 ## 5. Uygulama / altyapı
 - [x] Web push, APK, güncelleme uyarısı, tema, yazı boyutu
+- [x] Uygulama sesleri (Web Audio, 4 takım, Ayarlar > Sesler, hesapta saklanır)
 - [ ] APK bildirimleri (Firebase; bkz. DEVIR-NOTU.md)
 - [x] Klavye kısayolları, komut paleti (Ctrl+K, Alt+↑/↓)
 - [ ] Çeviri (TR/EN): altyapı ve palet/sekmeler hazır, diğer ekranlar Türkçe; erişilebilirlik denetimi yapılmadı

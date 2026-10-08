@@ -13,7 +13,10 @@ import KatilimciSeridi from "./KatilimciSeridi";
 import { katlanmisOku, katlanmisYaz, okunduOku, okunduYaz, sessizOku, sessizYaz, siraOku, siraYaz, sirala, yaziBoyutuKaydet, yaziBoyutuOku } from "./yerel";
 import EmojiDeposu from "./EmojiDeposu";
 import { temaBulutaYaz, temaBuluttanOku, temaKaydet, temaOku, type TemaId } from "./temalar";
-import { bildirim, bildirimIzniIste, duyur, etiketVar, seslerAcik, seslerKaydet, sesleriHazirla } from "./uyari";
+import { bildirim, bildirimIzniIste, etiketVar } from "./uyari";
+import { sesAyarOku, sesCal, sesSagirAyarla } from "./sesler";
+import { sesAyarBulutaYaz, sesAyarBuluttanOku } from "./sesBulut";
+import { sesAyarKaydet } from "./sesler";
 import { islemYapabilir, susturulmus, yonetCagir } from "./YonetimPaneli";
 import SunucuAyarlari, { type Bolum } from "./ayarlar/SunucuAyarlari";
 import SunucuDialog from "./sunucu/SunucuDialog";
@@ -114,7 +117,6 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [bolucu, setBolucu] = useState<{ kanal: string; zaman: string } | null>(null);
   const [okumaHazir, setOkumaHazir] = useState(false);
   const okunduGonderim = useRef<Record<string, number>>({});
-  const [sesler, setSesler] = useState(seslerAcik);
   const [tema, setTema] = useState<TemaId>(temaOku);
   // Girişte hesabın kayıtlı paleti varsa uygula (cihazlar arası aynı görünüm)
   useEffect(() => {
@@ -140,6 +142,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [bildirimler, setBildirimler] = useState<{ id: number; metin: string; tur: "bilgi" | "hata" }[]>([]);
   const bildirimNo = useRef(0);
   const toastAt = useCallback((metin: string, tur: "bilgi" | "hata" = "bilgi", ms = 4000) => {
+    if (tur === "hata") sesCal("hata");
     const id = ++bildirimNo.current;
     setBildirimler((x) => [...x.slice(-2), { id, metin, tur }]);
     setTimeout(() => setBildirimler((x) => x.filter((b) => b.id !== id)), ms);
@@ -156,6 +159,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       void supabase.rpc("okundu_isaretle", { p_kanal: kanalId }).then(() => {});
     }
   }, []);
+  const oncekiEkranRef = useRef<Set<string>>(new Set());
   const oncekiKonumRef = useRef<{ kanal: string | null; konum: Map<string, string> }>({ kanal: null, konum: new Map() });
   const uyelerRef = useRef<Uye[]>([]);
   const mesajlarRef = useRef<Mesaj[]>([]);
@@ -185,7 +189,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       if (dmGoruluyor && aktifDmRefDm.current === m.dm_id && document.visibilityState === "visible") return;
       if (uyelerRef.current.find((u) => u.id === me.id)?.durum === "rahatsiz") return;
       const ad = uyelerRef.current.find((u) => u.id === m.uye_id)?.takma_ad ?? "Biri";
-      duyur("mesaj");
+      sesCal("dm");
       toastAt(`${ad}: ${m.metin.slice(0, 60)}`);
     },
   });
@@ -235,7 +239,15 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   }, []);
   uyelerRef.current = uyeler;
   mesajlarRef.current = mesajlar;
-  useEffect(() => sesleriHazirla(), []);
+  // Sağırlaştırılmışken yalnızca mikrofon/sağırlaştır/hata sesleri çalar
+  useEffect(() => { sesSagirAyarla(ses.sagir); }, [ses.sagir]);
+  // Girişte hesapta kayıtlı ses ayarı varsa uygula
+  useEffect(() => {
+    if (!me.user_id) return;
+    let iptal = false;
+    void sesAyarBuluttanOku(me.user_id).then((a) => { if (a && !iptal) sesAyarKaydet(a); });
+    return () => { iptal = true; };
+  }, [me.user_id]);
   useEffect(() => { void pushYenile(); }, [me.id]);
   const komutAday = useMemo(() => komutOner(metin), [metin]);
   const etiketAday = useMemo(() => {
@@ -539,9 +551,10 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             else setOkunmamis((x) => ({ ...x, [m.kanal_id]: { n: (x[m.kanal_id]?.n ?? 0) + 1, etiket: (x[m.kanal_id]?.etiket ?? 0) + (etiketli || yanitBana ? 1 : 0) } }));
           }
           if (!rahatsiz) {
-            if (etiketli) { duyur("etiket", `${yazar} seni etiketledi`); bildirim(`${yazar} seni etiketledi`, m.metin); }
-            else if (yanitBana) { duyur("etiket", `${yazar} mesajına yanıt verdi`); bildirim(`${yazar} mesajına yanıt verdi`, m.metin); }
-            else if (!sessizRef.current.includes(m.kanal_id)) duyur("mesaj");
+            if (etiketli) { sesCal("bahsetme"); bildirim(`${yazar} seni etiketledi`, m.metin); }
+            else if (yanitBana) { sesCal("bahsetme"); bildirim(`${yazar} mesajına yanıt verdi`, m.metin); }
+            // Mesaj sesi: pencere odakta değilse ya da mesaj açık olmayan kanaldansa
+            else if (!sessizRef.current.includes(m.kanal_id) && !(m.kanal_id === aktifRef.current && document.visibilityState === "visible" && document.hasFocus())) sesCal("mesaj");
           }
         }
         if (p.eventType === "DELETE") setYanitlar((x) => x.filter((y) => y.id !== m.id));
@@ -629,12 +642,15 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           const olay = (id: string, girdi: boolean) => {
             const ad = uyelerRef.current.find((u) => u.id === id)?.takma_ad ?? "Biri";
             const metin = `${ad} ${girdi ? "bağlandı" : "ayrıldı"}`;
-            if (uyelerRef.current.find((u) => u.id === me.id)?.durum !== "rahatsiz") duyur(girdi ? "baglandi" : "ayrildi", metin);
+            if (uyelerRef.current.find((u) => u.id === me.id)?.durum !== "rahatsiz") sesCal(girdi ? "katil" : "ayril");
             toastAt(`${girdi ? "🟢" : "🔴"} ${metin}`);
           };
           for (const [id, k] of konum) if (id !== me.id && k.kanal === benimKanal && onc.konum.get(id) !== benimKanal) olay(id, true);
           for (const [id, kk] of onc.konum) if (id !== me.id && kk === benimKanal && konum.get(id)?.kanal !== benimKanal) olay(id, false);
         }
+        // Odamdaki biri ekran paylaşmaya başlayınca
+        if (benimKanal) for (const [id, k] of konum) if (id !== me.id && k.kanal === benimKanal && k.ekran && !oncekiEkranRef.current.has(id)) sesCal("ekran");
+        oncekiEkranRef.current = new Set([...konum].filter(([, k]) => k.ekran).map(([id]) => id));
         oncekiKonumRef.current = { kanal: benimKanal, konum: new Map([...konum].map(([id, k]) => [id, k.kanal])) };
       })
       .subscribe(async (durum) => { if (durum === "SUBSCRIBED") await kanal.track({ t: Date.now(), ses: null, motor: null, bosta: bostaRef.current, sagir: sagirRef.current }); });
@@ -761,6 +777,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     const { data, error } = await supabase.from("mesajlar").insert({ kanal_id: aktif, uye_id: me.id, metin: url, yanit_id: yanitlanan?.id ?? null }).select().single();
     if (error) return setHata("GIF gönderilemedi.");
     setYanitlanan(null);
+    sesCal("gonder");
     altaKaydir.current = true;
     setMesajlar((x) => birlestir(x, [data as Mesaj]));
   }
@@ -818,6 +835,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         return setHata("Mesaj gönderilemedi.");
       }
       setMetin(""); setEmojiAcik(false); ekTemizle(); setYanitlanan(null);
+      sesCal("gonder");
       altaKaydir.current = true;
       setMesajlar((x) => birlestir(x, [data as Mesaj]));
       if (/https?:\/\//i.test(t)) void supabase.functions.invoke("onizleme", { body: { mesaj_id: (data as Mesaj).id } });
@@ -833,6 +851,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     const { data, error } = await supabase.from("mesajlar").insert({ kanal_id: aktif, uye_id: me.id, metin: t, ust_mesaj_id: konuId }).select().single();
     if (error) { setHata("Yanıt gönderilemedi."); return false; }
     setYanitlar((x) => (x.some((y) => y.id === (data as Mesaj).id) ? x : [...x, data as Mesaj]));
+    sesCal("gonder");
     return true;
   }
 
@@ -1441,7 +1460,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         <AyarlarDialog tema={tema} onTema={(id) => { setTema(id); temaKaydet(id); if (me.user_id) void temaBulutaYaz(me.user_id, id); }}
           onDil={(d) => { if (me.user_id) void dilBulutaYaz(me.user_id, d); }}
           yazi={yazi} onYazi={(b) => { setYazi(b); yaziBoyutuKaydet(b); }}
-          sesler={sesler} onSesler={(a) => { setSesler(a); seslerKaydet(a); if (a) bildirimIzniIste(); }}
+          onSesAyar={(a) => { if (me.user_id) sesAyarBulutaYaz(me.user_id, a); }} onSeslerAcildi={() => bildirimIzniIste()}
           basKonus={basKonusAyar} onBasKonus={(a) => { setBasKonusAyar(a); basKonusAyarYaz(a); }}
           onKapat={() => setAyarAcik(false)} />
       )}

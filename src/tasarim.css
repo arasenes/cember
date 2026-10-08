@@ -540,3 +540,13 @@ html[dir="rtl"] .toasts{left:16px;right:auto}
 html[dir="rtl"] .ek-dugme,html[dir="rtl"] .send svg{transform:none}
 html[dir="rtl"] .send svg,html[dir="rtl"] .cb-ibtn svg[data-yon]{transform:scaleX(-1)}
 html[dir="rtl"] .kod,html[dir="rtl"] pre,html[dir="rtl"] code,html[dir="rtl"] input[type=url],html[dir="rtl"] .md-blok{direction:ltr;text-align:left}
+
+/* Ayarlar > Sesler */
+.ses-ayar-satir{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+.ses-ayar-satir input[type=range]{width:100%;min-height:32px}
+.ses-takimlar{margin-bottom:12px}
+.ses-olaylar{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.ses-olaylar li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.ses-olaylar b{display:block}
+.ses-olaylar small{display:block;color:var(--muted)}
+.ses-olaylar .pk-btn{min-height:44px;min-width:64px;flex:none}

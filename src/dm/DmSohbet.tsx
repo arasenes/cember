@@ -9,6 +9,7 @@ import { dmBasligi, karsiUye, mesajaCevir, type DmMesaj } from "./tipler";
 import type { DmDurumu } from "./useDm";
 import { durumMetni } from "./ProfilKarti";
 import { t, onayla } from "../i18n";
+import { sesCal } from "../sesler";
 
 const SAYFA = 50;
 
@@ -106,6 +107,7 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
     setGonderiliyor(false);
     if (error) return onHata(iliski === "engelli" || /row-level/i.test(error.message) ? "Bu kişiyle şu an mesajlaşamazsın." : "Mesaj gönderilemedi.");
     setMetin("");
+    sesCal("gonder");
     altaKaydir.current = true;
     setMesajlar((x) => birlestir(x, [data as DmMesaj]));
     girdiRef.current?.focus();
