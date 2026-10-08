@@ -108,3 +108,9 @@ Yeni kod `src/mesaj/` altında; `Chat.tsx` yalnızca bağlar. Her özelliğin bi
 
 ### Ders (8 Ekim 2026): sütun bazlı yetkiler
 `odalar` tablosunda yalnızca `id, ad, olusturan, olusturma` sütunları `authenticated`'a açıktı (001). Yeni sütunlar (`ikon_metin`, `ikon_renk`, `silindi`, `herkes_izin`, `moderator_izin`, `yasakli_kelimeler`, `hosgeldin_*`) için yetki verilmediğinden yayından sonra site açılmadı (`permission denied for table odalar`); `033` ile düzeltildi. Yerel pglite testleri yetki (GRANT) katmanını denemez, bu yüzden yakalayamadı. **Sütun bazlı yetkili tablolara (`odalar`, `yasaklar`, `webhooklar`) yeni sütun eklerken GRANT'i de ekle; yayından sonra gerçek bir oturumla ana ekranı aç.**
+
+### Çember Bot, palet kaydı, telefon sesli oda (8 Ekim 2026)
+- **Çember Bot (036)**: `bot_komutu` tetikleyicisi. `/yardim /zar /yazitura /sec /8top /saat /kim` yazılınca bot, o mesaja yanıt olarak cevap yazar (sunucu tarafı; tarayıcıdan bağımsız). Bot mesajına cevap vermez, kanalda 10 sn'de en çok 6 cevap. Her sunucuda otomatik bir "Çember Bot" üyesi (`bot=true`). İstemcide `/` yazınca öneri listesi (`src/mesaj/botKomutlari.ts`). Yapılmadı: `/hatirlat` (zamanlayıcı gerekir), gerçek bot API'si, müzik botu.
+- **Palet seçici (Aşama 0)**: 10 palet, `src/temalar.ts` + `src/temalar.css`, Ayarlar > Görünüm; hesap bazlı kayıt `kullanici_ayarlari` (035).
+- **Sesli oda**: masaüstünde sahne + yuvarlak kişiler (kamera açıksa kare 16:9 kutu) + sağda sohbet kolonu; telefonda `SesliOdaTelefon.html` düzeni (tek ses çubuğu, yarı yarıya, açılır kapanır sohbet, kişiye dokununca ses ayarı sayfası, tek satır yazı alanı).
+- **Ders**: yayından önce `npm run build` çalıştır (CSS'te fazladan `}` derlemeyi bozdu ve site eski sürümde kaldı); sütun bazlı yetkili tablolara yeni sütun eklerken GRANT ekle.
