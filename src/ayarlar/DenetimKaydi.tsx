@@ -4,7 +4,7 @@ import { supabase } from "../supabase";
 import type { Uye } from "../types";
 import { denetimCumlesi, denetimZamani, SUZGEC_ADLARI, suzgecUyar, type DenetimSatiri, type DenetimSuzgeci } from "../sunucu/denetim";
 import { SayfaBasligi } from "./ortak";
-import { t } from "../i18n";
+import { dilOku, t } from "../i18n";
 
 /** Son denetim kayıtları; yeni kayıt gelince canlı eklenir. Yalnızca yetkililer görebilir (RLS). */
 export function useDenetim(odaId: string, limit = 100) {
@@ -39,12 +39,16 @@ export function DenetimListe({ satirlar, uyeler, sinir }: ListeProps) {
     <ul className="denetim-liste">
       {gosterilen.map((k) => {
         const e = k.eyleyen ? harita.get(k.eyleyen) : undefined;
-        const c = denetimCumlesi(k, e?.takma_ad ?? "Bir yönetici");
+        const c = denetimCumlesi(k, e?.takma_ad ?? t("Bir yönetici"));
+        // Türkçe dışında cümle sırası (özne · hedef · eylem) farklı okunur: "Ayşe — Mehmet: susturuldu"
+        const trDili = dilOku() === "tr";
+        const ayirac = trDili ? "" : " —";
+        const ayirac2 = trDili ? " " : ": ";
         return (
           <li key={k.id} className="denetim-satir">
             {e ? <Avatar uye={e} className="denetim-avatar" /> : <span className="denetim-avatar dot" aria-hidden="true">?</span>}
             <div>
-              <b>{c.eyleyen}</b> {c.once && <>{c.once} </>}{c.vurgu && <b className="denetim-vurgu">{c.vurgu}</b>} {c.sonra}
+              <b>{c.eyleyen}</b>{ayirac} {c.once && <>{c.once} </>}{c.vurgu && <b className="denetim-vurgu">{c.vurgu}</b>}{c.vurgu && c.sonra ? ayirac2 : " "}{c.sonra}
               <time dateTime={k.zaman}>{denetimZamani(k.zaman)}</time>
             </div>
           </li>

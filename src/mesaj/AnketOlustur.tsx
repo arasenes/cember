@@ -58,10 +58,10 @@ export default function AnketOlustur({ onOlustur, onKapat }: Props) {
           <span className="alan-etiket" id="anket-sec-etiket">{t("Seçenekler")}</span>
           {secenekler.map((s, i) => (
             <div className="anket-satir" key={i}>
-              <input type="text" aria-label={`Seçenek ${i + 1}`} value={s} maxLength={100}
-                onChange={(e) => setSecenekler((x) => x.map((y, j) => (j === i ? e.target.value : y)))} placeholder={`Seçenek ${i + 1}`} />
+              <input type="text" aria-label={t(`Seçenek ${i + 1}`)} value={s} maxLength={100}
+                onChange={(e) => setSecenekler((x) => x.map((y, j) => (j === i ? e.target.value : y)))} placeholder={t(`Seçenek ${i + 1}`)} />
               {secenekler.length > 2 && (
-                <button type="button" className="sq" aria-label={`Seçenek ${i + 1}'i kaldır`} onClick={() => setSecenekler((x) => x.filter((_, j) => j !== i))}><Ikon ad="kapat" /></button>
+                <button type="button" className="sq" aria-label={t(`Seçenek ${i + 1}'i kaldır`)} onClick={() => setSecenekler((x) => x.filter((_, j) => j !== i))}><Ikon ad="kapat" /></button>
               )}
             </div>
           ))}
@@ -76,7 +76,7 @@ export default function AnketOlustur({ onOlustur, onKapat }: Props) {
           </select>
         </div>
         <label className="onay-satir"><input type="checkbox" checked={coklu} onChange={(e) => setCoklu(e.target.checked)} />{" "}{t("Birden fazla seçenek seçilebilsin")}</label>
-        <div className="err" role="alert">{hata}</div>
+        <div className="err" role="alert">{t(hata)}</div>
         <div className="modal-alt">
           <button type="button" className="linkbtn" onClick={onKapat}>{t("Vazgeç")}</button>
           <button type="submit" className="cta" disabled={mesgul}>{mesgul ? "Gönderiliyor…" : "Anketi gönder"}</button>

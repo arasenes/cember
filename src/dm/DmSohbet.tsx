@@ -8,7 +8,7 @@ import { gunEtiketi } from "../util";
 import { dmBasligi, karsiUye, mesajaCevir, type DmMesaj } from "./tipler";
 import type { DmDurumu } from "./useDm";
 import { durumMetni } from "./ProfilKarti";
-import { t } from "../i18n";
+import { t, onayla } from "../i18n";
 
 const SAYFA = 50;
 
@@ -121,14 +121,14 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   }
 
   async function sil(m: { id: string }) {
-    if (!confirm("Bu mesaj silinsin mi?")) return;
+    if (!onayla("Bu mesaj silinsin mi?")) return;
     const { error } = await supabase.from("dm_mesajlari").update({ silindi: true }).eq("id", m.id);
     if (error) return onHata("Mesaj silinemedi.");
     setMesajlar((x) => x.map((y) => (y.id === m.id ? { ...y, silindi: true } : y)));
   }
 
   async function ayril() {
-    if (!confirm("Bu gruptan ayrılmak istiyor musun?")) return;
+    if (!onayla("Bu gruptan ayrılmak istiyor musun?")) return;
     const h = await dm.grupAyril(dmId);
     if (h) onHata("Gruptan ayrılınamadı.");
     else onGeri?.();
@@ -155,7 +155,7 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
     onceki = m;
     if (!cizgiYazildi && sonOkuma && yeniSayisi > 0 && m.olusturma > sonOkuma && m.uye_id !== me.id) {
       cizgiYazildi = true;
-      satirlar.push(<div className="yeni-cizgi" role="separator" aria-label={`${yeniSayisi} yeni mesaj`} key={"yeni" + m.id}><span>{yeniSayisi} yeni mesaj</span></div>);
+      satirlar.push(<div className="yeni-cizgi" role="separator" aria-label={t(`${yeniSayisi} yeni mesaj`)} key={"yeni" + m.id}><span>{yeniSayisi} yeni mesaj</span></div>);
     }
     satirlar.push(
       <MessageView key={m.id} devam={devam} mesaj={mesajaCevir(m)} yazar={harita.get(m.uye_id)} benim={me} tepkiler={[]} tepkisiz
@@ -164,7 +164,7 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   }
 
   return (
-    <main className="col chat dm-sohbet" aria-label={`${baslik} ile mesajlaşma`}>
+    <main className="col chat dm-sohbet" aria-label={t(`${baslik} ile mesajlaşma`)}>
       <div className="head">
         {onGeri && <button type="button" className="sq dm-geri" onClick={onGeri} aria-label={t("Mesaj listesine dön")}><Ikon ad="geri" /></button>}
         {kanal?.tur === "ikili" && karsiUyesi && <span className="dm-avatar"><Avatar uye={karsiUyesi} className="dm-ust-avatar" /></span>}
@@ -207,12 +207,12 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
 
       {iliski === "engelli" ? (
         <div className="dm-engelli" role="status">
-          Bu kişiyi engelledin, mesaj gönderemezsin.
+          {t("Bu kişiyi engelledin, mesaj gönderemezsin.")}
           {karsi && <button type="button" className="pk-btn" onClick={() => void dm.engelKaldir(karsi)}>{t("Engeli kaldır")}</button>}
         </div>
       ) : (
         <div className="composer">
-          <textarea ref={girdiRef} rows={1} value={metin} maxLength={4000} aria-label={t("Mesaj yaz")} placeholder={`${baslik} kişisine mesaj yaz`}
+          <textarea ref={girdiRef} rows={1} value={metin} maxLength={4000} aria-label={t("Mesaj yaz")} placeholder={t(`${baslik} kişisine mesaj yaz`)}
             onChange={(e) => setMetin(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void gonder(); } }} />
           <button className="sq send" onClick={() => void gonder()} aria-label={t("Gönder")} disabled={!metin.trim() || gonderiliyor}><Ikon ad="gonder" /></button>

@@ -1,4 +1,5 @@
 import type { Kanal, Kategori } from "../types";
+import { t } from "../i18n";
 
 // Kanal ve kategori sıralaması: saf mantık (arayüzden bağımsız, test edilebilir).
 // Kanallar önce "kategorisiz" grupta, sonra kategorilerin sırasıyla gösterilir; kanal sırası tüm liste boyunca ardışıktır.
@@ -71,9 +72,9 @@ export function duzenle(kanallar: Kanal[], kategoriler: Kategori[], t: Tasima): 
 
 /** Yavaş mod seçenekleri (saniye). */
 export const YAVAS_MOD_SECENEKLERI: { sn: number; etiket: string }[] = [
-  { sn: 0, etiket: "Kapalı" }, { sn: 5, etiket: "5 sn" }, { sn: 10, etiket: "10 sn" }, { sn: 30, etiket: "30 sn" },
-  { sn: 60, etiket: "1 dk" }, { sn: 300, etiket: "5 dk" }, { sn: 900, etiket: "15 dk" }, { sn: 3600, etiket: "1 saat" }, { sn: 21600, etiket: "6 saat" },
+  { sn: 0, etiket: t("Kapalı") }, { sn: 5, etiket: t("5 sn") }, { sn: 10, etiket: t("10 sn") }, { sn: 30, etiket: t("30 sn") },
+  { sn: 60, etiket: t("1 dk") }, { sn: 300, etiket: t("5 dk") }, { sn: 900, etiket: t("15 dk") }, { sn: 3600, etiket: t("1 saat") }, { sn: 21600, etiket: t("6 saat") },
 ];
 export function yavasModMetni(sn: number): string {
-  return YAVAS_MOD_SECENEKLERI.find((s) => s.sn === sn)?.etiket ?? `${sn} sn`;
+  return YAVAS_MOD_SECENEKLERI.find((s) => s.sn === sn)?.etiket ?? `${sn} ${t("sn")}`;
 }

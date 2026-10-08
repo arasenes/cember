@@ -114,3 +114,9 @@ Yeni kod `src/mesaj/` altında; `Chat.tsx` yalnızca bağlar. Her özelliğin bi
 - **Palet seçici (Aşama 0)**: 10 palet, `src/temalar.ts` + `src/temalar.css`, Ayarlar > Görünüm; hesap bazlı kayıt `kullanici_ayarlari` (035).
 - **Sesli oda**: masaüstünde sahne + yuvarlak kişiler (kamera açıksa kare 16:9 kutu) + sağda sohbet kolonu; telefonda `SesliOdaTelefon.html` düzeni (tek ses çubuğu, yarı yarıya, açılır kapanır sohbet, kişiye dokununca ses ayarı sayfası, tek satır yazı alanı).
 - **Ders**: yayından önce `npm run build` çalıştır (CSS'te fazladan `}` derlemeyi bozdu ve site eski sürümde kaldı); sütun bazlı yetkili tablolara yeni sütun eklerken GRANT ekle.
+
+### Çok dillilik (8 Ekim 2026)
+- **Diller**: Türkçe (kaynak), İngilizce, Almanca, Arapça (sağdan sola), Rusça, Azerice, Fransızca, İspanyolca. Seçim: Ayarlar > Dil; ilk açılışta cihaz dili (desteklenmiyorsa İngilizce); hesapta saklanır (`kullanici_ayarlari.dil`, migration 037). Dil değişince sayfa yeniden yüklenir.
+- **Altyapı**: `src/i18n.ts` (`t("Türkçe metin", {a: ...})`, `onayla()`, `dilKodu()`, `dilUygula()`), çeviri tablosu `src/i18n.sozluk.ts` (satır = `[tr, en, de, ar, ru, az, fr, es]`). Tabloda olmayan metin Türkçe kalır. `{a}` yer tutuculu satırlar, hazır birleştirilmiş Türkçe metinleri de desenle yakalar (hata/bildirim metinleri her yerde `t()` ile sarılı görüntü noktalarından geçer). Sunucu hata metinleri (migration `raise exception`, edge function `hata:`) de tabloda.
+- **Yeni metin eklerken**: Türkçe metni `t("...")` ile yaz, `i18n.sozluk.ts`'e satır ekle (yoksa o dilde Türkçe görünür). Testlerde dil Türkçedir.
+- **Eksikler**: bazı bileşik `aria-label` metinleri (kanal satırı, katılımcı şeridi) hâlâ Türkçe; Arapça sağdan-sola düzeni temel (yön, kenarlar, ikon yansıtma) ama her ekran gerçek cihazda taranmadı; çeviriler elle yazıldı, anadili konuşanlarca gözden geçirilmeli; tarihler/saatler cihaz dilinde biçimlenir.

@@ -85,9 +85,9 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
           <label htmlFor="ad">{t("Takma ad")}</label>
           <input id="ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder={t("Örn. Aras")} />
         </div>
-        <div className="err" role="alert">{hata}</div>
+        <div className="err" role="alert">{t(hata)}</div>
         <button className="cta" type="submit" disabled={bekle}>{bekle ? "Giriliyor…" : "Misafir olarak gir"}</button>
-        <p className="hint">Misafir hesabı Çıkış'a basınca silinir; mesajların "Silinmiş üye" adıyla kalır.</p>
+        <p className="hint">{t("Misafir hesabı Çıkış'a basınca silinir; mesajların \"Silinmiş üye\" adıyla kalır.")}</p>
       </form>
     </main>
   );

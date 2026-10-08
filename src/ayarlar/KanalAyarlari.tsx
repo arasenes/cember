@@ -5,7 +5,7 @@ import type { Kanal, Kategori } from "../types";
 import { duzenle, gruplariKur, YAVAS_MOD_SECENEKLERI, type Tasima } from "../sunucu/siralama";
 import { IZIN } from "../sunucu/izin";
 import { BildirimSatiri, rpcCagir, SayfaBasligi, useBildirim } from "./ortak";
-import { t } from "../i18n";
+import { t, onayla } from "../i18n";
 
 type Props = {
   odaId: string;
@@ -19,7 +19,7 @@ type Props = {
 type IzinSatir = { hedef: "herkes" | "moderator" | "rol"; rol_id: string | null; ver: number; yasak: number };
 type RolKisa = { id: string; ad: string };
 const KANAL_IZINLERI: { bit: number; ad: string }[] = [
-  { bit: IZIN.MESAJ_YAZ, ad: "Mesaj yaz" }, { bit: IZIN.DOSYA, ad: "Dosya ekle" }, { bit: IZIN.SES_KONUS, ad: "Sesli konuş" }, { bit: IZIN.EKRAN_KAMERA, ad: "Ekran/kamera" },
+  { bit: IZIN.MESAJ_YAZ, ad: t("Mesaj yaz") }, { bit: IZIN.DOSYA, ad: t("Dosya ekle") }, { bit: IZIN.SES_KONUS, ad: t("Sesli konuş") }, { bit: IZIN.EKRAN_KAMERA, ad: t("Ekran/kamera") },
 ];
 
 /** Bir kanalın izinlerini Herkes / Moderatör / özel rol için "varsayılan · izin ver · yasakla" olarak ayarlar. */
@@ -54,7 +54,7 @@ function KanalIzinleri({ kanal, onBildir }: { kanal: Kanal; onBildir: (b: { ok: 
   ];
   const bitler = KANAL_IZINLERI.filter((b) => ((b.bit === IZIN.MESAJ_YAZ || b.bit === IZIN.DOSYA) ? kanal.tur === "yazili" : kanal.tur === "sesli"));
   return (
-    <div className="kanal-izin kart" role="group" aria-label={`${kanal.ad} kanal izinleri`}>
+    <div className="kanal-izin kart" role="group" aria-label={t(`${kanal.ad} kanal izinleri`)}>
       <p className="hint">{t("“Varsayılan”: sunucu izni geçerli. Sahip her zaman her şeyi yapabilir.")}</p>
       {hedefler.map((h) => (
         <div key={h.hedef + (h.rolId ?? "")} className="izin">
@@ -62,7 +62,7 @@ function KanalIzinleri({ kanal, onBildir }: { kanal: Kanal; onBildir: (b: { ok: 
           <div className="yon-eylemler">
             {bitler.map((b) => (
               <label key={b.bit} className="kanal-izin-alan">{b.ad}
-                <select value={durum(h.hedef, h.rolId, b.bit)} aria-label={`${h.ad}: ${b.ad}`} onChange={(e) => void degistir(h.hedef, h.rolId, b.bit, e.target.value as "varsayilan" | "ver" | "yasak")}>
+                <select value={durum(h.hedef, h.rolId, b.bit)} aria-label={t(`${h.ad}: ${b.ad}`)} onChange={(e) => void degistir(h.hedef, h.rolId, b.bit, e.target.value as "varsayilan" | "ver" | "yasak")}>
                   <option value="varsayilan">{t("Varsayılan")}</option><option value="ver">{t("İzin ver")}</option><option value="yasak">{t("Yasakla")}</option>
                 </select>
               </label>
@@ -137,11 +137,11 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
     });
   };
   const kategoriSil = (c: Kategori) => {
-    if (!confirm(`"${c.ad}" kategorisi silinsin mi? İçindeki kanallar silinmez, kategorisiz kalır.`)) return;
+    if (!onayla(`"${c.ad}" kategorisi silinsin mi? İçindeki kanallar silinmez, kategorisiz kalır.`)) return;
     void calistirVeYenile("Kategori silindi.", async () => (await rpcCagir("kategori_sil", { p_id: c.id })).hata);
   };
   const kanalSil = (k: Kanal) => {
-    if (!confirm(`"${k.ad}" ve içindeki mesajlar silinsin mi?`)) return;
+    if (!onayla(`"${k.ad}" ve içindeki mesajlar silinsin mi?`)) return;
     void calistirVeYenile(`"${k.ad}" silindi.`, async () => (await rpcCagir("kanal_sil", { p_kanal: k.id })).hata);
   };
   const yavasModAyarla = (k: Kanal, sn: number) =>
@@ -195,7 +195,7 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
       </form>
 
       {gruplar.map((g) => (
-        <section key={g.kategori?.id ?? "kategorisiz"} className="kanal-grup" aria-label={g.kategori?.ad ?? "Kategorisiz kanallar"}>
+        <section key={g.kategori?.id ?? "kategorisiz"} className="kanal-grup" aria-label={g.kategori?.ad ?? t("Kategorisiz kanallar")}>
           <div className="kanal-grup-ust" {...baslikSurukleProps(g.kategori?.id ?? null)}
             {...(g.kategori ? { draggable: true, onDragStart: () => setSurukle({ tur: "kategori", id: g.kategori!.id }), onDragEnd: () => setSurukle(null) } : {})}>
             {g.kategori && duzenKat?.id === g.kategori.id ? (
@@ -209,8 +209,8 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
                 <h2>{g.kategori?.ad ?? "Kategorisiz"}</h2>
                 {g.kategori && (
                   <div className="yon-eylemler">
-                    <button className="cb-ibtn" aria-label={`${g.kategori.ad} kategorisini yukarı taşı`} disabled={mesgul} onClick={() => void sirala({ tur: "kategori-yukari", id: g.kategori!.id })}>▲</button>
-                    <button className="cb-ibtn" aria-label={`${g.kategori.ad} kategorisini aşağı taşı`} disabled={mesgul} onClick={() => void sirala({ tur: "kategori-asagi", id: g.kategori!.id })}>▼</button>
+                    <button className="cb-ibtn" aria-label={t(`${g.kategori.ad} kategorisini yukarı taşı`)} disabled={mesgul} onClick={() => void sirala({ tur: "kategori-yukari", id: g.kategori!.id })}>▲</button>
+                    <button className="cb-ibtn" aria-label={t(`${g.kategori.ad} kategorisini aşağı taşı`)} disabled={mesgul} onClick={() => void sirala({ tur: "kategori-asagi", id: g.kategori!.id })}>▼</button>
                     <button className="pk-btn" disabled={mesgul} onClick={() => setDuzenKat({ id: g.kategori!.id, ad: g.kategori!.ad })}>{t("Adı değiştir")}</button>
                     <button className="pk-btn tehlike" disabled={mesgul} onClick={() => kategoriSil(g.kategori!)}>{t("Sil")}</button>
                   </div>
@@ -223,20 +223,20 @@ export default function KanalAyarlari({ odaId, kanallar, kategoriler, onDegisti 
               <li key={k.id} className={"yon-kanal" + (surukle?.id === k.id ? " surukleniyor" : "")} {...kanalSurukleProps(k)}>
                 <span className="kanal-ad"><Ikon ad={k.tur === "sesli" ? "ses" : "hash"} boyut={16} /> {k.ad}{k.sifreli && <Ikon ad="kilit" boyut={14} />}</span>
                 <div className="yon-eylemler">
-                  <button className="cb-ibtn" aria-label={`${k.ad} kanalını yukarı taşı`} disabled={mesgul} onClick={() => void sirala({ tur: "kanal-yukari", id: k.id })}>▲</button>
-                  <button className="cb-ibtn" aria-label={`${k.ad} kanalını aşağı taşı`} disabled={mesgul} onClick={() => void sirala({ tur: "kanal-asagi", id: k.id })}>▼</button>
-                  <select aria-label={`${k.ad} kategorisi`} value={k.kategori_id ?? ""} disabled={mesgul} onChange={(e) => kategoriDegistir(k, e.target.value)}>
+                  <button className="cb-ibtn" aria-label={t(`${k.ad} kanalını yukarı taşı`)} disabled={mesgul} onClick={() => void sirala({ tur: "kanal-yukari", id: k.id })}>▲</button>
+                  <button className="cb-ibtn" aria-label={t(`${k.ad} kanalını aşağı taşı`)} disabled={mesgul} onClick={() => void sirala({ tur: "kanal-asagi", id: k.id })}>▼</button>
+                  <select aria-label={t(`${k.ad} kategorisi`)} value={k.kategori_id ?? ""} disabled={mesgul} onChange={(e) => kategoriDegistir(k, e.target.value)}>
                     <option value="">{t("Kategorisiz")}</option>
                     {kategoriler.map((c) => <option key={c.id} value={c.id}>{c.ad}</option>)}
                   </select>
                   {k.tur === "yazili" && (
-                    <select aria-label={`${k.ad} yavaş modu`} value={k.yavas_mod ?? 0} disabled={mesgul} onChange={(e) => yavasModAyarla(k, Number(e.target.value))}>
-                      {YAVAS_MOD_SECENEKLERI.map((s) => <option key={s.sn} value={s.sn}>Yavaş mod: {s.etiket}</option>)}
+                    <select aria-label={t(`${k.ad} yavaş modu`)} value={k.yavas_mod ?? 0} disabled={mesgul} onChange={(e) => yavasModAyarla(k, Number(e.target.value))}>
+                      {YAVAS_MOD_SECENEKLERI.map((s) => <option key={s.sn} value={s.sn}>{t("Yavaş mod")}: {s.etiket}</option>)}
                     </select>
                   )}
                   {sifreKanal === k.id ? (
                     <form className="yon-eylemler" onSubmit={(e) => { e.preventDefault(); sifreKaydet(k, sifre); }}>
-                      <input type="password" value={sifre} onChange={(e) => setSifre(e.target.value)} maxLength={40} placeholder={t("Yeni şifre")} aria-label={`${k.ad} için yeni şifre`} autoComplete="new-password" />
+                      <input type="password" value={sifre} onChange={(e) => setSifre(e.target.value)} maxLength={40} placeholder={t("Yeni şifre")} aria-label={t(`${k.ad} için yeni şifre`)} autoComplete="new-password" />
                       <button className="pk-btn" type="submit" disabled={mesgul || sifre.length < 3}>{t("Kaydet")}</button>
                       <button className="pk-btn" type="button" onClick={() => { setSifreKanal(null); setSifre(""); }}>{t("Vazgeç")}</button>
                     </form>

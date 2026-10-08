@@ -38,11 +38,11 @@ export default function KanalSifre({ kanal, onAcildi, onKapat }: Props) {
           <button type="button" className="lb-kapat modal-x" onClick={onKapat} aria-label={t("Kapat")}>✕</button>
         </div>
         <div className="field">
-          <label htmlFor="ksifre">Bu {kanal.tur === "sesli" ? "sesli oda" : "kanal"} şifreli. Şifreyi gir:</label>
+          <label htmlFor="ksifre">{kanal.tur === "sesli" ? t("Bu sesli oda şifreli. Şifreyi gir:") : t("Bu kanal şifreli. Şifreyi gir:")}</label>
           <input id="ksifre" ref={girdiRef} type="password" value={sifre} onChange={(e) => setSifre(e.target.value)}
             maxLength={40} autoComplete="off" disabled={mesgul} />
         </div>
-        <div className="yon-bildirim hata" role="alert" aria-live="assertive">{hata}</div>
+        <div className="yon-bildirim hata" role="alert" aria-live="assertive">{t(hata)}</div>
         <div className="modal-alt">
           <button type="button" className="ib" onClick={onKapat}>{t("Vazgeç")}</button>
           <button type="submit" className="ib" disabled={!sifre || mesgul}>{mesgul ? "…" : "Gir"}</button>

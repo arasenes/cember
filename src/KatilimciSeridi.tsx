@@ -23,7 +23,7 @@ export default function KatilimciSeridi({ katilimcilar, konusanlar, sorunlu, pay
         const konusuyor = konusanlar.has(u.id);
         return (
           <button key={u.id} className={"karo" + (konusuyor ? " konusuyor" : "") + (paylasanlar.has(u.id) ? " paylasiyor" : "")}
-            onClick={() => onProfil(u.id)} aria-label={`${u.takma_ad}${u.id === benimId ? " (sen)" : ""}${konusuyor ? ", konuşuyor" : ""}${paylasanlar.has(u.id) ? ", ekran paylaşıyor" : ""}${sorunlu.has(u.id) ? ", bağlantı sorunu" : ""}`}>
+            onClick={() => onProfil(u.id)} aria-label={t(`${u.takma_ad}${u.id === benimId ? " (sen)" : ""}${konusuyor ? ", konuşuyor" : ""}${paylasanlar.has(u.id) ? ", ekran paylaşıyor" : ""}${sorunlu.has(u.id) ? ", bağlantı sorunu" : ""}`)}>
             <Avatar uye={u} className="karo-av" />
             <span className="karo-ad">{u.id === benimId ? "Sen" : u.takma_ad}</span>
             {paylasanlar.has(u.id) && <span className="karo-rozet" aria-hidden="true">🖥️</span>}

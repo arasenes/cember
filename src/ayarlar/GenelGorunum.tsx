@@ -47,7 +47,7 @@ export default function GenelGorunum({ odaId, ad, ikonMetin, ikonRenk, duzenleye
         <span className="alan-etiket" id="ikon-renk-etiket">{t("Simge rengi")}</span>
         <div className="renk-secici" role="radiogroup" aria-labelledby="ikon-renk-etiket">
           {RENK_PALETI.map((r) => (
-            <button key={r} type="button" role="radio" aria-checked={renk === r} aria-label={`Renk ${r}`} className="renk-nokta" style={{ background: r }} disabled={!duzenleyebilir} onClick={() => setRenk(r)} />
+            <button key={r} type="button" role="radio" aria-checked={renk === r} aria-label={t(`Renk ${r}`)} className="renk-nokta" style={{ background: r }} disabled={!duzenleyebilir} onClick={() => setRenk(r)} />
           ))}
         </div>
       </div>

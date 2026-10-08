@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { supabase } from "../supabase";
+import { t } from "../i18n";
 
 /** Sunucu işlevini çağırır; hata varsa Türkçe mesajı döner (işlevlerin raise exception metinleri doğrudan gösterilir). */
 export async function rpcCagir(ad: string, args: Record<string, unknown>): Promise<{ veri: unknown; hata: string | null }> {
@@ -29,7 +30,7 @@ export function useBildirim() {
 }
 
 export function BildirimSatiri({ b }: { b: BildirimDurumu }) {
-  return <div className={"yon-bildirim" + (b?.hata ? " hata" : "")} role="status" aria-live="polite">{b?.metin ?? ""}</div>;
+  return <div className={"yon-bildirim" + (b?.hata ? " hata" : "")} role="status" aria-live="polite">{b?.metin ? t(b.metin) : ""}</div>;
 }
 
 export async function panoyaKopyala(metin: string): Promise<boolean> {

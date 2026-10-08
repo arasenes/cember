@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Ikon from "../mesaj/Ikon";
-import { cevir } from "../i18n";
+import { cevir, t } from "../i18n";
 import { komutlariSuz, type Komut } from "./komutlar";
 
 type Props = { komutlar: Komut[]; onKapat: () => void };

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { etiketParcala } from "../uyari";
+import { t } from "../i18n";
 
 // Mesaj metni Markdown benzeri biçimlendirilir ama HTML'e ÇEVRİLMEZ: her şey React öğesi olarak üretilir
 // (dangerouslySetInnerHTML yok). Bağlantılar yalnızca http/https olabilir.
@@ -12,7 +13,7 @@ export function Spoiler({ children }: { children: ReactNode }) {
   const [acik, setAcik] = useState(false);
   return (
     <button type="button" className={"spoiler" + (acik ? " acik" : "")} aria-pressed={acik}
-      aria-label={acik ? "Gizli metin açıldı" : "Gizli metin, açmak için tıkla"} onClick={() => setAcik((x) => !x)}>
+      aria-label={acik ? t("Gizli metin açıldı") : t("Gizli metin, açmak için tıkla")} onClick={() => setAcik((x) => !x)}>
       <span aria-hidden={!acik}>{children}</span>
     </button>
   );

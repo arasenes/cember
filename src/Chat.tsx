@@ -20,7 +20,7 @@ import SunucuDialog from "./sunucu/SunucuDialog";
 import KomutPaleti from "./komut/KomutPaleti";
 import { komutOner } from "./mesaj/botKomutlari";
 import type { Komut } from "./komut/komutlar";
-import { cevir, t } from "./i18n";
+import { cevir, dilKodu, t, onayla, dilBulutaYaz, dilBuluttanOku, dilOku, dilYaz } from "./i18n";
 import { sunucuBasHarf, type Sunucu } from "./sunucu/sunucular";
 import { IZIN, useIzinler } from "./sunucu/izin";
 import { gruplariKur } from "./sunucu/siralama";
@@ -121,6 +121,8 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     if (!me.user_id) return;
     let iptal = false;
     void temaBuluttanOku(me.user_id).then((id) => { if (id && !iptal && id !== temaOku()) { temaKaydet(id); setTema(id); } });
+    // Hesapta kayıtlı dil varsa ve bu cihazdakinden farklıysa uygula (bir kez yeniden yükler)
+    void dilBuluttanOku(me.user_id).then((d) => { if (d && !iptal && d !== dilOku() && !sessionStorage.getItem("cember-dil-esitlendi")) { sessionStorage.setItem("cember-dil-esitlendi", "1"); dilYaz(d); location.reload(); } });
     return () => { iptal = true; };
   }, [me.user_id]);
   const [yazi, setYazi] = useState(yaziBoyutuOku);
@@ -835,7 +837,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   }
 
   async function sil(m: Mesaj) {
-    if (!confirm("Bu mesaj silinsin mi?")) return;
+    if (!onayla("Bu mesaj silinsin mi?")) return;
     const { error } = await supabase.from("mesajlar").update({ silindi: true }).eq("id", m.id);
     if (error) return setHata("Mesaj silinemedi.");
     if (m.ek_yol) void supabase.storage.from("ekler").remove([m.ek_yol]);
@@ -983,7 +985,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
 
   async function cikis() {
     if (ben.misafir) {
-      if (!confirm("Misafir hesabın silinecek ve bir daha girilemeyecek. Mesajların odada \"Silinmiş üye\" adıyla kalır. Çıkılsın mı?")) return;
+      if (!onayla("Misafir hesabın silinecek ve bir daha girilemeyecek. Mesajların odada \"Silinmiş üye\" adıyla kalır. Çıkılsın mı?")) return;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${SUPABASE_URL}/functions/v1/katil`, {
@@ -997,7 +999,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       onExit();
       return;
     }
-    if (!confirm("Çıkış yapılsın mı? Google ile istediğin zaman tekrar girebilirsin.")) return;
+    if (!onayla("Çıkış yapılsın mı? Google ile istediğin zaman tekrar girebilirsin.")) return;
     await pushKapat();
     await supabase.auth.signOut({ scope: "local" });
     onExit();
@@ -1016,9 +1018,9 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     katlanmis.includes(bolum) ? liste.filter((k) => k.id === aktif || okunmamisBilgi(k.id)) : liste;
   const kanalArac = (k: Kanal) => duzenle && (
     <div className="ch-arac">
-      <button onClick={() => kanalTasi(k.tur, k.id, -1)} aria-label={`${k.ad} kanalını yukarı taşı`} title={t("Yukarı")}>▲</button>
-      <button onClick={() => kanalTasi(k.tur, k.id, 1)} aria-label={`${k.ad} kanalını aşağı taşı`} title={t("Aşağı")}>▼</button>
-      <button onClick={() => sessizDegistir(k.id)} aria-pressed={sessiz.includes(k.id)} aria-label={`${k.ad} kanalını ${sessiz.includes(k.id) ? "sesten çıkar" : "sessize al"}`} title={t("Sessize al")}>{sessiz.includes(k.id) ? "🔕" : "🔔"}</button>
+      <button onClick={() => kanalTasi(k.tur, k.id, -1)} aria-label={t(`${k.ad} kanalını yukarı taşı`)} title={t("Yukarı")}>▲</button>
+      <button onClick={() => kanalTasi(k.tur, k.id, 1)} aria-label={t(`${k.ad} kanalını aşağı taşı`)} title={t("Aşağı")}>▼</button>
+      <button onClick={() => sessizDegistir(k.id)} aria-pressed={sessiz.includes(k.id)} aria-label={t(`${k.ad} kanalını ${sessiz.includes(k.id) ? "sesten çıkar" : "sessize al"}`)} title={t("Sessize al")}>{sessiz.includes(k.id) ? "🔕" : "🔔"}</button>
     </div>
   );
   const surukleProps = (k: Kanal) => duzenle ? {
@@ -1071,12 +1073,12 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
                   {sayacRozeti(k.id)}
                 </button>
                 <button className="ch-sohbet" aria-current={k.id === aktif} title={t("Bu odanın yazılı sohbetini aç")}
-                  aria-label={`${k.ad} sesli odasının yazılı sohbetini aç`}
+                  aria-label={t(`${k.ad} sesli odasının yazılı sohbetini aç`)}
                   onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); })}><Ikon ad="sohbet" boyut={16} /></button>
                 {kanalArac(k)}
                 </div>
                 {icindekiler.length > 0 && (
-                  <ul className="vlist" aria-label={`${k.ad} katılımcıları`}>
+                  <ul className="vlist" aria-label={t(`${k.ad} katılımcıları`)}>
                     {icindekiler.map((u) => (
                       <li key={u.id} className="vp">
                         <Avatar uye={u} className={ses.konusanlar.has(u.id) ? "speak" : ""} />
@@ -1101,7 +1103,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             <Ikon ad={kapali ? "saga" : "asagi"} boyut={12} /> {c.ad}
             {kapali && bolumOkunmamis(liste) > 0 && <span className="rozet" aria-hidden="true">{bolumOkunmamis(liste)}</span>}
           </button>
-          {kanalYonet && <div className="sec-sag"><button className="sec-ekle" onClick={() => ayarAc("kanallar")} aria-label={`${c.ad} kategorisine kanal ekle`} title={t("Kanal ekle")}>+</button></div>}
+          {kanalYonet && <div className="sec-sag"><button className="sec-ekle" onClick={() => ayarAc("kanallar")} aria-label={t(`${c.ad} kategorisine kanal ekle`)} title={t("Kanal ekle")}>+</button></div>}
         </div>
         {gorunen.map((k) => (k.tur === "sesli" ? sesSatiri(k) : yaziSatiri(k)))}
       </div>
@@ -1148,7 +1150,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   ) : null;
 
   const uyeSatiri = (u: Uye, acik: boolean) => (
-    <button key={u.id} className={"mem" + (acik ? "" : " off")} onClick={() => setProfilId(u.id)} title={`${u.takma_ad} profilini aç`}>
+    <button key={u.id} className={"mem" + (acik ? "" : " off")} onClick={() => setProfilId(u.id)} title={t(`${u.takma_ad} profilini aç`)}>
       <Avatar uye={u}>{acik && <span className="on-dot" style={{ background: bosta.has(u.id) && (!u.durum || u.durum === "cevrimici") ? "#f5b94a" : DURUM_BILGI[u.durum ?? "cevrimici"].renk }} />}</Avatar>
       <div className="mem-ad"><span className={"mem-isim rol-" + u.rol}>{u.takma_ad}</span>{u.rol !== "uye" && <span className="sr">, {rolEtiketi(u.rol).toLowerCase()}</span>}{acik && u.durum && u.durum !== "cevrimici" && <small>{DURUM_BILGI[u.durum].ad}</small>}{acik && bosta.has(u.id) && (!u.durum || u.durum === "cevrimici") && <small>{t("Boşta")}</small>}{u.durum_metin && <small className="mem-durum-metin">{u.durum_metin}</small>}{u.hakkinda && <small className="mem-hk">{u.hakkinda}</small>}</div>
     </button>
@@ -1160,7 +1162,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         {(sunucular.length ? sunucular : [{ oda_id: me.oda_id, ad: odaAdi, ikon_metin: null, ikon_renk: "" } as Sunucu]).map((x) => {
           const buradaki = x.oda_id === me.oda_id;
           return (
-            <button key={x.oda_id} type="button" className={"sr-dugme sr-sunucu" + (buradaki && gorunum === "sunucu" ? " aktif" : "")} aria-label={`${buradaki ? odaAdi : x.ad} sunucusu`}
+            <button key={x.oda_id} type="button" className={"sr-dugme sr-sunucu" + (buradaki && gorunum === "sunucu" ? " aktif" : "")} aria-label={t(`${buradaki ? odaAdi : x.ad} sunucusu`)}
               aria-current={buradaki && gorunum === "sunucu"} title={x.ad} style={x.ikon_renk ? { background: x.ikon_renk } : undefined}
               onClick={() => { if (buradaki) setGorunum("sunucu"); else onSunucuSec?.(x.oda_id); }}>
               {sunucuBasHarf({ ad: buradaki ? odaAdi : x.ad, ikon_metin: x.ikon_metin })}
@@ -1184,7 +1186,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         <nav className="scroll" aria-label={t("Kanal listesi")}>
           <div className="sec sec-satir">
             <button className="sec-bas" aria-expanded={!katlanmis.includes("yazili")} onClick={() => bolumKatla("yazili")}>
-              <Ikon ad={katlanmis.includes("yazili") ? "saga" : "asagi"} boyut={12} /> Yazılı kanallar
+              <Ikon ad={katlanmis.includes("yazili") ? "saga" : "asagi"} boyut={12} /> {t("Yazılı kanallar")}
               {katlanmis.includes("yazili") && bolumOkunmamis(yaziKanallari) > 0 && <span className="rozet" aria-hidden="true">{bolumOkunmamis(yaziKanallari)}</span>}
             </button>
             <div className="sec-sag">
@@ -1195,7 +1197,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           {bolumKanallari("yazili", yaziKategorisiz).map(yaziSatiri)}
           <div className="sec sec-satir">
             <button className="sec-bas" aria-expanded={!katlanmis.includes("sesli")} onClick={() => bolumKatla("sesli")}>
-              <Ikon ad={katlanmis.includes("sesli") ? "saga" : "asagi"} boyut={12} /> Sesli odalar
+              <Ikon ad={katlanmis.includes("sesli") ? "saga" : "asagi"} boyut={12} /> {t("Sesli odalar")}
               {katlanmis.includes("sesli") && bolumOkunmamis(sesKanallari) > 0 && <span className="rozet" aria-hidden="true">{bolumOkunmamis(sesKanallari)}</span>}
             </button>
             {kanalYonet && <div className="sec-sag"><button className="sec-ekle" onClick={() => ayarAc("kanallar")} aria-label={t("Kanal veya sesli oda aç")} title={t("Kanal / oda aç")}>+</button></div>}
@@ -1261,26 +1263,26 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             )}
             {aktifKanal && (
               <button className="cb-ibtn" aria-pressed={sessiz.includes(aktifKanal.id)} onClick={() => sessizDegistir(aktifKanal.id)}
-                aria-label={sessiz.includes(aktifKanal.id) ? "Kanalın sesini aç" : "Kanalı sessize al"} title={sessiz.includes(aktifKanal.id) ? "Sessizde: ses ve sayaç yok" : "Sessize al"}>
+                aria-label={sessiz.includes(aktifKanal.id) ? t("Kanalın sesini aç") : t("Kanalı sessize al")} title={sessiz.includes(aktifKanal.id) ? t("Sessizde: ses ve sayaç yok") : t("Sessize al")}>
                 <Ikon ad={sessiz.includes(aktifKanal.id) ? "zilKapali" : "zil"} />
               </button>
             )}
             {sabitler.length > 0 && (
-              <button className="cb-ibtn ust-sabit" onClick={() => setSabitAcik(true)} aria-label={`${sabitler.length} sabitlenmiş mesajı göster`}><Ikon ad="pin" /><span className="ust-sayi" aria-hidden="true">{sabitler.length}</span></button>
+              <button className="cb-ibtn ust-sabit" onClick={() => setSabitAcik(true)} aria-label={t(`${sabitler.length} sabitlenmiş mesajı göster`)}><Ikon ad="pin" /><span className="ust-sayi" aria-hidden="true">{sabitler.length}</span></button>
             )}
             <button className="ust-ara" onClick={() => setAramaAcik(true)} aria-label={t("Mesajlarda ara")} aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /><span>{t("Mesajlarda ara")}</span></button>
           </div>
         </div>
         {ses.izlenen && !sesliOda && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
         <GuncellemeBandi />
-        {hata && <div className="banner" role="alert">{hata}</div>}
+        {hata && <div className="banner" role="alert">{t(hata)}</div>}
         {ses.sorunlu.size > 0 && (
           <div className="banner" role="status">
             ⚠️ {[...ses.sorunlu].map((id) => uyeHaritasi.get(id)?.takma_ad ?? "Biri").join(", ")} ile ses bağlantısı kurulamıyor; tekrar deneniyor.
           </div>
         )}
         {me.rol === "sahip" && kullanimDk !== null && kullanimDk >= SES_LIMIT * 0.8 && (
-          <div className="banner" role="status">Bu ay sesli odada {kullanimDk} / {SES_LIMIT} dakika kullanıldı{kullanimDk >= SES_LIMIT ? "; limit doldu, ses kapandı" : "; limite yaklaşıyorsunuz"}. Yazılı sohbet çalışmaya devam eder.</div>
+          <div className="banner" role="status">{t("Bu ay sesli odada {a} / {b} dakika kullanıldı", { a: kullanimDk, b: SES_LIMIT })}{kullanimDk >= SES_LIMIT ? t("; limit doldu, ses kapandı") : t("; limite yaklaşıyorsunuz")}{t(". Yazılı sohbet çalışmaya devam eder.")}</div>
         )}
         <div className="msgs" ref={akisRef} role="log" aria-live="polite" aria-label={t("Mesajlar")}>
           {dahaVar && <button className="more" onClick={eskileriYukle}>{t("Eski mesajları yükle")}</button>}
@@ -1330,7 +1332,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <input ref={dosyaRef} type="file" accept={IZINLI_TURLER.join(",")} hidden
             onChange={(e) => { void ekSec(e.target.files?.[0]); e.target.value = ""; }} />
           <textarea ref={metinRef} rows={1} value={metin} maxLength={4000} aria-label={t("Mesaj yaz")} disabled={yazamaz}
-            placeholder={!kanalYazabilir && !benSusturuldu ? "Bu kanalda mesaj yazma iznin yok" : benSusturuldu ? `Susturuldun; ${new Date(ben.susturma_bitis!).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}'e kadar yazamazsın` : `#${aktifKanal?.ad ?? ""} kanalına yaz`}
+            placeholder={!kanalYazabilir && !benSusturuldu ? t("Bu kanalda mesaj yazma iznin yok") : benSusturuldu ? t("Susturuldun; {zaman}'e kadar yazamazsın", { zaman: new Date(ben.susturma_bitis!).toLocaleTimeString(dilKodu(), { hour: "2-digit", minute: "2-digit" }) }) : t("#{a} kanalına yaz", { a: aktifKanal?.ad ?? "" })}
             onChange={(e) => { setMetin(e.target.value); if (e.target.value.trim()) yaziyorYayinla(); }}
             onPaste={(e) => { const f = resimBul(e.clipboardData.files); if (f) { e.preventDefault(); void ekSec(f, "Ekran görüntüsü"); } }}
             onKeyDown={(e) => {
@@ -1347,19 +1349,19 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         {aktifKanal?.tur === "sesli" ? (
           sesYaniEl
         ) : (<>
-        <div className="head"><h2>Üyeler — {aktifUyeler.length}</h2></div>
+        <div className="head"><h2>{t("Üyeler — {n}", { n: aktifUyeler.length })}</h2></div>
         <div className="scroll">
           {(["sahip", "moderator", "uye"] as const).map((rol) => {
             const grup = cevrimiciUyeler.filter((u) => u.rol === rol);
             if (!grup.length) return null;
             return (
               <div key={rol}>
-                <div className="sec">{rol === "sahip" ? "Sahip" : rol === "moderator" ? "Moderatör" : "Üye"} — {grup.length}</div>
+                <div className="sec">{rol === "sahip" ? t("Sahip") : rol === "moderator" ? t("Moderatör") : t("Üye")} — {grup.length}</div>
                 {grup.map((u) => uyeSatiri(u, true))}
               </div>
             );
           })}
-          {cevrimdisiUyeler.length > 0 && <div className="sec">Çevrimdışı — {cevrimdisiUyeler.length}</div>}
+          {cevrimdisiUyeler.length > 0 && <div className="sec">{t("Çevrimdışı — {n}", { n: cevrimdisiUyeler.length })}</div>}
           {cevrimdisiUyeler.map((u) => uyeSatiri(u, false))}
         </div>
         </>)}
@@ -1389,7 +1391,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
               {dm.iliski(profilUyesi.id) === "gelen" && <button type="button" className="pk-btn" onClick={() => void dm.arkadasIstek(profilUyesi.id).then((r) => toastAt(r.hata ?? "Arkadaş oldunuz", r.hata ? "hata" : "bilgi"))}>{t("İsteği kabul et")}</button>}
               {dm.iliski(profilUyesi.id) === "engelli"
                 ? <button type="button" className="pk-btn" onClick={() => void dm.engelKaldir(profilUyesi.id)}>{t("Engeli kaldır")}</button>
-                : <button type="button" className="pk-btn tehlike" onClick={() => { if (confirm("Bu kişiyi engellemek istiyor musun?")) void dm.engelle(profilUyesi.id); }}>{t("Engelle")}</button>}
+                : <button type="button" className="pk-btn tehlike" onClick={() => { if (onayla("Bu kişiyi engellemek istiyor musun?")) void dm.engelle(profilUyesi.id); }}>{t("Engelle")}</button>}
             </>
           ) : undefined} />
       )}
@@ -1437,13 +1439,14 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       )}
       {ayarAcik && (
         <AyarlarDialog tema={tema} onTema={(id) => { setTema(id); temaKaydet(id); if (me.user_id) void temaBulutaYaz(me.user_id, id); }}
+          onDil={(d) => { if (me.user_id) void dilBulutaYaz(me.user_id, d); }}
           yazi={yazi} onYazi={(b) => { setYazi(b); yaziBoyutuKaydet(b); }}
           sesler={sesler} onSesler={(a) => { setSesler(a); seslerKaydet(a); if (a) bildirimIzniIste(); }}
           basKonus={basKonusAyar} onBasKonus={(a) => { setBasKonusAyar(a); basKonusAyarYaz(a); }}
           onKapat={() => setAyarAcik(false)} />
       )}
       <div className="toasts" role="status" aria-live="polite">
-        {bildirimler.map((b) => <div key={b.id} className={"toast " + b.tur}>{b.metin}</div>)}
+        {bildirimler.map((b) => <div key={b.id} className={"toast " + b.tur}>{t(b.metin)}</div>)}
       </div>
       {ses.kabiRefleri.map((r, i) => <div key={i} ref={r} className="sr" aria-hidden="true" />)}
       <SesCubugu className="vbar-dock" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
@@ -1452,10 +1455,10 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <Ikon ad="hash" boyut={22} />{cevir("sekme.sunucu")}{gorunum !== "sunucu" && Object.values(okunmamis).some((o) => o.n > 0) && <span className="nokta nav-nokta" aria-hidden="true" />}
         </button>
         <button aria-current={gorunum === "dm" && dmSayfa !== "arkadaslar"} onClick={() => { setGorunum("dm"); setDmMobil("liste"); setDmSayfa(aktifDm ? "sohbet" : "arkadaslar"); }}>
-          <Ikon ad="sohbet" boyut={22} />{cevir("sekme.mesajlar")}{dm.toplamOkunmamis > 0 && <span className="rozet nav-rozet" aria-label={`${dm.toplamOkunmamis} okunmamış`}>{dm.toplamOkunmamis}</span>}
+          <Ikon ad="sohbet" boyut={22} />{cevir("sekme.mesajlar")}{dm.toplamOkunmamis > 0 && <span className="rozet nav-rozet" aria-label={t(`${dm.toplamOkunmamis} okunmamış`)}>{dm.toplamOkunmamis}</span>}
         </button>
         <button aria-current={gorunum === "dm" && dmSayfa === "arkadaslar"} onClick={() => { setGorunum("dm"); setDmSayfa("arkadaslar"); setDmMobil("icerik"); }}>
-          <Ikon ad="kullanici" boyut={22} />{cevir("sekme.arkadaslar")}{dm.gelenIstekler.length > 0 && <span className="rozet nav-rozet" aria-label={`${dm.gelenIstekler.length} arkadaş isteği`}>{dm.gelenIstekler.length}</span>}
+          <Ikon ad="kullanici" boyut={22} />{cevir("sekme.arkadaslar")}{dm.gelenIstekler.length > 0 && <span className="rozet nav-rozet" aria-label={t(`${dm.gelenIstekler.length} arkadaş isteği`)}>{dm.gelenIstekler.length}</span>}
         </button>
         <button aria-current={gorunum === "sunucu" && pane === "mem"} onClick={() => { setGorunum("sunucu"); setPane("mem"); }}>
           <Ikon ad="grup" boyut={22} />{cevir("sekme.uyeler")}

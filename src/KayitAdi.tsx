@@ -40,7 +40,7 @@ export default function KayitAdi({ onBitti, varsayilan }: { onBitti: () => void;
           <label htmlFor="kayit-ad">{t("Takma ad")}</label>
           <input id="kayit-ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder={t("Örn. Aras")} autoFocus />
         </div>
-        <div className="err" role="alert">{hata}</div>
+        <div className="err" role="alert">{t(hata)}</div>
         <button className="cta" type="submit" disabled={bekle}>{bekle ? "Kaydediliyor…" : "Kayıt ol ve gir"}</button>
         <button className="gate-link" type="button" onClick={() => supabase.auth.signOut({ scope: "local" }).then(onBitti)}>{t("Vazgeç")}</button>
       </form>

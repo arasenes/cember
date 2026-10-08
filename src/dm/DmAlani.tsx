@@ -9,7 +9,7 @@ import ProfilKarti from "./ProfilKarti";
 import YeniGrupDialog from "./YeniGrupDialog";
 import { dmBasligi, karsiUye } from "./tipler";
 import type { DmDurumu } from "./useDm";
-import { t } from "../i18n";
+import { t, onayla } from "../i18n";
 
 export type DmSayfa = "arkadaslar" | "sohbet";
 
@@ -65,7 +65,7 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
           <h1 className="sr">{t("Özel mesajlar")}</h1>
           <button type="button" className="head-dugme" onClick={onSunucuya}><Ikon ad="geri" boyut={16} />{" "}{t("Çember")}</button>
         </div>
-        {sesBilgisi && <div className="banner" role="status">{sesBilgisi}</div>}
+        {sesBilgisi && <div className="banner" role="status">{t(sesBilgisi)}</div>}
         <div className="dm-ara">
           <label className="dm-ara-kutu">
             <Ikon ad="ara" boyut={16} />
@@ -76,7 +76,7 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
           <button type="button" className={"dm-satir" + (sayfa === "arkadaslar" ? " aktif" : "")} onClick={() => { onArkadaslar(); setMobil("icerik"); }}>
             <span className="dm-ikon"><Ikon ad="kullanici" /></span>
             <span className="dm-ad">{t("Arkadaşlar")}</span>
-            {dm.gelenIstekler.length > 0 && <span className="rozet rozet-istek" aria-label={`${dm.gelenIstekler.length} bekleyen istek`}>{dm.gelenIstekler.length} istek</span>}
+            {dm.gelenIstekler.length > 0 && <span className="rozet rozet-istek" aria-label={t(`${dm.gelenIstekler.length} bekleyen istek`)}>{dm.gelenIstekler.length} istek</span>}
           </button>
           <div className="sec dm-sec">
             <span>{t("Özel mesajlar")}</span>
@@ -127,7 +127,7 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
             iliski={karsi ? dm.iliski(karsi) : "yok"}
             onArkadasEkle={() => karsi && void dm.arkadasIstek(karsi).then((r) => { if (r.hata) onHata(r.hata); else onBilgi(r.sonuc === "kabul" ? "Arkadaş oldunuz" : "İstek gönderildi"); })}
             onArkadasSil={() => karsi && void eylem(dm.arkadasSil(karsi))}
-            onEngelle={() => { if (karsi && confirm("Bu kişiyi engellemek istiyor musun? Birbirinize mesaj gönderemezsiniz.")) void eylem(dm.engelle(karsi)); }}
+            onEngelle={() => { if (karsi && onayla("Bu kişiyi engellemek istiyor musun? Birbirinize mesaj gönderemezsiniz.")) void eylem(dm.engelle(karsi)); }}
             onEngelKaldir={() => karsi && void eylem(dm.engelKaldir(karsi))}
             onProfil={() => karsi && onProfil(karsi)} />
         ) : (

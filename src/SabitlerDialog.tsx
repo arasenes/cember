@@ -31,7 +31,7 @@ export default function SabitlerDialog({ mesajlar, uyeler, kanalAdi, yonetici, o
     <div className="modal-arka" onMouseDown={(e) => { if (e.target === e.currentTarget) onKapat(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="sabit-baslik" ref={kutuRef}>
         <div className="modal-ust">
-          <h2 id="sabit-baslik">📌 Sabitlenenler — #{kanalAdi}</h2>
+          <h2 id="sabit-baslik">📌 {t("Sabitlenenler")} — #{kanalAdi}</h2>
           <button className="lb-kapat modal-x" onClick={onKapat} aria-label={t("Kapat")}>✕</button>
         </div>
         {mesajlar.length === 0 && <div className="hint">{t("Bu kanalda sabitlenmiş mesaj yok.")}</div>}

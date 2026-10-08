@@ -30,7 +30,7 @@ export default function ProfilKarti({ uye, benimMi, cevrimici, bosta, iliski, on
   if (!uye) return <aside className="profil-karti" aria-label={t("Profil")}><p className="hint">{t("Kişi bilgisi yok.")}</p></aside>;
   const silindi = !!uye.silindi;
   return (
-    <aside className="profil-karti" aria-label={`${uye.takma_ad} profili`}>
+    <aside className="profil-karti" aria-label={t(`${uye.takma_ad} profili`)}>
       <div className="pk-banner" style={{ background: `linear-gradient(135deg, ${uye.renk}, color-mix(in srgb, ${uye.renk} 40%, #0f1116))` }} aria-hidden="true" />
       <div className="pk-avatar"><Avatar uye={uye} className="pk-dot" /></div>
       <div className="pk-govde">

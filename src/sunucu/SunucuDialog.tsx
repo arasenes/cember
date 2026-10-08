@@ -58,7 +58,7 @@ export default function SunucuDialog({ onTamam, onKapat, misafir = false }: Prop
             <input id="sunucu-takma-ad" type="text" value={takmaAd} maxLength={24} onChange={(e) => setTakmaAd(e.target.value)} />
           </div>
         )}
-        <div className="err" role="alert">{hata}</div>
+        <div className="err" role="alert">{t(hata)}</div>
         <div className="modal-alt">
           <button type="button" className="linkbtn" onClick={onKapat}>{t("Vazgeç")}</button>
           <button type="submit" className="cta" disabled={mesgul}>{mesgul ? "…" : "Katıl"}</button>

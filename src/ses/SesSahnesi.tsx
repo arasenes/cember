@@ -40,7 +40,7 @@ export function KameraVideosu({ akis, ad }: { akis: MediaStream; ad: string }) {
     void Promise.resolve(v.play()).catch(() => {});
     return () => { v.srcObject = null; };
   }, [akis]);
-  return <video ref={ref} className="karo-video" autoPlay playsInline muted aria-label={`${ad} kamerası`} />;
+  return <video ref={ref} className="karo-video" autoPlay playsInline muted aria-label={t(`${ad} kamerası`)} />;
 }
 
 /** Sesli oda sahnesi: paylaşılan ekran + katılımcı kareleri (kamera ya da avatar) + kontrol çubuğu. */
@@ -79,17 +79,17 @@ function useDarEkran(): boolean {
 /** Kişi başı ses ayarı: avatara dokununca alttan açılan sayfa (telefon). */
 function KisiSesSayfasi({ uye, ben, ekranSesi, onProfil, onKapat }: { uye: Uye; ben: boolean; ekranSesi: boolean; onProfil: () => void; onKapat: () => void }) {
   const d = useSesDuzeyleri();
-  const satirlar = ben ? [] : [{ anahtar: uye.id, ad: "Bu kişinin ses düzeyi" }, ...(ekranSesi ? [{ anahtar: `${uye.id}~ekran`, ad: "Ekran sesi" }] : [])];
+  const satirlar = ben ? [] : [{ anahtar: uye.id, ad: t("Bu kişinin ses düzeyi") }, ...(ekranSesi ? [{ anahtar: `${uye.id}~ekran`, ad: t("Ekran sesi") }] : [])];
   useEffect(() => {
     const tus = (e: KeyboardEvent) => { if (e.key === "Escape") onKapat(); };
     window.addEventListener("keydown", tus);
     return () => window.removeEventListener("keydown", tus);
   }, [onKapat]);
   return (
-    <div className="kisi-sayfa" role="dialog" aria-label={`${uye.takma_ad}: ses ayarı`}>
+    <div className="kisi-sayfa" role="dialog" aria-label={t("{ad}: ses ayarı", { ad: uye.takma_ad })}>
       <div className="kisi-sayfa-ust">
         <Avatar uye={uye} className="kisi-sayfa-av" />
-        <b>{ben ? "Sen" : uye.takma_ad}</b>
+        <b>{ben ? t("Sen") : uye.takma_ad}</b>
         <button type="button" className="kisi-sayfa-kapat" onClick={onKapat} aria-label={t("Kapat")}><Ikon ad="kapat" boyut={18} /></button>
       </div>
       {satirlar.map((r) => {
@@ -97,12 +97,12 @@ function KisiSesSayfasi({ uye, ben, ekranSesi, onProfil, onKapat }: { uye: Uye; 
         return (
           <div key={r.anahtar} className="kisi-sayfa-satir">
             <label htmlFor={`ks-${r.anahtar}`}>{r.ad} <output>{v}%</output></label>
-            <input id={`ks-${r.anahtar}`} type="range" min={DUZEY_MIN} max={DUZEY_MAX} step={5} value={v} aria-valuetext={`yüzde ${v}`} onChange={(e) => d.ayarla(r.anahtar, Number(e.target.value))} />
-            <div className="kisi-sayfa-alt"><span>Sessiz</span><span>Normal</span><span>%200</span></div>
+            <input id={`ks-${r.anahtar}`} type="range" min={DUZEY_MIN} max={DUZEY_MAX} step={5} value={v} aria-valuetext={t("yüzde {v}", { v })} onChange={(e) => d.ayarla(r.anahtar, Number(e.target.value))} />
+            <div className="kisi-sayfa-alt"><span>{t("Sessiz")}</span><span>{t("Normal")}</span><span>%200</span></div>
           </div>
         );
       })}
-      <button type="button" className="kisi-sayfa-profil" onClick={onProfil}>Profili aç</button>
+      <button type="button" className="kisi-sayfa-profil" onClick={onProfil}>{t("Profili aç")}</button>
     </div>
   );
 }
@@ -157,7 +157,7 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
   };
 
   return (
-    <section className="ses-sahne" aria-label={`${kanal.ad} sesli odası`}>
+    <section className="ses-sahne" aria-label={t(`${kanal.ad} sesli odası`)}>
       <div className="head sahne-ust">
         <span className="ust-ikon" aria-hidden="true"><Ikon ad="ses" /></span>
         <h2 className="ust-ad">{kanal.ad}</h2>
@@ -184,7 +184,7 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
         </ul>
       )}
 
-      {kameraUyari && <div className="banner" role="alert">{kameraUyari}</div>}
+      {kameraUyari && <div className="banner" role="alert">{t(kameraUyari)}</div>}
 
       <div className={"kontrol-cubugu" + (buradayim ? " bagli" : "")} role="toolbar" aria-label={t("Sesli oda kontrolleri")}>
         {!buradayim ? (
@@ -198,15 +198,15 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
                 onPointerDown={(e) => { e.preventDefault(); basKonus.bas(); }} onPointerUp={basKonus.birak} onPointerLeave={basKonus.birak} onPointerCancel={basKonus.birak}
                 onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); if (!e.repeat) basKonus.bas(); } }}
                 onKeyUp={(e) => { if (e.key === " " || e.key === "Enter") basKonus.birak(); }}
-                aria-label={`Bas-konuş: ${tusAdi(basKonus.ayar.tus)} tuşuna ya da bu düğmeye basılı tut`}>
+                aria-label={t(`Bas-konuş: ${tusAdi(basKonus.ayar.tus)} tuşuna ya da bu düğmeye basılı tut`)}>
                 <Ikon ad="mik" /> Bas-konuş: {tusAdi(basKonus.ayar.tus)}
               </button>
             )}
             <button type="button" className="kontrol" aria-pressed={ses.sagir} onClick={() => void ses.sagirDegistir()}>
               <Ikon ad={ses.sagir ? "kulaklikKapali" : "kulaklik"} />{" "}{t("Sağırlaştır")}</button>
             <button type="button" className="kontrol" aria-pressed={ses.kameraAcik} onClick={() => void kameraTikla()}
-              title={ses.motor === "p2p" ? "Doğrudan modda en çok 640×360 çözünürlükte" : undefined}>
-              <Ikon ad={ses.kameraAcik ? "kamera" : "kameraKapali"} />{" "}{t("Kamera")}</button>
+              title={ses.motor === "p2p" ? t("Doğrudan modda en çok 640×360 çözünürlükte") : undefined}>
+              <Ikon ad={ses.kameraAcik ? "kamerat(" : ")kameraKapali"} />{" "}{t("Kamera")}</button>
             {ses.ekranDestegi && (
               ses.paylasiyorum
                 ? <button type="button" className="kontrol vurgulu" aria-pressed={true} onClick={() => void ses.ekranDurdur()}><Ikon ad="ekran" />{" "}{t("Paylaşımı durdur")}</button>

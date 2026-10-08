@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { t } from "../i18n";
 
 // Bas-konuş (push-to-talk): açıkken mikrofon kapalıdır, atanan tuşa (varsayılan V) basılı tutarken açılır.
 // Tuş dinleyicisi yalnızca sesli odadayken ve bir yazı alanında değilken çalışır. Telefonda ekrandaki "basılı tut" düğmesi kullanılır.
@@ -20,7 +21,7 @@ export function ayarYaz(a: BasKonusAyar) {
 export function tusAdi(kod: string): string {
   if (/^Key[A-Z]$/.test(kod)) return kod.slice(3);
   if (/^Digit\d$/.test(kod)) return kod.slice(5);
-  const ozel: Record<string, string> = { Space: "Boşluk", Backquote: "`", ControlLeft: "Sol Ctrl", ControlRight: "Sağ Ctrl", ShiftLeft: "Sol Shift", ShiftRight: "Sağ Shift", AltLeft: "Sol Alt", AltRight: "Sağ Alt", CapsLock: "Caps Lock", Tab: "Tab" };
+  const ozel: Record<string, string> = { Space: t("Boşluk"), Backquote: "`", ControlLeft: t("Sol Ctrl"), ControlRight: t("Sağ Ctrl"), ShiftLeft: t("Sol Shift"), ShiftRight: t("Sağ Shift"), AltLeft: t("Sol Alt"), AltRight: t("Sağ Alt"), CapsLock: "Caps Lock", Tab: "Tab" };
   return ozel[kod] ?? kod;
 }
 /** Atanamayacak tuşlar: sohbet ve gezinme için gerekli olanlar. */

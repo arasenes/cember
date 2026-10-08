@@ -145,7 +145,7 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
             <label id="pf-renk-et">{t("Renk")}</label>
             <div className="renkler" role="radiogroup" aria-labelledby="pf-renk-et">
               {(PROFIL_RENKLERI.includes(uye.renk) ? PROFIL_RENKLERI : [uye.renk, ...PROFIL_RENKLERI]).map((r) => (
-                <button type="button" key={r} className="renk" role="radio" aria-checked={renk === r} aria-label={`Renk ${r}`}
+                <button type="button" key={r} className="renk" role="radio" aria-checked={renk === r} aria-label={t(`Renk ${r}`)}
                   style={{ background: r }} onClick={() => setRenk(r)} />
               ))}
             </div>
@@ -158,7 +158,7 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
             <label htmlFor="pf-dm">{t("Durum metni")}</label>
             <input id="pf-dm" type="text" value={durumMetin} maxLength={DURUM_METNI_MAX} onChange={(e) => setDurumMetin(e.target.value)} placeholder={t("Ne yapıyorsun? (örn. Oyundayım)")} autoComplete="off" />
 
-            <div className="err" role="alert">{hata}</div>
+            <div className="err" role="alert">{t(hata)}</div>
             <div className="modal-alt">
               <button type="button" className="ib" onClick={onKapat} disabled={kaydediliyor}>{t("Vazgeç")}</button>
               <button type="submit" className="cta" disabled={kaydediliyor || !degisti}>{kaydediliyor ? "Kaydediliyor…" : "Kaydet"}</button>

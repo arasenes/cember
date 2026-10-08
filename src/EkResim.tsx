@@ -39,7 +39,7 @@ export default function EkResim({ yol, genislik, yukseklik, alt }: Props) {
           <div className="ek-yok" role="alert">{t("Resim yüklenemedi.")}{" "}<button className="linkbtn" onClick={tekrarDene}>{t("Tekrar dene")}</button>
           </div>
         ) : url ? (
-          <button ref={acanRef} className="ek-ac" onClick={() => setBuyuk(true)} aria-label={`${alt}, büyütmek için tıkla`}>
+          <button ref={acanRef} className="ek-ac" onClick={() => setBuyuk(true)} aria-label={t(`${alt}, büyütmek için tıkla`)}>
             <img src={url} alt={alt} width={g} height={y} loading="lazy" decoding="async" onError={() => (deneme < 1 ? tekrarDene() : setHata(true))} />
           </button>
         ) : (

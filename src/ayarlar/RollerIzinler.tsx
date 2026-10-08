@@ -3,7 +3,7 @@ import { supabase } from "../supabase";
 import type { Uye } from "../types";
 import { IZIN_SATIRLARI, IZIN_TUMU, izinAc, izinVar, VARSAYILAN_HERKES, VARSAYILAN_MODERATOR } from "../sunucu/izin";
 import { BildirimSatiri, RENK_PALETI, rpcCagir, SayfaBasligi, useBildirim } from "./ortak";
-import { t } from "../i18n";
+import { t, onayla } from "../i18n";
 
 export type Rol = { id: string; ad: string; renk: string; izinler: number; sira: number };
 type Secim = { tur: "sahip" | "moderator" | "herkes" } | { tur: "ozel"; id: string };
@@ -85,7 +85,7 @@ export default function RollerIzinler({ odaId, uyeler, sahipMi }: Props) {
     if (ok) await yukle();
   }
   async function sil() {
-    if (!ozel || !confirm(`"${ozel.ad}" rolü silinsin mi? Bu role sahip üyeler rolü kaybeder.`)) return;
+    if (!ozel || !onayla(`"${ozel.ad}" rolü silinsin mi? Bu role sahip üyeler rolü kaybeder.`)) return;
     const ok = await calistir("Rol silindi.", async () => (await rpcCagir("rol_sil", { p_rol: ozel.id })).hata);
     if (ok) { setSecim({ tur: "herkes" }); await yukle(); }
   }
@@ -129,7 +129,7 @@ export default function RollerIzinler({ odaId, uyeler, sahipMi }: Props) {
               <div className="field">
                 <span className="alan-etiket" id="rol-renk-et">{t("Renk")}</span>
                 <div className="renk-secici" role="radiogroup" aria-labelledby="rol-renk-et">
-                  {RENK_PALETI.slice(0, 8).map((r) => <button key={r} type="button" role="radio" aria-checked={renk === r} aria-label={`Renk ${r}`} className="renk-nokta" style={{ background: r }} disabled={kilitli} onClick={() => setRenk(r)} />)}
+                  {RENK_PALETI.slice(0, 8).map((r) => <button key={r} type="button" role="radio" aria-checked={renk === r} aria-label={t(`Renk ${r}`)} className="renk-nokta" style={{ background: r }} disabled={kilitli} onClick={() => setRenk(r)} />)}
                 </div>
               </div>
             )}

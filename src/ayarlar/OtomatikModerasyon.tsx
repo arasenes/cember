@@ -41,11 +41,11 @@ export default function OtomatikModerasyon({ odaId, kanallar, duzenleyebilir }: 
 
   return (
     <form className="ayar-form" onSubmit={kaydet}>
-      <SayfaBasligi baslik="Otomatik moderasyon" aciklama="Yasaklı kelimeler ve yeni üyeleri karşılayan mesaj. Mesaj yönetme izni olanlar filtreye takılmaz." />
+      <SayfaBasligi baslik={t("Otomatik moderasyon")} aciklama={t("Yasaklı kelimeler ve yeni üyeleri karşılayan mesaj. Mesaj yönetme izni olanlar filtreye takılmaz.")} />
       <div className="field">
-        <label htmlFor="yasakli-kelimeler">Yasaklı kelimeler ({liste.length}/100)</label>
-        <textarea id="yasakli-kelimeler" rows={6} value={kelimeler} disabled={!duzenleyebilir || !yuklendi} onChange={(e) => setKelimeler(e.target.value)} placeholder={"Her satıra bir kelime ya da virgülle ayır"} />
-        <p className="hint">Yalnızca tam kelime eşleşir (“kötü” kelimesi “kötülük” içinde engellenmez); büyük/küçük harf ve Türkçe İ/ı farkı yok sayılır.</p>
+        <label htmlFor="yasakli-kelimeler">{t("Yasaklı kelimeler ({n}/100)", { n: liste.length })}</label>
+        <textarea id="yasakli-kelimeler" rows={6} value={kelimeler} disabled={!duzenleyebilir || !yuklendi} onChange={(e) => setKelimeler(e.target.value)} placeholder={t("Her satıra bir kelime ya da virgülle ayır")} />
+        <p className="hint">{t("Yalnızca tam kelime eşleşir (“kötü” kelimesi “kötülük” içinde engellenmez); büyük/küçük harf ve Türkçe İ/ı farkı yok sayılır.")}</p>
       </div>
       <div className="field">
         <label htmlFor="hosgeldin-mesaji">{t("Hoş geldin mesajı")}</label>

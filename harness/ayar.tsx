@@ -6,10 +6,12 @@ import "../src/styles.css";
 import "../src/tasarim.css";
 import "../src/temalar.css";
 import { temaUygula } from "../src/temalar";
+import { dilUygula } from "../src/i18n";
 import SunucuAyarlari, { type Bolum } from "../src/ayarlar/SunucuAyarlari";
 import type { Kanal, Kategori, Uye } from "../src/types";
 import { demoBen, demoUyeler } from "./demoSupabase";
 
+dilUygula();
 temaUygula(new URLSearchParams(location.search).get("tema") as never ?? "komur-turuncu");
 const bolum = (new URLSearchParams(location.search).get("bolum") ?? "genel") as Bolum;
 const k = (id: string, ad: string, tur: "yazili" | "sesli", sira: number, kategori_id: string | null, yavas_mod = 0): Kanal =>

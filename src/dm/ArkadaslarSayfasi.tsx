@@ -83,7 +83,7 @@ export default function ArkadaslarSayfasi({ dm, benId, uyeler, cevrimici, onMesa
 
         {sekme === "bekleyen" && (
           <>
-            <h3 className="pk-baslik">Gelen istekler — {gelen.length}</h3>
+            <h3 className="pk-baslik">{t("Gelen istekler — {n}", { n: gelen.length })}</h3>
             <ul className="ark-liste">
               {gelen.map((r) => { const u = harita.get(r.a); if (!u) return null; return (
                 <li key={r.id} className="ark-satir">
@@ -94,7 +94,7 @@ export default function ArkadaslarSayfasi({ dm, benId, uyeler, cevrimici, onMesa
               ); })}
               {!gelen.length && <li className="hint">{t("Bekleyen gelen istek yok.")}</li>}
             </ul>
-            <h3 className="pk-baslik">Gönderilen istekler — {giden.length}</h3>
+            <h3 className="pk-baslik">{t("Gönderilen istekler — {n}", { n: giden.length })}</h3>
             <ul className="ark-liste">
               {giden.map((r) => { const u = harita.get(r.b); if (!u) return null; return (
                 <li key={r.id} className="ark-satir">

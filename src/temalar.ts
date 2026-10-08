@@ -1,21 +1,22 @@
 // Palet seçici. Seçim kullanıcıya özeldir: önce localStorage, girişliyse kullanici_ayarlari.tema (Supabase) ile cihazlar arası.
 import { supabase } from "./supabase";
+import { t } from "./i18n";
 
 export type TemaId = "mint-gece" | "mor-gece" | "derin-mavi" | "sicak-mercan" | "acik-tema" | "gul-gecesi" | "komur-turuncu" | "neon-limon" | "orman-altin" | "acik-mercan";
 
 export interface Tema { id: TemaId; ad: string; not: string; acik: boolean; renkler: [string, string, string, string]; } // önizleme: [şerit, ana, vurgu, ikinci]
 
 export const TEMALAR: Tema[] = [
-  { id: "mint-gece", ad: "Mint Gece", not: "şimdiki", acik: false, renkler: ["#0f1116", "#1c2029", "#4fd1a5", "#f5b94a"] },
-  { id: "mor-gece", ad: "Mor Gece", not: "canlı, oyuncu", acik: false, renkler: ["#100e17", "#1d1a28", "#a78bfa", "#f9a8d4"] },
-  { id: "derin-mavi", ad: "Derin Mavi", not: "sakin, ciddi", acik: false, renkler: ["#0a1019", "#142030", "#4cc2ff", "#ffb454"] },
-  { id: "sicak-mercan", ad: "Sıcak Mercan", not: "samimi, sıcak", acik: false, renkler: ["#130f0e", "#211918", "#ff7a59", "#ffd166"] },
-  { id: "acik-tema", ad: "Açık Tema", not: "gündüz modu", acik: true, renkler: ["#e3e7ed", "#fafbfc", "#0e7c66", "#b45309"] },
-  { id: "gul-gecesi", ad: "Gül Gecesi", not: "pembe, eğlenceli", acik: false, renkler: ["#120b10", "#211620", "#ff5fa2", "#7be0ff"] },
-  { id: "komur-turuncu", ad: "Kömür ve Turuncu", not: "nötr, net", acik: false, renkler: ["#0c0c0c", "#1b1b1b", "#ff9f1c", "#5ee0c1"] },
-  { id: "neon-limon", ad: "Neon Limon", not: "enerjik", acik: false, renkler: ["#0b0d08", "#181c11", "#c6f432", "#ff8fab"] },
-  { id: "orman-altin", ad: "Orman ve Altın", not: "doğal, şık", acik: false, renkler: ["#0b130f", "#16231b", "#e3b341", "#7ee0a1"] },
-  { id: "acik-mercan", ad: "Açık Mercan", not: "gündüz, sıcak", acik: true, renkler: ["#f1e4da", "#fffaf6", "#d9480f", "#0b7285"] },
+  { id: "mint-gece", ad: t("Mint Gece"), not: t("şimdiki"), acik: false, renkler: ["#0f1116", "#1c2029", "#4fd1a5", "#f5b94a"] },
+  { id: "mor-gece", ad: t("Mor Gece"), not: t("canlı, oyuncu"), acik: false, renkler: ["#100e17", "#1d1a28", "#a78bfa", "#f9a8d4"] },
+  { id: "derin-mavi", ad: t("Derin Mavi"), not: t("sakin, ciddi"), acik: false, renkler: ["#0a1019", "#142030", "#4cc2ff", "#ffb454"] },
+  { id: "sicak-mercan", ad: t("Sıcak Mercan"), not: t("samimi, sıcak"), acik: false, renkler: ["#130f0e", "#211918", "#ff7a59", "#ffd166"] },
+  { id: "acik-tema", ad: t("Açık Tema"), not: t("gündüz modu"), acik: true, renkler: ["#e3e7ed", "#fafbfc", "#0e7c66", "#b45309"] },
+  { id: "gul-gecesi", ad: t("Gül Gecesi"), not: t("pembe, eğlenceli"), acik: false, renkler: ["#120b10", "#211620", "#ff5fa2", "#7be0ff"] },
+  { id: "komur-turuncu", ad: t("Kömür ve Turuncu"), not: t("nötr, net"), acik: false, renkler: ["#0c0c0c", "#1b1b1b", "#ff9f1c", "#5ee0c1"] },
+  { id: "neon-limon", ad: t("Neon Limon"), not: t("enerjik"), acik: false, renkler: ["#0b0d08", "#181c11", "#c6f432", "#ff8fab"] },
+  { id: "orman-altin", ad: t("Orman ve Altın"), not: t("doğal, şık"), acik: false, renkler: ["#0b130f", "#16231b", "#e3b341", "#7ee0a1"] },
+  { id: "acik-mercan", ad: t("Açık Mercan"), not: t("gündüz, sıcak"), acik: true, renkler: ["#f1e4da", "#fffaf6", "#d9480f", "#0b7285"] },
 ];
 
 export const VARSAYILAN_TEMA: TemaId = "komur-turuncu";

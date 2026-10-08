@@ -85,7 +85,7 @@ export default function Davetler({ odaId }: Props) {
             <li key={d.kod} className={"davet-satir" + (gecerli ? "" : " bitti")}>
               <div className="davet-kutu" title={baglanti}>{baglanti}</div>
               <button type="button" className="cta" disabled={!gecerli} onClick={() => void panoyaKopyala(baglanti).then((ok) => calistir(ok ? "Bağlantı kopyalandı." : "Kopyalanamadı; bağlantıyı elle seç.", async () => (ok ? null : "Kopyalanamadı")))}>{t("Kopyala")}</button>
-              <button type="button" className="ib tehlike" disabled={mesgul} onClick={() => void sil(d)} aria-label={`${d.kod} davetini sil`}>{t("Sil")}</button>
+              <button type="button" className="ib tehlike" disabled={mesgul} onClick={() => void sil(d)} aria-label={t(`${d.kod} davetini sil`)}>{t("Sil")}</button>
               <div className="davet-etiketler">{davetEtiketleri(d).map((t) => <span key={t}>{t}</span>)}</div>
             </li>
           );

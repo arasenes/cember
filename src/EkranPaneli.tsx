@@ -37,7 +37,7 @@ export default function EkranPaneli({ izlenen, yapanAd }: Props) {
   }
 
   return (
-    <section className={"ekran-panel" + (buyuk ? " buyuk" : "")} aria-label={`${yapanAd} ekranını paylaşıyor`}>
+    <section className={"ekran-panel" + (buyuk ? " buyuk" : "")} aria-label={t(`${yapanAd} ekranını paylaşıyor`)}>
       <div className="ekran-ust">
         <span className="ekran-ust-ad"><Ikon ad="ekran" boyut={16} /> <b>{yapanAd}</b>{" "}{t("ekranını paylaşıyor")}</span>
         <span className="ekran-dugmeler">
@@ -45,7 +45,7 @@ export default function EkranPaneli({ izlenen, yapanAd }: Props) {
           <button className="linkbtn" onClick={tamEkran}>{t("Tam ekran")}</button>
         </span>
       </div>
-      <video ref={ref} controls autoPlay playsInline disablePictureInPicture={false} aria-label={`${yapanAd} ekran yayını`} />
+      <video ref={ref} controls autoPlay playsInline disablePictureInPicture={false} aria-label={t(`${yapanAd} ekran yayını`)} />
     </section>
   );
 }

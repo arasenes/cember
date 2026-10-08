@@ -3,20 +3,22 @@ import { googleAcikMi, googleBagla, googleBagliMi } from "./google";
 import { TEMALAR, type TemaId } from "./temalar";
 import type { YaziBoyutu } from "./yerel";
 import { tusAdi, tusAtanabilir, type BasKonusAyar } from "./ses/basKonus";
-import { cevir, dilOku, dilYaz, type Dil, t } from "./i18n";
+import { cevir, dilOku, dilYaz, type Dil, t, DILLER } from "./i18n";
 import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushSadeceEtiket, pushTercih } from "./push";
 
 type Props = {
   tema: TemaId; onTema: (t: TemaId) => void;
+  /** Dil seçilince (hesaba kaydetmek için). */
+  onDil?: (d: Dil) => void;
   yazi: YaziBoyutu; onYazi: (b: YaziBoyutu) => void;
   sesler: boolean; onSesler: (a: boolean) => void;
   basKonus?: BasKonusAyar; onBasKonus?: (a: BasKonusAyar) => void;
   onKapat: () => void;
 };
 
-const BOYUTLAR: { id: YaziBoyutu; ad: string }[] = [{ id: "kucuk", ad: "Küçük" }, { id: "orta", ad: "Orta" }, { id: "buyuk", ad: "Büyük" }];
+const BOYUTLAR: { id: YaziBoyutu; ad: string }[] = [{ id: "kucuk", ad: t("Küçük") }, { id: "orta", ad: t("Orta") }, { id: "buyuk", ad: t("Büyük") }];
 
-export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSesler, basKonus, onBasKonus, onKapat }: Props) {
+export default function AyarlarDialog({ tema, onTema, onDil, yazi, onYazi, sesler, onSesler, basKonus, onBasKonus, onKapat }: Props) {
   const [tusBekleniyor, setTusBekleniyor] = useState(false);
   const kutu = useRef<HTMLDivElement>(null);
   const [googleDurum, setGoogleDurum] = useState<"yok" | "bagla" | "bagli">("yok");
@@ -114,8 +116,8 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
         <div className="ayar-grup" role="radiogroup" aria-label={cevir("ayar.dil")}>
           <div className="yon-baslik">{cevir("ayar.dil")}</div>
           <div className="segment">
-            {([["tr", "Türkçe"], ["en", "English"]] as [Dil, string][]).map(([d, ad]) => (
-              <button key={d} role="radio" aria-checked={dilOku() === d} onClick={() => { dilYaz(d); location.reload(); }}>{ad}</button>
+            {DILLER.map((d) => (
+              <button key={d.id} role="radio" lang={d.id} aria-checked={dilOku() === d.id} onClick={() => { dilYaz(d.id); if (onDil) onDil(d.id); location.reload(); }}>{d.ad}</button>
             ))}
           </div>
         </div>
@@ -155,7 +157,7 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
                 <button role="radio" aria-checked={sadeceEtiket} onClick={() => void etiketDegistir(true)}>{t("Sadece etiketlenince")}</button>
               </div>
             )}
-            {pushHata && <p className="err" role="alert">{pushHata}</p>}
+            {pushHata && <p className="err" role="alert">{t(pushHata)}</p>}
           </div>
         )}
 
@@ -169,7 +171,7 @@ export default function AyarlarDialog({ tema, onTema, yazi, onYazi, sesler, onSe
                 <button className="ayar-anahtar" onClick={async () => setGoogleHata(await googleBagla())}>
                   <span>{t("Google hesabını bağla")}{" "}<small>{t("başka cihazdan da aynı hesapla girmek için")}</small></span>
                 </button>
-                {googleHata && <p className="err" role="alert">{googleHata}</p>}
+                {googleHata && <p className="err" role="alert">{t(googleHata)}</p>}
               </>
             )}
           </div>

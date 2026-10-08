@@ -7,10 +7,12 @@ import "../src/tasarim.css";
 import "../src/guvenli-alan.css";
 import "../src/temalar.css";
 import { temaUygula } from "../src/temalar";
+import { dilUygula } from "../src/i18n";
 import Chat from "../src/Chat";
 import type { Uye } from "../src/types";
 import { demoBen } from "./demoSupabase";
 
+dilUygula();
 temaUygula(new URLSearchParams(location.search).get("tema") as never ?? "komur-turuncu");
 createRoot(document.getElementById("root")!).render(
   <Chat me={demoBen as unknown as Uye} onExit={() => {}} />,

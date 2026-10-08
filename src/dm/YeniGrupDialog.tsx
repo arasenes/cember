@@ -60,7 +60,7 @@ export default function YeniGrupDialog({ uyeler, benId, iliski, onOlustur, onKap
           <input id="grup-ara" type="text" value={filtre} onChange={(e) => setFiltre(e.target.value)} placeholder={t("Ad yaz…")} />
         </div>
         <fieldset className="grup-liste">
-          <legend className="alan-etiket">Kişiler — {secili.length}/{GRUP_MAX_DIGER} seçili</legend>
+          <legend className="alan-etiket">{t("Kişiler — {a}/{b} seçili", { a: secili.length, b: GRUP_MAX_DIGER })}</legend>
           {adaylar.map((u) => (
             <label key={u.id} className="onay-satir grup-kisi">
               <input type="checkbox" checked={secili.includes(u.id)} disabled={!secili.includes(u.id) && secili.length >= GRUP_MAX_DIGER} onChange={() => degistir(u.id)} />
@@ -69,7 +69,7 @@ export default function YeniGrupDialog({ uyeler, benId, iliski, onOlustur, onKap
           ))}
           {!adaylar.length && <p className="hint">{t("Kimse bulunamadı.")}</p>}
         </fieldset>
-        <div className="err" role="alert">{hata}</div>
+        <div className="err" role="alert">{t(hata)}</div>
         <div className="modal-alt">
           <button type="button" className="linkbtn" onClick={onKapat}>{t("Vazgeç")}</button>
           <button type="submit" className="cta" disabled={mesgul || !gecerli}>{mesgul ? "Kuruluyor…" : "Grubu kur"}</button>

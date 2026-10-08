@@ -2,7 +2,7 @@ import { useState } from "react";
 import Avatar from "../Avatar";
 import type { Uye } from "../types";
 import { DUZEY_MAX, DUZEY_MIN, useSesDuzeyleri } from "./sesDuzeyi";
-import { t } from "../i18n";
+import { t, onayla } from "../i18n";
 
 type Props = {
   ben: Uye;
@@ -55,7 +55,7 @@ export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yone
               <output htmlFor={`duzey-${s.anahtar}`} className="yan-deger">{v}%</output>
             </div>
             <input id={`duzey-${s.anahtar}`} type="range" min={DUZEY_MIN} max={DUZEY_MAX} step={5} value={v}
-              aria-label={`${s.ad} ses düzeyi`} aria-valuetext={`yüzde ${v}`} onChange={(e) => d.ayarla(s.anahtar, Number(e.target.value))} />
+              aria-label={t(`${s.ad} ses düzeyi`)} aria-valuetext={t(`yüzde ${v}`)} onChange={(e) => d.ayarla(s.anahtar, Number(e.target.value))} />
           </div>
         );
       })}
@@ -74,7 +74,7 @@ export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yone
               {hedef && susturulanlar.has(hedef.id) ? "Susturmayı kaldır" : "Sunucuda sustur"}
             </button>
             <button type="button" className="pk-btn tehlike" disabled={!hedefUygun || mesgul}
-              onClick={() => { if (hedef && confirm(`${hedef.takma_ad} sesli odadan çıkarılsın mı?`)) void calistir(onAt(hedef)); }}>{t("Odadan at")}</button>
+              onClick={() => { if (hedef && onayla(`${hedef.takma_ad} sesli odadan çıkarılsın mı?`)) void calistir(onAt(hedef)); }}>{t("Odadan at")}</button>
           </div>
         </>
       )}

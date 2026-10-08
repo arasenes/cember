@@ -8,9 +8,11 @@ import "./tasarim.css";
 import "./guvenli-alan.css";
 import "./temalar.css";
 import { temaOku, temaUygula } from "./temalar";
+import { dilUygula } from "./i18n";
 import { yaziBoyutuOku, yaziBoyutuUygula } from "./yerel";
 
 temaUygula(temaOku());
+dilUygula();
 yaziBoyutuUygula(yaziBoyutuOku());
 
 createRoot(document.getElementById("root")!).render(

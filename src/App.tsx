@@ -74,7 +74,7 @@ export default function App() {
   return (
     <>
       {don}
-      {davetNotu && <div className="davet-notu" role="status">{davetNotu} <button type="button" className="linkbtn" onClick={() => setDavetNotu("")}>{t("Kapat")}</button></div>}
+      {davetNotu && <div className="davet-notu" role="status">{t(davetNotu)} <button type="button" className="linkbtn" onClick={() => setDavetNotu("")}>{t("Kapat")}</button></div>}
       {adGerekli && (
         <div className="modal-arka">
           <form className="modal" role="dialog" aria-modal="true" aria-labelledby="davet-ad-baslik" onSubmit={adlaKatil}>

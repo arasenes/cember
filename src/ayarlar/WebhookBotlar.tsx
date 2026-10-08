@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase, SUPABASE_URL } from "../supabase";
 import type { Kanal } from "../types";
 import { BildirimSatiri, panoyaKopyala, rpcCagir, SayfaBasligi, useBildirim } from "./ortak";
-import { t } from "../i18n";
+import { t, onayla } from "../i18n";
 
 type Webhook = { id: string; kanal_id: string; ad: string; olusturma: string };
 type Props = { odaId: string; kanallar: Kanal[] };
@@ -41,7 +41,7 @@ export default function WebhookBotlar({ odaId, kanallar }: Props) {
     if (ok) await yukle();
   }
   const sil = (w: Webhook) => {
-    if (!confirm(`"${w.ad}" webhook'u silinsin mi? Bu adrese gelen istekler artık çalışmaz.`)) return;
+    if (!onayla(`"${w.ad}" webhook'u silinsin mi? Bu adrese gelen istekler artık çalışmaz.`)) return;
     void calistir("Webhook silindi.", async () => {
       const r = await rpcCagir("webhook_sil", { p_id: w.id });
       if (!r.hata) { await yukle(); if (yeni?.id === w.id) setYeni(null); }
@@ -63,7 +63,7 @@ export default function WebhookBotlar({ odaId, kanallar }: Props) {
       {yeni && (
         <div className="kart webhook-yeni" role="region" aria-label={t("Yeni webhook bilgileri")}>
           <b>{yeni.ad}</b>
-          <p className="hint">Bu şifre bir daha gösterilmez; veritabanında yalnızca özeti saklanır. Örnek istek:</p>
+          <p className="hint">{t("Bu şifre bir daha gösterilmez; veritabanında yalnızca özeti saklanır. Örnek istek:")}</p>
           <pre className="md-blok"><code>{webhookOrnegi(yeni.id, yeni.sifre)}</code></pre>
           <button type="button" className="pk-btn" onClick={() => void panoyaKopyala(webhookOrnegi(yeni.id, yeni.sifre))}>{t("Örneği kopyala")}</button>
         </div>
@@ -72,7 +72,7 @@ export default function WebhookBotlar({ odaId, kanallar }: Props) {
         {liste.map((w) => (
           <li key={w.id} className="yon-uye">
             <div className="mem-ad"><b>{w.ad}</b><small>#{kanallar.find((k) => k.id === w.kanal_id)?.ad ?? "silinmiş kanal"} · {new Date(w.olusturma).toLocaleDateString("tr-TR")}</small></div>
-            <button className="pk-btn tehlike" disabled={mesgul} onClick={() => sil(w)} aria-label={`${w.ad} webhook'unu sil`}>{t("Sil")}</button>
+            <button className="pk-btn tehlike" disabled={mesgul} onClick={() => sil(w)} aria-label={t(`${w.ad} webhook'unu sil`)}>{t("Sil")}</button>
           </li>
         ))}
         {!liste.length && <li className="hint">{t("Henüz webhook yok.")}</li>}

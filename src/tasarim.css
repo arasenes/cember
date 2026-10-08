@@ -523,3 +523,20 @@
 .ekran-ust .linkbtn{min-height:44px;min-width:44px;padding:0 14px;border:1px solid rgba(255,255,255,.35);border-radius:10px;text-decoration:none;color:#fff;background:rgba(255,255,255,.08)}
 .ekran-ust .linkbtn:focus-visible{outline:2px solid var(--vurgu);outline-offset:2px}
 .ekran-panel.buyuk video{padding-bottom:max(env(safe-area-inset-bottom,0px),12px);box-sizing:border-box}
+
+/* ===== Sağdan sola diller (Arapça): yön ve fiziksel kenarların yansıtılması ===== */
+html[dir="rtl"] body{text-align:start}
+html[dir="rtl"] .members{border-left:0;border-right:1px solid var(--line)}
+html[dir="rtl"] .ses-sohbet-kolon{border-left:0!important;border-right:1px solid var(--line)}
+html[dir="rtl"] .sr-dugme.aktif::before,html[dir="rtl"] .sr-sunucu.aktif::before{left:auto;right:-12px;border-radius:4px 0 0 4px}
+html[dir="rtl"] .kisi-sus{right:auto;left:-2px}
+html[dir="rtl"] .sahne-rozetler{right:auto;left:10px}
+html[dir="rtl"] .karo-etiket{left:auto;right:10px}
+html[dir="rtl"] .kisi.kamerali .kisi-ad{left:auto;right:8px}
+html[dir="rtl"] .ayarlar-kapat{right:auto;left:20px}
+html[dir="rtl"] .ayarlar-ogesi,html[dir="rtl"] .rol-satir,html[dir="rtl"] .palet-kart,html[dir="rtl"] .ses-sohbet-ac{text-align:right}
+html[dir="rtl"] .rol-satir small,html[dir="rtl"] .ses-ok{margin-left:0;margin-right:auto}
+html[dir="rtl"] .toasts{left:16px;right:auto}
+html[dir="rtl"] .ek-dugme,html[dir="rtl"] .send svg{transform:none}
+html[dir="rtl"] .send svg,html[dir="rtl"] .cb-ibtn svg[data-yon]{transform:scaleX(-1)}
+html[dir="rtl"] .kod,html[dir="rtl"] pre,html[dir="rtl"] code,html[dir="rtl"] input[type=url],html[dir="rtl"] .md-blok{direction:ltr;text-align:left}

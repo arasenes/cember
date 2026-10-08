@@ -4,14 +4,14 @@ import Avatar from "./Avatar";
 import type { Kanal, Uye } from "./types";
 import { rolEtiketi } from "./util";
 import { IZIN, izinVar } from "./sunucu/izin";
-import { t } from "./i18n";
+import { t, dilKodu } from "./i18n";
 
 type Yasak = { id: string; takma_ad: string; sebep: string | null; olusturma: string };
 type Onay = { uyeId: string; islem: "at" | "ban" | "mesaj" };
 type SesKonum = Map<string, { kanal: string }>;
 
 export const SUSTURMA_SECENEKLERI: { dk: number; etiket: string }[] = [
-  { dk: 10, etiket: "10 dakika" }, { dk: 60, etiket: "1 saat" }, { dk: 1440, etiket: "1 gün" }, { dk: 10080, etiket: "1 hafta" },
+  { dk: 10, etiket: t("10 dakika") }, { dk: 60, etiket: t("1 saat") }, { dk: 1440, etiket: t("1 gün") }, { dk: 10080, etiket: t("1 hafta") },
 ];
 
 export function susturulmus(u: Pick<Uye, "susturma_bitis">, simdi = Date.now()): boolean {
@@ -100,8 +100,8 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
 
   return (
     <div className="ayar-sayfa-ic">
-      <div className={"yon-bildirim" + (bildirim?.hata ? " hata" : "")} role="status" aria-live="polite">{bildirim?.metin ?? ""}</div>
-      <h2 className="yon-baslik">Üyeler — {liste.length}</h2>
+      <div className={"yon-bildirim" + (bildirim?.hata ? " hata" : "")} role="status" aria-live="polite">{bildirim?.metin ? t(bildirim.metin) : ""}</div>
+      <h2 className="yon-baslik">{t("Üyeler — {n}", { n: liste.length })}</h2>
       {liste.length === 0 && <div className="hint">{t("Sunucuda başka kimse yok.")}</div>}
       <ul className="yon-liste">
         {liste.map((u) => {
@@ -119,14 +119,14 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
                   <small>
                     {rolEtiketi(u.rol)}
                     {sesAd && ` · sesli: ${sesAd}`}
-                    {sus && ` · ${new Date(u.susturma_bitis!).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}'e kadar susturulmuş`}
+                    {sus && ` · ${new Date(u.susturma_bitis!).toLocaleTimeString(dilKodu(), { hour: "2-digit", minute: "2-digit" })}'e kadar susturulmuş`}
                   </small>
                 </div>
               </div>
               {yapabilir && !buOnay && (
                 <div className="yon-eylemler">
                   {susturabilir && (
-                    <select aria-label={`${u.takma_ad} kişisini sustur`} value="" disabled={mesgul}
+                    <select aria-label={t(`${u.takma_ad} kişisini sustur`)} value="" disabled={mesgul}
                       onChange={(e) => { const dk = Number(e.target.value); if (!Number.isNaN(dk)) void sustur(u, dk); }}>
                       <option value="" disabled>{t("Sustur…")}</option>
                       {SUSTURMA_SECENEKLERI.map((s) => <option key={s.dk} value={s.dk}>{s.etiket}</option>)}
@@ -138,7 +138,7 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
                     <>
                       <button className="ib" disabled={mesgul} onClick={() => void sesIslem(u, "at")}>{t("Sesten at")}</button>
                       {sesKanallari.length > 1 && (
-                        <select aria-label={`${u.takma_ad} kişisini başka sesli odaya taşı`} value="" disabled={mesgul}
+                        <select aria-label={t(`${u.takma_ad} kişisini başka sesli odaya taşı`)} value="" disabled={mesgul}
                           onChange={(e) => { const k = sesKanallari.find((x) => x.id === e.target.value); if (k) void sesIslem(u, "tasi", k); }}>
                           <option value="" disabled>{t("Taşı…")}</option>
                           {sesKanallari.filter((k) => k.id !== sesKanal).map((k) => <option key={k.id} value={k.id}>{k.ad}</option>)}
@@ -172,13 +172,13 @@ export default function YonetimPaneli({ ben, uyeler, kanallar, sesKonum, cevrimi
 
       {yasaklayabilir && (
         <>
-          <h2 className="yon-baslik">Yasaklananlar — {yasaklar.length}</h2>
+          <h2 className="yon-baslik">{t("Yasaklananlar — {n}", { n: yasaklar.length })}</h2>
           {yasaklar.length === 0 && <div className="hint">{t("Kimse yasaklı değil.")}</div>}
           <ul className="yon-liste">
             {yasaklar.map((y) => (
               <li key={y.id} className="yon-uye yon-yasak">
-                <div className="mem-ad"><b>{y.takma_ad}</b><small>{new Date(y.olusturma).toLocaleDateString("tr-TR")}{y.sebep ? ` · ${y.sebep}` : ""}</small></div>
-                <button className="ib" disabled={mesgul} onClick={() => void yasagiKaldir(y)} aria-label={`${y.takma_ad} yasağını kaldır`}>{t("Yasağı kaldır")}</button>
+                <div className="mem-ad"><b>{y.takma_ad}</b><small>{new Date(y.olusturma).toLocaleDateString(dilKodu())}{y.sebep ? ` · ${y.sebep}` : ""}</small></div>
+                <button className="ib" disabled={mesgul} onClick={() => void yasagiKaldir(y)} aria-label={t(`${y.takma_ad} yasağını kaldır`)}>{t("Yasağı kaldır")}</button>
               </li>
             ))}
           </ul>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { t } from "../i18n";
 
 /** Bir "yazıyor" sinyali bu kadar süre sonra, yenisi gelmezse söner. */
 export const YAZIYOR_SURE_MS = 5000;
@@ -7,9 +8,9 @@ export const YAZIYOR_YAYIN_ARALIK_MS = 3000;
 
 export function yaziyorMetni(adlar: string[]): string {
   if (adlar.length === 0) return "";
-  if (adlar.length === 1) return `${adlar[0]} yazıyor…`;
-  if (adlar.length === 2) return `${adlar[0]} ve ${adlar[1]} yazıyor…`;
-  return "Birkaç kişi yazıyor…";
+  if (adlar.length === 1) return t("{a} yazıyor…", { a: adlar[0] });
+  if (adlar.length === 2) return t("{a} ve {b} yazıyor…", { a: adlar[0], b: adlar[1] });
+  return t("Birkaç kişi yazıyor…");
 }
 
 type Kayit = { ad: string; kanal: string; bitis: number };

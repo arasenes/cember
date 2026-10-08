@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { anketGorunumu, type Anket } from "./anket";
 import Ikon from "./Ikon";
+import { t } from "../i18n";
 
 type Props = {
   anket: Anket;
@@ -30,7 +31,7 @@ export default function AnketKart({ anket, benUyeId, onOyla, onHata }: Props) {
   }
 
   return (
-    <div className="anket" role="group" aria-label={`Anket: ${anket.soru}`}>
+    <div className="anket" role="group" aria-label={t(`Anket: ${anket.soru}`)}>
       <div className="anket-etiket"><Ikon ad="anket" boyut={16} /> ANKET</div>
       <div className="anket-soru">{anket.soru}</div>
       <ul className="anket-liste">
