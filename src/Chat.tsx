@@ -1248,7 +1248,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             <button className="ust-ara" onClick={() => setAramaAcik(true)} aria-label={t("Mesajlarda ara")} aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /><span>{t("Mesajlarda ara")}</span></button>
           </div>
         </div>
-        {ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
+        {ses.izlenen && !sesliOda && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
         <GuncellemeBandi />
         {hata && <div className="banner" role="alert">{hata}</div>}
         {ses.sorunlu.size > 0 && (
