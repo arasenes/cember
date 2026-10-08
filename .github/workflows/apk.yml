@@ -29,8 +29,10 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci
-      - name: Capacitor araçlarını kur (projenin bağımlılıklarına eklenmez)
-        run: npm install --no-save @capacitor/cli@^8.5.2 @capacitor/core@^8.5.2 @capacitor/android@^8.5.2 @capacitor/push-notifications@^8.1.3
+      # --no-save KULLANMA: `cap sync` eklentileri package.json'dan bulur; yoksa push-notifications APK'ya girmez.
+      # Değişiklik yalnızca derleme makinesinde kalır, repoya yazılmaz.
+      - name: Capacitor araçlarını kur
+        run: npm install @capacitor/cli@^8.5.2 @capacitor/core@^8.5.2 @capacitor/android@^8.5.2 @capacitor/push-notifications@^8.1.3
       - run: npm run build
       - name: Android projesini oluştur ve Çember ayarlarını uygula
         env:
