@@ -125,3 +125,9 @@ Yeni kod `src/mesaj/` altında; `Chat.tsx` yalnızca bağlar. Her özelliğin bi
 - **Sesler**: `src/sesler.ts` yalnızca Web Audio ile üretilen kısa tonlar (insan sesi ve ses dosyası yok). Takımlar: Tok (varsayılan), Müzikal, Pop, Blip. Olaylar: mesaj, bahsetme, dm, gonder, katil, ayril, mikAc, mikKapat, sagir, ekran, hata. `main.tsx` ilk `pointerdown`'da `sesHazirla()` çağırır. Eski TTS/konuşma sesleri (`uyari.ts`) kaldırıldı.
 - **Çağrı yerleri**: `Chat.tsx` (mesaj/bahsetme/dm/katil/ayril/ekran/hata/gonder), `DmSohbet.tsx` (gonder), `sesMotoru.ts` (mikrofon, sağırlaştırma, bağlan/ayrıl, bağlantı kopması). Kendi mesajın için gelen-mesaj sesi çalmaz, yalnızca "gonder". Sağırlaştırılmışken yalnızca mikAc, mikKapat, sagir, hata çalar (`sesSagirAyarla`).
 - **Ayar**: Ayarlar > Sesler (`SeslerAyari.tsx`): aç/kapat, ses düzeyi (bırakınca önizleme), takım seçimi, olay listesi + "Dinle". Yerelde saklanır, hesapta `kullanici_ayarlari.ses_ayar jsonb` (migration 038, uygulandı; `profiles` tablosu bu projede yok, mevcut ayar tablosu kullanıldı; satır sahibine özel RLS 035'ten). Girişte buluttan okunur (`src/sesBulut.ts`).
+
+### Oturum devri (8 Ekim 2026, ses işi sonrası)
+- Son durum: `main` = `be4b506`+ (uygulama sesleri), Render yayında, 038 uygulandı, tsc temiz, 191 test geçiyor. Çalışma kopyası geçici dizinde (oturum scratchpad'i); yeni oturum repoyu `arasenes/cember`'den temiz çekmeli.
+- Remote Control bu ortamda çalışmıyor (`/remote isn't available`, önceden 403). Hesap/plan konusu, kodla ilgisi yok.
+- Açık: 032 SQL'i (search_path), eski `tani` function'ını silme, `GIPHY_API_KEY`, `FCM_SERVICE_ACCOUNT` + APK yeniden derleme, sesli oda/ses olaylarını gerçek cihazda deneme, çevirilerin anadilinde gözden geçirilmesi.
+- `bilgi-yarismasi-app` ayrı bir proje; Çember işlerinde dokunulmaz.
