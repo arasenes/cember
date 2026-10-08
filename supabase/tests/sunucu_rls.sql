@@ -139,7 +139,10 @@ begin
   select (select gecerli from davet_bilgi(dkod))::text into t; rapor := rapor||'Süresi dolan davet geçerli mi (false): '||t||E'\n';
 
   -- ===== çoklu sunucu =====
-  yeni_oda := sunucu_olustur('Benim Yerim');
+  begin perform sunucu_olustur('Yetkisiz Deneme'); rapor := rapor||E'FAIL: sunucu kurma kapatılmamış (034)
+'; exception when others then rapor := rapor||E'OK: sunucu kurma arayüz dışından kapalı (034)
+'; end;
+  reset role; yeni_oda := sunucu_olustur('Benim Yerim'); set local role authenticated;  -- yönetici yolu (arayüzde kapalı)
   rapor := rapor||'Yeni sunucuda kanal sayısı (2): '||(select count(*) from kanallar where oda_id = yeni_oda)||E'\n';
   rapor := rapor||'Kurucunun yeni sunucudaki maskesi (511): '||izinlerim(yeni_oda)||E'\n';
   begin perform sunucu_sil(o1); rapor := rapor||E'FAIL: sahip olmayan sunucu sildi\n'; exception when others then rapor := rapor||E'OK: sahibi olmadığın sunucu silinemez\n'; end;
@@ -211,6 +214,22 @@ begin
   reset role; perform set_config('request.jwt.claims', json_build_object('sub',uc,'role','authenticated')::text, true); set local role authenticated;
   insert into mesajlar(kanal_id, uye_id, metin) values (k1, mc, 'kısıt kalkınca yazabilir');
   rapor := rapor||E'OK: kısıt kaldırılınca üye yazar\n';
+
+  -- ===== Çember Bot (036) =====
+  reset role; perform set_config('request.jwt.claims', json_build_object('sub',uc,'role','authenticated')::text, true); set local role authenticated;
+  insert into mesajlar(kanal_id, uye_id, metin) values (k1, mc, '/zar 20') returning id into msg_c;
+  select count(*) into n from mesajlar m join uyeler u on u.id = m.uye_id where u.bot and u.takma_ad = 'Çember Bot' and m.yanit_id = msg_c and m.metin like '%zar attı%';
+  rapor := rapor||'Bot /zar cevabı yazdı (1): '||n||E'\n';
+  insert into mesajlar(kanal_id, uye_id, metin) values (k1, mc, '/zar 99999') returning id into msg_a;
+  select count(*) into n from mesajlar where yanit_id = msg_a and metin like 'Zar için%'; rapor := rapor||'Geçersiz zar uyarısı (1): '||n||E'\n';
+  insert into mesajlar(kanal_id, uye_id, metin) values (k1, mc, '/bilinmeyenkomut') returning id into msg_a;
+  select count(*) into n from mesajlar where yanit_id = msg_a; rapor := rapor||'Bilinmeyen komuta cevap yok (0): '||n||E'\n';
+  insert into mesajlar(kanal_id, uye_id, metin) values (k1, mc, 'normal mesaj /zar değil') returning id into msg_a;
+  select count(*) into n from mesajlar where yanit_id = msg_a; rapor := rapor||'Ortadaki /zar komut sayılmaz (0): '||n||E'\n';
+  insert into mesajlar(kanal_id, uye_id, metin) values (k1, mc, '/sec pizza, hamburger') returning id into msg_a;
+  select count(*) into n from mesajlar where yanit_id = msg_a and metin like 'Seçimim:%'; rapor := rapor||'/sec cevabı (1): '||n||E'\n';
+  select count(*) into n from mesajlar m join uyeler u on u.id = m.uye_id where u.bot and u.takma_ad = 'Çember Bot' and m.yanit_id in (select id from mesajlar where uye_id in (select id from uyeler where bot)); rapor := rapor||'Bot kendi mesajına cevap vermez (0): '||n||E'\n';
+  select count(*) into n from uyeler where bot and takma_ad = 'Çember Bot' and oda_id = o1; rapor := rapor||'Sunucuda tek Çember Bot (1): '||n||E'\n';
 
   raise exception E'\n=== SUNUCU RLS RAPORU ===\n%', rapor;
 end $$;

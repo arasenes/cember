@@ -18,6 +18,7 @@ import { islemYapabilir, susturulmus, yonetCagir } from "./YonetimPaneli";
 import SunucuAyarlari, { type Bolum } from "./ayarlar/SunucuAyarlari";
 import SunucuDialog from "./sunucu/SunucuDialog";
 import KomutPaleti from "./komut/KomutPaleti";
+import { komutOner } from "./mesaj/botKomutlari";
 import type { Komut } from "./komut/komutlar";
 import { cevir, t } from "./i18n";
 import { sunucuBasHarf, type Sunucu } from "./sunucu/sunucular";
@@ -234,6 +235,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   mesajlarRef.current = mesajlar;
   useEffect(() => sesleriHazirla(), []);
   useEffect(() => { void pushYenile(); }, [me.id]);
+  const komutAday = useMemo(() => komutOner(metin), [metin]);
   const etiketAday = useMemo(() => {
     const x = /(?:^|\s)@([^\s@]*)$/.exec(metin);
     if (!x) return [];
@@ -1301,6 +1303,14 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           </div>
         )}
         <div className={"composer" + (ekMenuAcik ? " ek-acik" : "")}>
+          {etiketAday.length === 0 && komutAday.length > 0 && (
+            <div className="etiket-liste bot-komutlari" role="listbox" aria-label="Çember Bot komutları">
+              {komutAday.map((k) => (
+                <button key={k.ad} role="option" aria-selected={false} onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setMetin(k.ad + " "); metinRef.current?.focus(); }}><b>{k.ad}</b> <small>{k.aciklama}</small></button>
+              ))}
+            </div>
+          )}
           {etiketAday.length > 0 && (
             <div className="etiket-liste" role="listbox" aria-label={t("Etiketlenecek kişi")}>
               {etiketAday.map((u) => (

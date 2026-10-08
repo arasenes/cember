@@ -511,3 +511,5 @@
 .kisi-sayfa-alt{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
 .kisi-sayfa-profil{min-height:44px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);font-weight:600;cursor:pointer}
 .ses-sahne{position:relative}
+.bot-komutlari button{display:flex;gap:8px;align-items:baseline;border-radius:10px}
+.bot-komutlari small{color:var(--muted);font-weight:500}
