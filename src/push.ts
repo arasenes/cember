@@ -32,6 +32,12 @@ export function pushDestekli(): boolean {
   if (uygulamaIci()) return yerelPush() !== null;
   return typeof navigator !== "undefined" && "serviceWorker" in navigator && typeof window !== "undefined" && "PushManager" in window && typeof Notification !== "undefined";
 }
+/** Bildirim desteklenmiyorsa nedenini kısaca anlatır (ayarlarda tanı satırı). */
+export function pushTani(): string {
+  const c = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string; registerPlugin?: unknown } }).Capacitor;
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+  return `Capacitor: ${c ? "var" : "yok"}, platform: ${c?.getPlatform?.() ?? "-"}, yerel: ${String(c?.isNativePlatform?.() ?? "-")}, registerPlugin: ${typeof c?.registerPlugin}, SW: ${typeof navigator !== "undefined" && "serviceWorker" in navigator}, PushManager: ${typeof window !== "undefined" && "PushManager" in window}, WebView: ${/; wv\)/.test(ua)}`;
+}
 export function pushAcikMi(): boolean { return oku().acik; }
 export function pushSadeceEtiket(): boolean { return oku().sadeceEtiket; }
 

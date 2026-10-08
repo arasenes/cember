@@ -6,7 +6,7 @@ import { TEMALAR, type TemaId } from "./temalar";
 import type { YaziBoyutu } from "./yerel";
 import { tusAdi, tusAtanabilir, type BasKonusAyar } from "./ses/basKonus";
 import { cevir, dilOku, dilYaz, type Dil, t, DILLER } from "./i18n";
-import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushSadeceEtiket, pushTercih } from "./push";
+import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushTani, pushSadeceEtiket, pushTercih } from "./push";
 
 type Props = {
   tema: TemaId; onTema: (t: TemaId) => void;
@@ -137,6 +137,13 @@ export default function AyarlarDialog({ tema, onTema, onDil, yazi, onYazi, onSes
               <span>{t("Tuş:")}{" "}<kbd>{tusAdi(basKonus.tus)}</kbd></span>
               <button type="button" className="pk-btn" onClick={() => setTusBekleniyor(true)} aria-live="polite">{tusBekleniyor ? "Bir tuşa bas… (Esc: iptal)" : "Tuşu değiştir"}</button>
             </div>
+          </div>
+        )}
+
+        {!pushDestekli() && (
+          <div className="ayar-grup">
+            <div className="yon-baslik">{t("Bildirimler")}</div>
+            <p className="ayar-not">{t("Bu cihazda bildirim kullanılamıyor.")} <small>{pushTani()}</small></p>
           </div>
         )}
 

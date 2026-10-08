@@ -131,3 +131,9 @@ Yeni kod `src/mesaj/` altında; `Chat.tsx` yalnızca bağlar. Her özelliğin bi
 - Remote Control bu ortamda çalışmıyor (`/remote isn't available`, önceden 403). Hesap/plan konusu, kodla ilgisi yok.
 - Açık: `FCM_SERVICE_ACCOUNT` + APK yeniden derleme, sesli oda/ses olaylarını gerçek cihazda deneme, çevirilerin anadilinde gözden geçirilmesi.
 - `bilgi-yarismasi-app` ayrı bir proje; Çember işlerinde dokunulmaz.
+
+### APK bildirim tanısı (8 Ekim 2026)
+- Firebase projesi var (`cember-37c7e`), `android-ayar/google-services.json` commit'li, APK #11 (1.0.11) derlemesinde "google-services.json eklendi". `bildir` FCM gönderimini destekliyor. Veritabanında hiç `fcm` aboneliği yok (yalnızca 1 `web`).
+- Telefonda (APK 1.0.11, Xiaomi/HyperOS) Ayarlar'da **"Bildirimler" bölümü hiç görünmüyordu**: `pushDestekli()` uygulamada yanlış dönüyor (`Capacitor.isNativePlatform()` doğru dönmüyor ya da `Capacitor` yok). Nedeni bilinmiyor.
+- Ayarlara tanı satırı eklendi (`pushTani()` içinde `push.ts`): bildirim desteklenmiyorsa Ayarlar > Bildirimler altında Capacitor/platform bilgisi görünür. Telefonda bu satırın metnine göre devam edilecek.
+- Hâlâ doğrulanmadı: `FCM_SERVICE_ACCOUNT` sırrı Supabase'de ekli mi.
