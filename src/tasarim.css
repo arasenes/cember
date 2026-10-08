@@ -452,3 +452,62 @@
 .palet-kart small{color:var(--muted);font-size:12px}
 /* Açık paletler: koyu temaya özgü sabit değerler açık zeminde okunur olsun */
 :root[data-tema="acik-tema"],:root[data-tema="acik-mercan"]{--hover:rgba(0,0,0,.06);--rozet-yazi:#ffffff;--rozet:#c62828}
+
+/* ===== Telefon: sesli oda (tasarim/SesliOdaTelefon.html) =====
+   Başlık · ses alanı (ekran + yuvarlak kişiler) · sohbet (yarı yarıya, açılır kapanır) · tek ses çubuğu · alt gezinme */
+.ses-sohbet-baslik{display:none}
+.ek-ac{display:none}
+@media (max-width:820px){
+  /* düğmelerin tek yeri: alttaki kalıcı çubuk; sahnedeki düğme sırası yalnızca odada değilken ("Odaya katıl") görünür */
+  .kontrol-cubugu.bagli{display:none}
+  #app.ses-modu .ses-yani-ac{display:none}
+  #app.ses-modu main.chat{flex-direction:column}
+  #app.ses-modu .ses-sahne{flex:1 1 0;min-height:0;border-bottom:0}
+  #app.ses-modu.ses-sohbetli .ses-sahne{flex:1 1 0}
+  #app.ses-modu.ses-sohbetli .ses-sohbet-kolon{flex:1 1 0;min-height:0;width:auto;border-left:0;border-top:1px solid var(--line)}
+  .sahne-alan{padding:8px}
+  .sahne-alan>.ekran-panel,.sahne-alan>.kendi-ekran{min-height:120px}
+  .kisiler-satir{padding:8px 12px;border-bottom:1px solid var(--line)}
+  /* sohbet başlığı: dokununca sohbet kapanır, ses alanı boşalan yeri doldurur */
+  #app.ses-modu .ses-sohbet-kolon>.head.sohbet-ust{display:none}
+  .ses-sohbet-baslik{display:flex;align-items:center;gap:4px;flex:none;padding:0 4px 0 6px;min-height:44px}
+  .ses-sohbet-ac{flex:1;min-width:0;min-height:44px;display:flex;align-items:center;gap:8px;padding:0 8px;border:0;border-radius:10px;background:transparent;color:var(--fg);cursor:pointer;text-align:left}
+  .ses-sohbet-ac b{font:700 16px var(--display)}
+  .ses-sohbet-ac:focus-visible,.ses-sohbet-ara:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+  .ses-ok{margin-left:auto;color:var(--muted);display:inline-flex;transition:transform .2s}
+  .ses-yeni{background:var(--acc);color:var(--onacc);border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap}
+  .ses-sohbet-ara{width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  #app.ses-sohbet-kapali .ses-ok{transform:rotate(180deg)}
+  #app.ses-modu.ses-sohbet-kapali.ses-sohbetli .ses-sohbet-kolon{flex:none}
+  #app.ses-sohbet-kapali .ses-sohbet-kolon>*:not(.ses-sohbet-baslik){display:none}
+  /* yazı alanı tek satır: ek, GIF, emoji "+" menüsünde */
+  #app.ses-modu .ses-sohbet-kolon .composer{flex-wrap:wrap;margin:0;padding:8px 10px;border-top:1px solid var(--line);align-items:center;gap:6px}
+  #app.ses-modu .ses-sohbet-kolon .composer textarea{order:0;flex:1 1 0;min-height:44px}
+  .ek-ac{display:flex}
+  #app.ses-modu .ek-dugme{display:none}
+  #app.ses-modu .composer.ek-acik .ek-dugme{display:flex;order:-1;flex:1 1 20%}
+  #app.ses-modu .composer .ek-ac{order:-1}
+  #app.ses-modu .composer.ek-acik .ek-ac{order:-2;flex:1 1 100%;display:none}
+  #app.ses-modu .ses-sohbet-kolon .msgs{min-height:0}
+}
+@media (prefers-reduced-motion:reduce){.ses-ok{transition:none}}
+
+/* Telefon ses çubuğu (kalıcı): oda adı + mikrofon · sağırlaştır · kamera · ekran · ayrıl */
+.vbar-dock .vk-durum{color:var(--acc);font-weight:700}
+.vbar-dock .ik{width:44px;height:44px;border:1px solid transparent;border-radius:12px;background:var(--card);color:var(--fg);display:inline-flex;align-items:center;justify-content:center;font-size:0}
+.vbar-dock .ik[aria-pressed=true]{background:var(--tehlike-zemin);color:var(--tehlike-yazi)}
+.vbar-dock .ik.paylasim[aria-pressed=true]{background:var(--vurgu-zemin);border-color:var(--vurgu);color:var(--vurgu-acik)}
+.vbar-dock .ik.leave{background:var(--tehlike-zemin);color:var(--tehlike-yazi)}
+.vbar-dock .vk-dugmeler{display:flex;gap:6px;flex:none}
+
+/* Kişiye dokununca ses ayarı sayfası (alttan açılır) */
+.kisi-sayfa{position:absolute;left:0;right:0;bottom:0;z-index:30;background:var(--panel);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 -12px 30px rgba(0,0,0,.5)}
+.kisi-sayfa-ust{display:flex;align-items:center;gap:12px}
+.kisi-sayfa-ust b{font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kisi-sayfa-av{width:40px!important;height:40px!important}
+.kisi-sayfa-kapat{width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.kisi-sayfa-satir label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.kisi-sayfa-satir input[type=range]{width:100%;height:44px;margin:0;accent-color:var(--acc)}
+.kisi-sayfa-alt{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+.kisi-sayfa-profil{min-height:44px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);font-weight:600;cursor:pointer}
+.ses-sahne{position:relative}

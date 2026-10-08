@@ -34,6 +34,8 @@ export const EN_METIN: Record<string, string> = {
   "Kanal ekle": "Add channel",
   "Buradan sonrası yeni mesajlar": "New messages below",
   "Sunucular": "Servers",
+  "Sohbeti aç veya kapat": "Open or close chat",
+  "Ekle: dosya, GIF, emoji": "Add: file, GIF, emoji",
   "Paylaştığın ekran": "Your shared screen",
   "Davetle sunucuya katıl": "Join a server with an invite",
   "Kanallar": "Channels",

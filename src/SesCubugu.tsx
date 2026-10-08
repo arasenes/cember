@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { SesArayuzu } from "./sesMotoru";
 import { ekranPaylasilabilirTarayici, KALITE, yerelEkran, type EkranKalite } from "./ekranOrtak";
 import { t } from "./i18n";
+import Ikon from "./mesaj/Ikon";
 
 type Props = { ses: SesArayuzu; kanalAdi: string; className: string; baskasiPaylasiyor?: string | null };
 
@@ -18,14 +19,16 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
         <div className="vk-durum"><i aria-hidden="true" /><span>{baglaniyor ? "Bağlanılıyor…" : kanalAdi || "Sesli bağlı"}</span></div>
         <div className="vk-dugmeler">
           <button className="ik mik" aria-pressed={ses.sessiz} onClick={ses.sessizDegistir} disabled={baglaniyor}
-            aria-label={ses.sessiz ? "Mikrofonu aç" : "Mikrofonu sessize al"} title={ses.sessiz ? "Mikrofon kapalı" : "Mikrofon açık"}>{ses.sessiz ? "🔇" : "🎙️"}</button>
+            aria-label={ses.sessiz ? "Mikrofonu aç" : "Mikrofonu sessize al"} title={ses.sessiz ? "Mikrofon kapalı" : "Mikrofon açık"}><Ikon ad={ses.sessiz ? "mikKapali" : "mik"} boyut={20} /></button>
+          <button className="ik mik" aria-pressed={ses.sagir} onClick={() => void ses.sagirDegistir()} disabled={baglaniyor}
+            aria-label={ses.sagir ? "Sağırlaştırmayı kapat" : t("Sağırlaştır")} title={t("Sağırlaştır")}><Ikon ad={ses.sagir ? "kulaklikKapali" : "kulaklik"} boyut={20} /></button>
+          <button className="ik" aria-pressed={ses.kameraAcik} onClick={() => void ses.kameraDegistir()} disabled={baglaniyor}
+            aria-label={ses.kameraAcik ? "Kamerayı kapat" : "Kamerayı aç"} title={t("Kamera")}><Ikon ad={ses.kameraAcik ? "kamera" : "kameraKapali"} boyut={20} /></button>
           {ses.ekranDestegi && (ses.paylasiyorum
-            ? <button className="ik mik" aria-pressed={true} onClick={() => void ses.ekranDurdur()} aria-label={t("Paylaşımı durdur")} title={t("Paylaşımı durdur")}>⏹</button>
-            : <button className="ik" onClick={() => void ses.ekranPaylas(kalite)} disabled={baglaniyor || engel} aria-label={t("Ekranı paylaş")}
-                title={engel ? `${baskasiPaylasiyor} ekran paylaşıyor` : "Ekranı paylaş"}>🖥️</button>)}
-          <button className="ik" aria-pressed={ses.gurultu} onClick={() => void ses.gurultuDegistir()} disabled={baglaniyor}
-            aria-label={ses.gurultu ? "Gürültü engellemeyi kapat" : "Gürültü engellemeyi aç"} title={t("Gürültü engelleme")}>🔕</button>
-          <button className="ik leave" onClick={ses.ayril} aria-label={t("Sesli odadan ayrıl")} title={t("Ayrıl")}>✕</button>
+            ? <button className="ik paylasim" aria-pressed={true} onClick={() => void ses.ekranDurdur()} aria-label={t("Paylaşımı durdur")} title={t("Paylaşımı durdur")}><Ikon ad="ekran" boyut={20} /></button>
+            : <button className="ik paylasim" aria-pressed={false} onClick={() => void ses.ekranPaylas(kalite)} disabled={baglaniyor || engel} aria-label={t("Ekranı paylaş")}
+                title={engel ? `${baskasiPaylasiyor} ekran paylaşıyor` : "Ekranı paylaş"}><Ikon ad="ekran" boyut={20} /></button>)}
+          <button className="ik leave" onClick={ses.ayril} aria-label={t("Sesli odadan ayrıl")} title={t("Ayrıl")}><Ikon ad="cikis" boyut={20} /></button>
         </div>
       </div>
     );

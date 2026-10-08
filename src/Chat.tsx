@@ -80,6 +80,9 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [ayarBolum, setAyarBolum] = useState<Bolum>("genel");
   const [sunucuDialogAcik, setSunucuDialogAcik] = useState(false);
   const [paletAcik, setPaletAcik] = useState(false);
+  const [sesSohbetKapali, setSesSohbetKapali] = useState(false);
+  const [ekMenuAcik, setEkMenuAcik] = useState(false);
+  const kapanisSayisi = useRef(0);
   const [kategoriler, setKategoriler] = useState<Kategori[]>([]);
   const [yonBilgi, setYonBilgi] = useState("");
   const [sabitler, setSabitler] = useState<Mesaj[]>([]);
@@ -1150,7 +1153,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   );
 
   return (
-    <div id="app" className={"on" + (gorunum === "dm" ? " dm-modu" : "") + (gorunum === "sunucu" && aktifKanal?.tur === "sesli" ? " ses-modu" + (sesSohbetGoster ? " ses-sohbetli" : "") : "")} data-pane={gorunum === "dm" ? (dmMobil === "liste" ? "side" : "chat") : pane}>
+    <div id="app" className={"on" + (gorunum === "dm" ? " dm-modu" : "") + (gorunum === "sunucu" && aktifKanal?.tur === "sesli" ? " ses-modu" + (sesSohbetGoster ? " ses-sohbetli" : "") + (sesSohbetKapali ? " ses-sohbet-kapali" : "") : "")} data-pane={gorunum === "dm" ? (dmMobil === "liste" ? "side" : "chat") : pane}>
       <nav className="sunucu-serit" aria-label={t("Sunucular")}>
         {(sunucular.length ? sunucular : [{ oda_id: me.oda_id, ad: odaAdi, ikon_metin: null, ikon_renk: "" } as Sunucu]).map((x) => {
           const buradaki = x.oda_id === me.oda_id;
@@ -1223,6 +1226,17 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             onKatil={() => kanalaGir(aktifKanal, () => { void ses.baglan(aktifKanal.id); })} onProfil={setProfilId} />
         )}
         {sesSohbetGoster && <div className="ses-sohbet-kolon">
+        {sesliOda && (
+          <div className="ses-sohbet-baslik">
+            <button type="button" className="ses-sohbet-ac" aria-expanded={!sesSohbetKapali} aria-label={t("Sohbeti aç veya kapat")}
+              onClick={() => { if (!sesSohbetKapali) kapanisSayisi.current = mesajlar.length; setSesSohbetKapali((k) => !k); }}>
+              <Ikon ad="hash" boyut={18} /><b>{aktifKanal?.ad}</b>
+              {sesSohbetKapali && mesajlar.length > kapanisSayisi.current && <span className="ses-yeni">{mesajlar.length - kapanisSayisi.current} yeni</span>}
+              <span className="ses-ok" aria-hidden="true"><Ikon ad="asagi" boyut={18} /></span>
+            </button>
+            <button type="button" className="ses-sohbet-ara" onClick={() => setAramaAcik(true)} aria-label={t("Mesajlarda ara")}><Ikon ad="ara" boyut={18} /></button>
+          </div>
+        )}
         {sesliOda && <details className="ses-yani-ac"><summary>{t("Kişi başı ses düzeyi")}</summary>{sesYaniEl}</details>}
         <div className="head sohbet-ust">
           <span className="ust-ikon" aria-hidden="true"><Ikon ad="hash" /></span>
@@ -1286,7 +1300,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             <button type="button" className="sq" aria-label={t("Yanıtı iptal et")} onClick={() => setYanitlanan(null)}><Ikon ad="kapat" boyut={14} /></button>
           </div>
         )}
-        <div className="composer">
+        <div className={"composer" + (ekMenuAcik ? " ek-acik" : "")}>
           {etiketAday.length > 0 && (
             <div className="etiket-liste" role="listbox" aria-label={t("Etiketlenecek kişi")}>
               {etiketAday.map((u) => (
@@ -1298,9 +1312,10 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           {emojiAcik && (
             <EmojiDeposu className="deposu-yazi" onSec={(e) => { setMetin((m) => m + e); metinRef.current?.focus(); }} />
           )}
-          <button className="sq" onClick={() => dosyaRef.current?.click()} aria-label={t("Resim ekle")} disabled={gonderiliyor || yazamaz || !kanalDosyaEkleyebilir}><Ikon ad="ek" /></button>
-          <button className="sq" onClick={() => setAnketAcik(true)} aria-label={t("Anket oluştur")} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
-          <button className="sq" onClick={() => setGifAcik((x) => !x)} aria-label={t("GIF seç")} aria-expanded={gifAcik} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
+          <button type="button" className="sq ek-ac" onClick={() => setEkMenuAcik((a) => !a)} aria-expanded={ekMenuAcik} aria-label={t("Ekle: dosya, GIF, emoji")}><Ikon ad="artir" /></button>
+          <button className="sq ek-dugme" onClick={() => dosyaRef.current?.click()} aria-label={t("Resim ekle")} disabled={gonderiliyor || yazamaz || !kanalDosyaEkleyebilir}><Ikon ad="ek" /></button>
+          <button className="sq ek-dugme" onClick={() => setAnketAcik(true)} aria-label={t("Anket oluştur")} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
+          <button className="sq ek-dugme" onClick={() => setGifAcik((x) => !x)} aria-label={t("GIF seç")} aria-expanded={gifAcik} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
           {gifAcik && <GifSecici onSec={(u) => void gifGonder(u)} onKapat={() => setGifAcik(false)} />}
           <input ref={dosyaRef} type="file" accept={IZINLI_TURLER.join(",")} hidden
             onChange={(e) => { void ekSec(e.target.files?.[0]); e.target.value = ""; }} />
@@ -1312,7 +1327,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); gonder(); }
               else if (e.key === "Escape" && yanitlanan) setYanitlanan(null);
             }} />
-          <button className="sq" onClick={() => setEmojiAcik(!emojiAcik)} aria-label={t("Emoji seçici")} aria-expanded={emojiAcik}><Ikon ad="gulen" /></button>
+          <button className="sq ek-dugme" onClick={() => setEmojiAcik(!emojiAcik)} aria-label={t("Emoji seçici")} aria-expanded={emojiAcik}><Ikon ad="gulen" /></button>
           <button className="sq send" onClick={gonder} aria-label={t("Gönder")} disabled={(!metin.trim() && !ek) || gonderiliyor || yazamaz}>{gonderiliyor ? "…" : <Ikon ad="gonder" />}</button>
         </div>
         </div>}
