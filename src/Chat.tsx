@@ -1197,14 +1197,15 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setSurukle(true); } }}
         onDragLeave={(e) => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setSurukle(false); }}
         onDrop={(e) => { e.preventDefault(); setSurukle(false); const f = resimBul(e.dataTransfer.files); if (f) void ekSec(f); else if (e.dataTransfer.files.length) setHata("Yalnızca resim dosyaları gönderilebilir."); }}>
-        {aktifKanal?.tur === "sesli" ? (
+        {aktifKanal?.tur === "sesli" && (
           <SesSahnesi ses={ses} kanal={aktifKanal} katilimcilar={uyeler.filter((u) => sesKonum.get(u.id)?.kanal === aktifKanal.id)} benId={me.id}
             sagirlar={sagirlar} paylasanlar={new Set([...sesKonum].filter(([, v]) => v.kanal === aktifKanal.id && v.ekran).map(([id]) => id))}
             baglaniyor={ses.durum === "baglaniyor"} buradayim={ses.kanalId === aktifKanal.id && ses.durum !== "kapali"}
             basKonus={{ ayar: basKonusAyar, basili: basKonus.basili, bas: basKonus.bas, birak: basKonus.birak }}
             baskasiPaylasiyor={paylasanAd} yapanAd={(id) => uyeHaritasi.get(id)?.takma_ad ?? "Biri"}
             onKatil={() => kanalaGir(aktifKanal, () => { void ses.baglan(aktifKanal.id); })} onProfil={setProfilId} />
-        ) : (<>
+        )}
+        <>
         <div className="head sohbet-ust">
           <span className="ust-ikon" aria-hidden="true"><Ikon ad="hash" /></span>
           <h2 className="ust-ad">{aktifKanal?.ad ?? "…"}</h2>
@@ -1296,7 +1297,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <button className="sq" onClick={() => setEmojiAcik(!emojiAcik)} aria-label={t("Emoji seçici")} aria-expanded={emojiAcik}><Ikon ad="gulen" /></button>
           <button className="sq send" onClick={gonder} aria-label={t("Gönder")} disabled={(!metin.trim() && !ek) || gonderiliyor || yazamaz}>{gonderiliyor ? "…" : <Ikon ad="gonder" />}</button>
         </div>
-        </>)}
+        </>
       </main>
 
       <aside className="col members sunucu-kolon" aria-label={t("Üyeler")}>
@@ -1304,7 +1305,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <SesYani ben={ben} digerleri={uyeler.filter((u) => u.id !== me.id && sesKonum.get(u.id)?.kanal === aktifKanal.id)}
             paylasanlar={new Set([...sesKonum].filter(([, v]) => v.kanal === aktifKanal.id && v.ekran).map(([id]) => id))}
             uyeHaritasi={uyeHaritasi} yonetici={mesajYonet} islemYapabilir={(u) => islemYapabilir(ben, u)} susturulanlar={susturulanlar}
-            onSustur={sesSustur} onAt={sesAt} mesajlar={mesajlar} onGonder={sesSohbetGonder} yazamaz={yazamaz} onHata={(m) => toastAt(m, "hata")} />
+            onSustur={sesSustur} onAt={sesAt} onHata={(m) => toastAt(m, "hata")} />
         ) : (<>
         <div className="head"><h2>Üyeler — {aktifUyeler.length}</h2></div>
         <div className="scroll">

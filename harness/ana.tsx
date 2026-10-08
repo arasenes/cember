@@ -14,3 +14,11 @@ temaUygula("gece");
 createRoot(document.getElementById("root")!).render(
   <Chat me={demoBen as unknown as Uye} onExit={() => {}} />,
 );
+
+// ?sesli=1: sesli odayı otomatik aç (görsel kontrol için)
+if (location.search.includes("sesli=1")) {
+  setTimeout(() => {
+    const b = [...document.querySelectorAll<HTMLButtonElement>(".ch")].find((x) => /Salon sesli odası/.test(x.getAttribute("aria-label") ?? ""));
+    b?.click();
+  }, 1500);
+}

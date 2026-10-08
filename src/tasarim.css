@@ -344,3 +344,10 @@
 .kendi-ekran{margin:0 0 12px;max-width:420px;border:1px solid var(--cizgi);border-radius:var(--yaricap-b);overflow:hidden;background:var(--zemin-girdi)}
 .kendi-ekran video{display:block;width:100%;max-height:220px;object-fit:contain;background:#000}
 .kendi-ekran figcaption{padding:6px 10px;font-size:12px;color:var(--soluk)}
+
+/* Sesli oda: sahne üstte, kanalın yazılı sohbeti (tam mesaj sistemi) altta */
+#app.ses-modu .ses-sahne{flex:0 0 44%;min-height:240px;max-height:60%;border-bottom:1px solid var(--line)}
+#app.ses-modu main.chat>.head.sohbet-ust{flex:none}
+@media (max-width:820px){
+  #app.ses-modu .ses-sahne{flex:0 0 40%}
+}

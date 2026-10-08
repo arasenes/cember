@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Avatar from "../Avatar";
-import { metinOge } from "../mesaj/markdown";
-import type { Mesaj, Uye } from "../types";
+import type { Uye } from "../types";
 import { DUZEY_MAX, DUZEY_MIN, useSesDuzeyleri } from "./sesDuzeyi";
 import { t } from "../i18n";
 
@@ -17,17 +16,13 @@ type Props = {
   susturulanlar: Set<string>;
   onSustur: (uye: Uye, sustur: boolean) => Promise<string | null>;
   onAt: (uye: Uye) => Promise<string | null>;
-  mesajlar: Mesaj[];
-  onGonder: (metin: string) => Promise<boolean>;
-  yazamaz: boolean;
   onHata: (metin: string) => void;
 };
 
-/** Sesli oda yan paneli: kişi başı ses düzeyi (0-200%), yönetici işlemleri ve odanın yazılı sohbeti. */
-export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yonetici, islemYapabilir, susturulanlar, onSustur, onAt, mesajlar, onGonder, yazamaz, onHata }: Props) {
+/** Sesli oda yan paneli: kişi başı ses düzeyi (0-200%) ve yönetici işlemleri. Yazılı sohbet ana alanda sahnenin altındadır. */
+export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yonetici, islemYapabilir, susturulanlar, onSustur, onAt, onHata }: Props) {
   const d = useSesDuzeyleri();
   const [secili, setSecili] = useState<string>("");
-  const [metin, setMetin] = useState("");
   const [mesgul, setMesgul] = useState(false);
   const hedef = digerleri.find((u) => u.id === secili);
   const hedefUygun = !!hedef && islemYapabilir(hedef);
@@ -45,15 +40,6 @@ export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yone
     setMesgul(false);
     if (h) onHata(h);
   }
-
-  async function gonder(e: React.FormEvent) {
-    e.preventDefault();
-    const t = metin.trim();
-    if (!t || yazamaz) return;
-    if (await onGonder(t)) setMetin("");
-  }
-
-  const son = mesajlar.filter((m) => !m.silindi && !m.ust_mesaj_id).slice(-30);
 
   return (
     <div className="ses-yani">
@@ -92,26 +78,6 @@ export default function SesYani({ ben, digerleri, paylasanlar, uyeHaritasi, yone
           </div>
         </>
       )}
-
-      <h2 className="yan-baslik">{t("Sesli kanal sohbeti")}</h2>
-      <div className="yan-sohbet">
-        <ul className="yan-mesajlar" aria-label={t("Sesli kanal mesajları")} aria-live="polite">
-          {son.map((m) => {
-            const y = uyeHaritasi.get(m.uye_id);
-            return (
-              <li key={m.id}>
-                <b className={"rol-" + (y?.rol ?? "uye")}>{y?.takma_ad ?? "Eski üye"}</b>{" "}
-                <span className="yan-metin">{metinOge(m.metin, ben.takma_ad)}</span>
-              </li>
-            );
-          })}
-          {!son.length && <li className="hint">{t("Henüz mesaj yok.")}</li>}
-        </ul>
-        <form className="yan-yaz" onSubmit={gonder}>
-          <label htmlFor="ses-sohbet-girdi" className="sr">{t("Sesli kanal sohbetine mesaj yaz")}</label>
-          <input id="ses-sohbet-girdi" type="text" value={metin} maxLength={4000} disabled={yazamaz} onChange={(e) => setMetin(e.target.value)} placeholder={t("Mesaj yaz…")} autoComplete="off" />
-        </form>
-      </div>
     </div>
   );
 }
