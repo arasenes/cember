@@ -1,0 +1,332 @@
+/* Çember paletleri — her palet <html data-tema="..."> ile açılır. tema.css değişkenlerini ezer.
+   Üretildi: tasarim/Paletler*.dc.html. Varsayılan (data-tema yok) = komur-turuncu (tema.css). */
+
+/* 1 · Mint Gece — şimdiki */
+:root[data-tema="mint-gece"] {
+  --zemin-serit: #0f1116;
+  --zemin-panel: #161920;
+  --zemin-ana: #1c2029;
+  --zemin-yuzey: #252a35;
+  --zemin-girdi: #12151b;
+  --zemin-vurgulu: #20252f;
+  --cizgi: #2c3240;
+  --cizgi-ince: #242934;
+  --yazi: #e8eaf0;
+  --yazi-2: #cdd1db;
+  --soluk: #9aa3b5;
+  --vurgu: #4fd1a5;
+  --vurgu-yazi: #07261c;
+  --vurgu-zemin: #12362c;
+  --vurgu-orta: #215d4a;
+  --vurgu-acik: #c1efe0;
+  --bahsetme: #f5b94a;
+  --bahsetme-zemin: #3a3217;
+  --durum-cevrimici: #f5b94a;
+  --durum-cevrimdisi: #5b626f;
+  --altin: #ffd166;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+  --durum-bosta: #ffd166;
+  --anahtar-kapali: #484e5b;
+  color-scheme: dark;
+}
+
+/* 2 · Mor Gece — canlı, oyuncu */
+:root[data-tema="mor-gece"] {
+  --zemin-serit: #100e17;
+  --zemin-panel: #17141f;
+  --zemin-ana: #1d1a28;
+  --zemin-yuzey: #28233a;
+  --zemin-girdi: #14111b;
+  --zemin-vurgulu: #221e31;
+  --cizgi: #332d49;
+  --cizgi-ince: #282438;
+  --yazi: #ece9f6;
+  --yazi-2: #d3cfe1;
+  --soluk: #a49fba;
+  --vurgu: #a78bfa;
+  --vurgu-yazi: #1b0f45;
+  --vurgu-zemin: #2b2150;
+  --vurgu-orta: #4a3c7a;
+  --vurgu-acik: #e0d6fd;
+  --bahsetme: #f9a8d4;
+  --bahsetme-zemin: #3d2336;
+  --durum-cevrimici: #f9a8d4;
+  --durum-cevrimdisi: #605c71;
+  --altin: #ffd166;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+  --durum-bosta: #ffd166;
+  --anahtar-kapali: #4d4860;
+  color-scheme: dark;
+}
+
+/* 3 · Derin Mavi — sakin, ciddi */
+:root[data-tema="derin-mavi"] {
+  --zemin-serit: #0a1019;
+  --zemin-panel: #0f1824;
+  --zemin-ana: #142030;
+  --zemin-yuzey: #1d2d42;
+  --zemin-girdi: #0c141e;
+  --zemin-vurgulu: #182639;
+  --cizgi: #243a54;
+  --cizgi-ince: #1c2d42;
+  --yazi: #e6eef8;
+  --yazi-2: #c8d4e4;
+  --soluk: #8fa5bf;
+  --vurgu: #4cc2ff;
+  --vurgu-yazi: #04283d;
+  --vurgu-zemin: #0f3550;
+  --vurgu-orta: #1e587c;
+  --vurgu-acik: #c0eaff;
+  --bahsetme: #ffb454;
+  --bahsetme-zemin: #3b2a12;
+  --durum-cevrimici: #ffb454;
+  --durum-cevrimdisi: #526278;
+  --altin: #ffd166;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+  --durum-bosta: #ffd166;
+  --anahtar-kapali: #3f5168;
+  color-scheme: dark;
+}
+
+/* 4 · Sıcak Mercan — samimi, sıcak */
+:root[data-tema="sicak-mercan"] {
+  --zemin-serit: #130f0e;
+  --zemin-panel: #1a1413;
+  --zemin-ana: #211918;
+  --zemin-yuzey: #2e2220;
+  --zemin-girdi: #161210;
+  --zemin-vurgulu: #281e1c;
+  --cizgi: #3b2d2a;
+  --cizgi-ince: #2e2321;
+  --yazi: #f4ece9;
+  --yazi-2: #ddd2ce;
+  --soluk: #b3a19c;
+  --vurgu: #ff7a59;
+  --vurgu-yazi: #3a1006;
+  --vurgu-zemin: #4a2218;
+  --vurgu-orta: #773828;
+  --vurgu-acik: #ffd0c5;
+  --bahsetme: #ffd166;
+  --bahsetme-zemin: #3b3115;
+  --durum-cevrimici: #ffd166;
+  --durum-cevrimdisi: #6a5d5a;
+  --altin: #ffd166;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+  --durum-bosta: #ffd166;
+  --anahtar-kapali: #564845;
+  color-scheme: dark;
+}
+
+/* 5 · Açık Tema — gündüz modu */
+:root[data-tema="acik-tema"] {
+  --zemin-serit: #e3e7ed;
+  --zemin-panel: #f1f3f6;
+  --zemin-ana: #fafbfc;
+  --zemin-yuzey: #e8ebf0;
+  --zemin-girdi: #eaedf2;
+  --zemin-vurgulu: #f1f3f6;
+  --cizgi: #d3d9e1;
+  --cizgi-ince: #e6eaee;
+  --yazi: #1b2330;
+  --yazi-2: #303948;
+  --soluk: #566275;
+  --vurgu: #0e7c66;
+  --vurgu-yazi: #ffffff;
+  --vurgu-zemin: #d3efe7;
+  --vurgu-orta: #a2d2c7;
+  --vurgu-acik: #084438;
+  --bahsetme: #b45309;
+  --bahsetme-zemin: #fbe7cf;
+  --durum-cevrimici: #b45309;
+  --durum-cevrimdisi: #a8aeb8;
+  --altin: #a16207;
+  --mavi: #1d4ed8;
+  --uyari: #c62828;
+  --mor: #6d28d9;
+  --tehlike-zemin: #fde0dd;
+  --tehlike-yazi: #b3261e;
+  --durum-bosta: #a16207;
+  --anahtar-kapali: #a1a9b6;
+  color-scheme: light;
+}
+
+/* 6 · Gül Gecesi — pembe, eğlenceli */
+:root[data-tema="gul-gecesi"] {
+  --zemin-serit: #120b10;
+  --zemin-panel: #1a1018;
+  --zemin-ana: #211620;
+  --zemin-yuzey: #30202e;
+  --zemin-girdi: #160e14;
+  --zemin-vurgulu: #281b27;
+  --cizgi: #3d2a3a;
+  --cizgi-ince: #2f202d;
+  --yazi: #f6e9f1;
+  --yazi-2: #e0cfda;
+  --soluk: #b79fb0;
+  --vurgu: #ff5fa2;
+  --vurgu-yazi: #40061f;
+  --vurgu-zemin: #4a1630;
+  --vurgu-orta: #77284c;
+  --vurgu-acik: #ffc7de;
+  --bahsetme: #7be0ff;
+  --bahsetme-zemin: #123a47;
+  --durum-cevrimici: #7be0ff;
+  --durum-cevrimdisi: #6c5a68;
+  --altin: #ffd166;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+  --durum-bosta: #ffd166;
+  --anahtar-kapali: #584655;
+  color-scheme: dark;
+}
+
+/* 7 · Kömür ve Turuncu — nötr, net */
+:root[data-tema="komur-turuncu"] {
+  --zemin-serit: #0c0c0c;
+  --zemin-panel: #141414;
+  --zemin-ana: #1b1b1b;
+  --zemin-yuzey: #282828;
+  --zemin-girdi: #101010;
+  --zemin-vurgulu: #222222;
+  --cizgi: #333333;
+  --cizgi-ince: #272727;
+  --yazi: #efefef;
+  --yazi-2: #d4d4d4;
+  --soluk: #a3a3a3;
+  --vurgu: #ff9f1c;
+  --vurgu-yazi: #2b1900;
+  --vurgu-zemin: #3d2a08;
+  --vurgu-orta: #6e470d;
+  --vurgu-acik: #ffddb0;
+  --bahsetme: #5ee0c1;
+  --bahsetme-zemin: #0f3a31;
+  --durum-cevrimici: #5ee0c1;
+  --durum-cevrimdisi: #5f5f5f;
+  --altin: #ffd166;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+  --durum-bosta: #ffd166;
+  --anahtar-kapali: #4d4d4d;
+  color-scheme: dark;
+}
+
+/* 8 · Neon Limon — enerjik */
+:root[data-tema="neon-limon"] {
+  --zemin-serit: #0b0d08;
+  --zemin-panel: #12150d;
+  --zemin-ana: #181c11;
+  --zemin-yuzey: #242a19;
+  --zemin-girdi: #0e110a;
+  --zemin-vurgulu: #1e2315;
+  --cizgi: #313823;
+  --cizgi-ince: #242a1a;
+  --yazi: #eef2e4;
+  --yazi-2: #d3d9c6;
+  --soluk: #a1ab8f;
+  --vurgu: #c6f432;
+  --vurgu-yazi: #1a2300;
+  --vurgu-zemin: #2f3d0a;
+  --vurgu-orta: #556b14;
+  --vurgu-acik: #ebfbb7;
+  --bahsetme: #ff8fab;
+  --bahsetme-zemin: #45202b;
+  --durum-cevrimici: #ff8fab;
+  --durum-cevrimdisi: #5c6450;
+  --altin: #ffd166;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+  --durum-bosta: #ffd166;
+  --anahtar-kapali: #4a513c;
+  color-scheme: dark;
+}
+
+/* 9 · Orman ve Altın — doğal, şık */
+:root[data-tema="orman-altin"] {
+  --zemin-serit: #0b130f;
+  --zemin-panel: #111b15;
+  --zemin-ana: #16231b;
+  --zemin-yuzey: #203128;
+  --zemin-girdi: #0e1712;
+  --zemin-vurgulu: #1b2a22;
+  --cizgi: #2b4033;
+  --cizgi-ince: #203227;
+  --yazi: #e8f1ea;
+  --yazi-2: #cad8ce;
+  --soluk: #93aa9a;
+  --vurgu: #e3b341;
+  --vurgu-yazi: #2b1f00;
+  --vurgu-zemin: #3a2f0b;
+  --vurgu-orta: #645018;
+  --vurgu-acik: #f5e4bc;
+  --bahsetme: #7ee0a1;
+  --bahsetme-zemin: #123d27;
+  --durum-cevrimici: #7ee0a1;
+  --durum-cevrimdisi: #54665a;
+  --altin: #ffd166;
+  --mavi: #7aa8ff;
+  --uyari: #ff8a80;
+  --mor: #c9a7ff;
+  --tehlike-zemin: #4a1f1b;
+  --tehlike-yazi: #ffb4ab;
+  --durum-bosta: #ffd166;
+  --anahtar-kapali: #42554a;
+  color-scheme: dark;
+}
+
+/* 10 · Açık Mercan — gündüz, sıcak */
+:root[data-tema="acik-mercan"] {
+  --zemin-serit: #f1e4da;
+  --zemin-panel: #f8eee7;
+  --zemin-ana: #fffaf6;
+  --zemin-yuzey: #f2e6dd;
+  --zemin-girdi: #f4e9e0;
+  --zemin-vurgulu: #f8f0ea;
+  --cizgi: #e2d2c6;
+  --cizgi-ince: #f0e6de;
+  --yazi: #2a1d18;
+  --yazi-2: #41312b;
+  --soluk: #6b574d;
+  --vurgu: #c2410c;
+  --vurgu-yazi: #ffffff;
+  --vurgu-zemin: #fbdccd;
+  --vurgu-orta: #f2b79e;
+  --vurgu-acik: #772808;
+  --bahsetme: #0b7285;
+  --bahsetme-zemin: #d5eef3;
+  --durum-cevrimici: #0b7285;
+  --durum-cevrimdisi: #b5a8a2;
+  --altin: #a16207;
+  --mavi: #1d4ed8;
+  --uyari: #c62828;
+  --mor: #6d28d9;
+  --tehlike-zemin: #fde0dd;
+  --tehlike-yazi: #b3261e;
+  --durum-bosta: #a16207;
+  --anahtar-kapali: #b2a196;
+  color-scheme: light;
+}

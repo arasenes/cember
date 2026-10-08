@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sesli Oda Düzeni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Tek koyu görünüm: Çember "Kömür ve Turuncu" paleti. Sayfa, düzeltilmiş sesli oda ekranının canlı örneği. */
+:root{
+  --serit:#0c0c0c; --panel:#141414; --girdi:#101010; --ana:#1b1b1b; --yuzey:#282828; --cizgi:#333333;
+  --yazi:#efefef; --soluk:#a3a3a3; --vurgu:#ff9f1c; --vurgu-yazi:#2b1900; --vurgu-zemin:#3d2a08;
+  --turkuaz:#5ee0c1; --tehlike-zemin:#4a1f1b; --tehlike-yazi:#ffb4ab;
+  --baslik:"Bricolage Grotesque",system-ui,sans-serif; --metin:"Figtree",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--serit);color:var(--yazi);font-family:var(--metin);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:20px 40px}
+.sayfa{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-family:var(--baslik);font-size:clamp(24px,5vw,32px);line-height:1.15}
+.not{margin:4px 0 0;color:var(--soluk);max-width:70ch}
+.araclar{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+.grup{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.et{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soluk)}
+.seg{display:flex;gap:4px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--cizgi);border-radius:10px;background:var(--yuzey);cursor:pointer;font-weight:600}
+.seg input:checked+label{background:var(--vurgu);border-color:var(--vurgu);color:var(--vurgu-yazi)}
+.seg input:focus-visible+label,button:focus-visible{outline:2px solid var(--turkuaz);outline-offset:2px}
+
+/* Çerçeve: uygulamanın ana alanı. Yükseklik sabit; içindeki bölümler birbirine binmeden paylaşır. */
+.cerceve{width:100%;margin:0 auto;height:min(760px,calc(100dvh - 190px));min-height:560px;background:var(--ana);border:1px solid var(--cizgi);border-radius:14px;overflow:hidden;display:flex;flex-direction:row;transition:max-width .2s}
+.cerceve.tel{max-width:390px;flex-direction:column;height:auto;min-height:0}
+.sol{flex:1 1 0;min-width:0;min-height:0;display:flex;flex-direction:column}
+.sag{flex:0 0 clamp(400px,42%,560px);min-width:0;display:flex;flex-direction:column;border-left:1px solid var(--cizgi);background:var(--ana)}
+.cerceve.tel .sol{flex:none}
+.cerceve.tel .sag{flex:none;height:300px;border-left:0;border-top:1px solid var(--cizgi)}
+@media (max-width:760px){.cerceve{flex-direction:column;height:auto}.sol{flex:none}.sag{flex:none;height:300px;border-left:0;border-top:1px solid var(--cizgi)}}
+
+/* 1) Oda başlığı */
+.oda-ust{flex:none;display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 16px;border-bottom:1px solid var(--cizgi);flex-wrap:wrap}
+.oda-ust b{font-family:var(--baslik);font-size:18px}
+.oda-ust span{color:var(--soluk);font-size:14px;min-width:0}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* 2) Sahne: gerektiğinde kendi içinde kayar, altındaki çubuğun üstüne binmez */
+.sahne{flex:1 1 auto;min-height:200px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;justify-content:center;gap:14px}
+.onizleme{align-self:center;width:min(720px,100%);background:var(--panel);border:1px solid var(--cizgi);border-radius:14px;overflow:hidden}
+.onizleme .ekran{aspect-ratio:16/9;background:linear-gradient(135deg,#1d1d1d,#0f0f0f);position:relative;display:flex;align-items:center;justify-content:center}
+.onizleme .ekran i{position:absolute;left:10%;right:10%;height:8px;border-radius:4px;background:var(--yuzey)}
+.onizleme .ekran i:nth-child(1){top:18%}
+.onizleme .ekran i:nth-child(2){top:30%;right:40%}
+.onizleme .ekran i:nth-child(3){bottom:22%;right:25%}
+.onizleme .ekran svg{width:36px;height:36px;color:var(--vurgu)}
+.onizleme p{margin:0;padding:8px 12px;font-size:13px;color:var(--soluk)}
+.kutular{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
+.kutu{position:relative;aspect-ratio:16/9;min-height:150px;background:var(--yuzey);border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden;min-width:0}
+.av{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--baslik);font-weight:700;font-size:28px;color:#fff;flex:none}
+.av.ben{box-shadow:0 0 0 3px var(--vurgu)}
+.isim{position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);display:flex;align-items:center;gap:6px;background:var(--serit);border-radius:8px;padding:4px 10px;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isim .nokta{width:8px;height:8px;border-radius:50%;background:var(--turkuaz);flex:none}
+.rozet{position:absolute;right:10px;top:10px;display:flex;align-items:center;gap:6px;background:var(--serit);color:var(--vurgu);border-radius:8px;padding:3px 8px;font-size:12px;font-weight:700}
+.rozet .ic{width:14px;height:14px}
+
+/* Kullanıcılar: yalnızca yuvarlak avatar, sahnenin altında tek satır; çoksa yana kayar */
+.kisiler{flex:none;display:flex;gap:12px;justify-content:center;padding:10px 16px;overflow-x:auto;list-style:none;margin:0}
+.kisiler li{position:relative;flex:none}
+.kisiler .av{width:48px;height:48px;font-size:18px}
+.kisiler .av.konusuyor{box-shadow:0 0 0 3px var(--turkuaz)}
+.kisiler .av.ben{box-shadow:0 0 0 3px var(--vurgu)}
+.kisiler .sus{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;background:var(--tehlike-zemin);color:var(--tehlike-yazi);display:flex;align-items:center;justify-content:center;border:2px solid var(--ana)}
+.kisiler .sus .ic{width:12px;height:12px}
+
+/* Ekran paylaşılmıyorken: kişiler sahnede büyük yuvarlak, alttaki küçük satır gizlenir */
+.buyuk{display:none;list-style:none;margin:0;padding:0;flex-wrap:wrap;justify-content:center;gap:24px 28px}
+.buyuk li{display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;min-width:0}
+.buyuk .av{width:96px;height:96px;font-size:36px}
+.buyuk .av.konusuyor{box-shadow:0 0 0 4px var(--turkuaz)}
+.buyuk .av.ben{box-shadow:0 0 0 4px var(--vurgu)}
+.buyuk .ad{font-weight:600;font-size:14px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.buyuk .sus{position:absolute;right:calc(50% - 52px);top:68px;width:28px;height:28px;border-radius:50%;background:var(--tehlike-zemin);color:var(--tehlike-yazi);display:flex;align-items:center;justify-content:center;border:3px solid var(--ana)}
+.buyuk .sus .ic{width:14px;height:14px}
+.ekransiz .onizleme,.ekransiz .kisiler{display:none}
+.ekransiz .buyuk{display:flex}
+.ekransiz .dugme.paylasim{background:var(--yuzey);border-color:transparent;color:var(--yazi)}
+
+/* 3) Düğme çubuğu: kendi satırı var, kutuların altında; dar ekranda sarar */
+.cubuk{flex:none;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:12px 16px;background:var(--panel);border-block:1px solid var(--cizgi)}
+.dugme{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid transparent;border-radius:10px;background:var(--yuzey);color:var(--yazi);font:600 15px var(--metin);cursor:pointer}
+.dugme:hover{filter:brightness(1.15)}
+.dugme[aria-pressed=true]{background:var(--tehlike-zemin);color:var(--tehlike-yazi)}
+.dugme.paylasim{border-color:var(--vurgu);background:var(--vurgu-zemin);color:#ffe0b0}
+.dugme.ayril{background:var(--tehlike-zemin);color:var(--tehlike-yazi)}
+
+/* 4) Sohbet: kalan yüksekliği alır */
+.sohbet{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+.sohbet-ust{flex:none;display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 16px;border-bottom:1px solid var(--cizgi)}
+.sohbet-ust b{font-family:var(--baslik);font-size:16px}
+.sohbet-ust .ara{margin-left:auto;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid var(--cizgi);border-radius:8px;background:var(--girdi);color:var(--soluk);font-size:14px;min-width:0}
+.sohbet-ust .ara span{white-space:nowrap}
+.bos{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;color:var(--soluk)}
+.yaz{flex:none;margin:0 16px 14px;display:flex;gap:8px}
+.yaz span{flex:1;min-width:0;min-height:44px;display:flex;align-items:center;padding:0 12px;border-radius:10px;background:var(--yuzey);color:var(--soluk)}
+.yaz .dugme{background:var(--vurgu);color:var(--vurgu-yazi);font-weight:700}
+
+.fark{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px;margin:0;padding:0;list-style:none}
+.fark li{background:var(--panel);border:1px solid var(--cizgi);border-radius:12px;padding:12px 14px;color:var(--soluk);font-size:14px;min-width:0}
+.fark b{display:block;color:var(--yazi);font-size:15px;margin-bottom:2px}
+</style>
+</head>
+<body>
+
+
+<div class="sayfa">
+<header>
+<h1>Sesli oda düzeni</h1>
+<p class="not">Ekran paylaşımı, kişi kutuları, düğmeler ve sohbet artık ayrı satırlarda; hiçbiri diğerinin üstüne binmiyor. Solda paylaşılan ekran, altında yuvarlak kişiler ve düğmeler; sohbet sağda. Üstten ekran paylaşımı var/yok, kişi sayısı ve genişliği değiştirip dene.</p>
+</header>
+
+<div class="araclar">
+<div class="grup"><span class="et" id="e-e">Ekran</span>
+<div class="seg" role="radiogroup" aria-labelledby="e-e">
+<input type="radio" name="ekran" id="e-var" value="var" checked><label for="e-var">Paylaşılıyor</label>
+<input type="radio" name="ekran" id="e-yok" value="yok"><label for="e-yok">Paylaşılmıyor</label>
+</div></div>
+<div class="grup"><span class="et" id="k-e">Kişi</span>
+<div class="seg" role="radiogroup" aria-labelledby="k-e">
+<input type="radio" name="kisi" id="k2" value="2" checked><label for="k2">2</label>
+<input type="radio" name="kisi" id="k5" value="5"><label for="k5">5</label>
+<input type="radio" name="kisi" id="k12" value="12"><label for="k12">12</label>
+</div></div>
+<div class="grup"><span class="et" id="g-e">Genişlik</span>
+<div class="seg" role="radiogroup" aria-labelledby="g-e">
+<input type="radio" name="gen" id="g-m" value="m" checked><label for="g-m">Masaüstü</label>
+<input type="radio" name="gen" id="g-t" value="t"><label for="g-t">Telefon</label>
+</div></div>
+</div>
+
+<div class="cerceve" id="cerceve">
+<div class="sol">
+<div class="oda-ust">
+<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
+<b>Oyun odası</b><span id="ozet">Enes-BRONZ ekranını paylaşıyor</span>
+</div>
+
+<div class="sahne" id="sahne" tabindex="0" aria-label="Paylaşılan ekran">
+<div class="onizleme">
+<div class="ekran"><i></i><i></i><i></i>
+<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></div>
+<p>Enes-BRONZ ekranını paylaşıyor</p>
+</div>
+<ul class="buyuk" id="buyuk" aria-label="Odadakiler"></ul>
+</div>
+
+<ul class="kisiler" id="kisiler" aria-label="Odadakiler"></ul>
+
+<div class="cubuk" role="toolbar" aria-label="Sesli oda kontrolleri">
+<button class="dugme" type="button" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Mikrofon</button>
+<button class="dugme" type="button" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3M4 15h3v5H4zM17 15h3v5h-3z"/></svg>Sağırlaştır</button>
+<button class="dugme" type="button" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg>Kamera</button>
+<button class="dugme paylasim" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><span id="pay-ad">Paylaşımı durdur</span></button>
+<button class="dugme ayril" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></svg>Ayrıl</button>
+</div>
+</div>
+
+<div class="sag">
+<section class="sohbet" aria-label="Oda sohbeti">
+<div class="sohbet-ust"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg><b>Oyun odası</b>
+<div class="ara"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Mesajlarda ara</span></div></div>
+<div class="bos">Henüz mesaj yok. İlk mesajı sen yaz.</div>
+<div class="yaz"><span>Mesaj yaz</span><button class="dugme" type="button">Gönder</button></div>
+</section>
+</div>
+</div>
+
+<ul class="fark">
+<li><b>Kişiler yuvarlak</b>Sahnenin altında tek satır; konuşanın çevresi turkuaz, sensin turuncu, çoksa yana kayar.</li>
+<li><b>Ekran oranlı</b>Paylaşılan ekran 16:9, en fazla 720px; taşarsa sahne kendi içinde kayar.</li>
+<li><b>Çubuk kendi satırında</b>Düğmeler sabit satırda; dar ekranda alt satıra sarar.</li>
+<li><b>Sohbet sağda</b>Geniş sütun (yaklaşık 480px); telefonda altta, yazı kutusu hep görünür.</li>
+</ul>
+</div>
+
+<script>
+const ISIM=[['EXA','#8c6a2f'],['Sen','#3f6f66'],['Enes','#6a4f8c'],['Deniz','#8c4a4a'],['Mert','#3f5f8c'],['Ayşe','#6f6a2f'],['Can','#8c4a78'],['Eda','#4a7f5f'],['Kaan','#7f5a3a'],['Naz','#4a6f8c'],['Ece','#8c3f5f'],['Tuna','#5f6f3a']];
+let sayi=2,ekranVar=true;
+function ozet(){document.getElementById('ozet').textContent=ekranVar?'Enes-BRONZ ekranını paylaşıyor':sayi+' kişi sesli sohbette';document.getElementById('pay-ad').textContent=ekranVar?'Paylaşımı durdur':'Ekran paylaş';}
+function ciz(n){sayi=n;ozet();const b=document.getElementById('buyuk');b.innerHTML='';
+ ISIM.slice(0,n).forEach(([ad,r],i)=>{const li=document.createElement('li');
+  li.innerHTML='<div class="av'+(ad==='Sen'?' ben':(i===2?' konusuyor':''))+'" style="background:'+r+'" role="img" aria-label="'+ad+(i===2?' konuşuyor':'')+'">'+ad[0]+'</div><span class="ad">'+ad+'</span>'+(i===3?'<span class="sus" title="Mikrofon kapalı"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2M15 9V6a3 3 0 0 0-6 0"/></svg></span>':'');
+  b.appendChild(li);});
+ const u=document.getElementById('kisiler');u.innerHTML='';
+ ISIM.slice(0,n).forEach(([ad,r],i)=>{const li=document.createElement('li');
+  li.innerHTML='<div class="av'+(ad==='Sen'?' ben':(i===2?' konusuyor':''))+'" style="background:'+r+'" role="img" aria-label="'+ad+(i===2?' konuşuyor':'')+'" title="'+ad+'">'+ad[0]+'</div>'+(i===3?'<span class="sus" title="Mikrofon kapalı"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2M15 9V6a3 3 0 0 0-6 0"/></svg></span>':'');
+  u.appendChild(li);});}
+ciz(2);
+document.querySelectorAll('input[name=ekran]').forEach(r=>r.addEventListener('change',e=>{ekranVar=e.target.value==='var';document.getElementById('cerceve').classList.toggle('ekransiz',!ekranVar);ozet();}));
+document.querySelectorAll('input[name=kisi]').forEach(r=>r.addEventListener('change',e=>ciz(+e.target.value)));
+document.querySelectorAll('input[name=gen]').forEach(r=>r.addEventListener('change',e=>document.getElementById('cerceve').classList.toggle('tel',e.target.value==='t')));
+document.querySelectorAll('.dugme[aria-pressed]').forEach(b=>b.addEventListener('click',()=>b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true')));
+</script>
+
+</body>
+</html>
