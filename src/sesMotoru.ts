@@ -124,6 +124,7 @@ export function useSesMotoru(
     // Ekran paylaşımı: izleyenin gördüğü yayın, benim paylaşıp paylaşmadığım ve başlat/durdur
     izlenen: aktif.izlenen,
     paylasiyorum: aktif.paylasiyorum,
+    kendiEkran: aktif.kendiEkran,
     ekranDestegi: ekranPaylasilabilir(true),
     ekranPaylas: async (kalite: EkranKalite): Promise<EkranSonuc> => {
       if (iosMu() && !ekranPaylasilabilirTarayici()) {

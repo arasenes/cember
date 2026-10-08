@@ -66,6 +66,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   const hedefRef = useRef<string | null>(null);
   const [izlenen, setIzlenen] = useState<Izlenen | null>(null);
   const [paylasiyorum, setPaylasiyorum] = useState(false);
+  const [kendiEkran, setKendiEkran] = useState<MediaStream | null>(null); // kendi paylaştığım ekranın önizlemesi
   const [kameralar, setKameralar] = useState<Map<string, MediaStream>>(new Map());
   const [kameraAcik, setKameraAcik] = useState(false);
   const yerelDinleyici = useRef<{ remove: () => Promise<void> } | null>(null);
@@ -83,7 +84,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     sesYoneticisi.hepsiniKaldir();
     setKameralar(new Map()); setKameraAcik(false);
     setKonusanlar(new Set());
-    setIzlenen(null); setPaylasiyorum(false);
+    setIzlenen(null); setPaylasiyorum(false); setKendiEkran(null);
     const y = yerelEkran();
     if (y && yerelAktif.current) { yerelAktif.current = false; void yerelDurdur(y); }
     try { await yerelDinleyici.current?.remove(); } catch { /* yoksay */ }
@@ -151,7 +152,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       room.on(RoomEvent.TrackUnmuted, (pub, p) => { if (p.isLocal && pub.source === Track.Source.Microphone) setSessiz(false); });
       // Tarayıcının kendi "Paylaşımı durdur" düğmesine basılırsa
       room.on(RoomEvent.LocalTrackUnpublished, (yayin) => {
-        if (yayin.source === Track.Source.ScreenShare) setPaylasiyorum(false);
+        if (yayin.source === Track.Source.ScreenShare) { setPaylasiyorum(false); setKendiEkran(null); }
         if (yayin.source === Track.Source.Camera) { setKameraAcik(false); setKameralar((x) => { const y = new Map(x); y.delete(uyeId); return y; }); }
       });
       room.on(RoomEvent.ActiveSpeakersChanged, (liste) => setKonusanlar(new Set(liste.map((p) => p.identity))));
@@ -283,6 +284,8 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
         { screenShareEncoding: { maxBitrate: k.bitHizi, maxFramerate: k.kare }, screenShareSimulcastLayers: [], degradationPreference: "maintain-framerate" },
       );
       setPaylasiyorum(true);
+      const yerelIz = room.localParticipant.getTrackPublications().find((p) => p.source === "screen_share")?.track?.mediaStreamTrack;
+      if (yerelIz) setKendiEkran(new MediaStream([yerelIz]));
       // Ses paylaşılmadıysa (pencere paylaşımı ya da kutu işaretlenmedi) kullanıcıyı uyar
       const sesVar = room.localParticipant.getTrackPublications().some((p) => p.source === "screen_share_audio");
       return sesVar ? { ok: true } : { ok: true, mesaj: "Ekran paylaşılıyor ama SES gitmiyor. Ses için paylaşırken 'Sistem sesini / Sekme sesini paylaş' kutusunu işaretle (Chrome'da sekme ya da tüm ekran seç)." };
@@ -293,7 +296,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   }, []);
 
   const ekranDurdur = useCallback(async () => {
-    setPaylasiyorum(false);
+    setPaylasiyorum(false); setKendiEkran(null);
     const y = yerelEkran();
     if (y) { yerelAktif.current = false; await yerelDurdur(y); return; }
     try { await odaRef.current?.localParticipant.setScreenShareEnabled(false); } catch { /* yoksay */ }
@@ -306,5 +309,5 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     return () => { window.removeEventListener("pagehide", kapat); void temizle(); };
   }, [temizle]);
 
-  return { durum, kanalId, sessiz, konusanlar, kullanilan, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur, kameralar, kameraAcik, kameraDegistir };
+  return { durum, kanalId, sessiz, konusanlar, kullanilan, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur, kendiEkran, kameralar, kameraAcik, kameraDegistir };
 }

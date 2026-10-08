@@ -50,6 +50,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const [turnVar, setTurnVar] = useState<boolean | null>(null);
   const [izlenen, setIzlenen] = useState<Izlenen | null>(null);
   const [paylasiyorum, setPaylasiyorum] = useState(false);
+  const [kendiEkran, setKendiEkran] = useState<MediaStream | null>(null);
   const [kameralar, setKameralar] = useState<Map<string, MediaStream>>(new Map());
   const [kameraAcik, setKameraAcik] = useState(false);
   const kameraRef = useRef<{ degistir: () => Promise<{ ok: boolean; mesaj?: string }> } | null>(null);
@@ -64,7 +65,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     kameraRef.current = null;
     setKameralar(new Map()); setKameraAcik(false);
     setKonusanlar(new Set()); setSorunlu(new Set());
-    setIzlenen(null); setPaylasiyorum(false);
+    setIzlenen(null); setPaylasiyorum(false); setKendiEkran(null);
   }, []);
 
   const ayril = useCallback(async () => {
@@ -314,7 +315,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         akis?.getTracks().forEach((t) => { t.onended = null; t.stop(); });
         for (const e of ekranGiden.values()) { try { e.pc.close(); } catch { /* yoksay */ } }
         ekranGiden.clear();
-        setPaylasiyorum(false);
+        setPaylasiyorum(false); setKendiEkran(null);
         if (!kapandi && kanal) { try { await kanal.track({ t: benimT, ekran: false, kamera: kameraAkis !== null }); } catch { /* yoksay */ } }
       };
 
@@ -330,6 +331,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             const v = yakalanan.getVideoTracks()[0];
             if (v) { v.contentHint = "motion"; v.onended = () => { void ekranBirak(); }; }
             setPaylasiyorum(true);
+            setKendiEkran(yakalanan);
             await kanal?.track({ t: benimT, ekran: true, kamera: kameraAkis !== null });
             // Odadakilere hemen başla (yeni gelenler için presence senkronu devam ettirir)
             for (const id of Object.keys(kanal?.presenceState() ?? {})) {
@@ -578,5 +580,5 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const ekranPaylas = useCallback(async (kalite: EkranKalite): Promise<EkranSonuc> => ekranRef.current ? ekranRef.current.baslat(kalite) : { ok: false, mesaj: "Önce sesli odaya katıl." }, []);
   const ekranDurdur = useCallback(async () => { await ekranRef.current?.durdur(); }, []);
 
-  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, ekranPaylas, ekranDurdur, kameralar, kameraAcik, kameraDegistir };
+  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, kendiEkran, ekranPaylas, ekranDurdur, kameralar, kameraAcik, kameraDegistir };
 }

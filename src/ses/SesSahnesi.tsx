@@ -41,6 +41,24 @@ export function KameraVideosu({ akis, ad }: { akis: MediaStream; ad: string }) {
 }
 
 /** Sesli oda sahnesi: paylaşılan ekran + katılımcı kareleri (kamera ya da avatar) + kontrol çubuğu. */
+/** Kendi paylaştığım ekranın küçük önizlemesi (sessiz; karşıdakiler tam boyutta izler). */
+function KendiEkranOnizleme({ akis }: { akis: MediaStream }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.srcObject = akis;
+    try { void Promise.resolve(v.play()).catch(() => {}); } catch { /* oynatma engellendi */ }
+    return () => { v.srcObject = null; };
+  }, [akis]);
+  return (
+    <figure className="kendi-ekran">
+      <video ref={ref} muted playsInline aria-label={t("Paylaştığın ekran")} />
+      <figcaption>{t("Paylaştığın ekran")}</figcaption>
+    </figure>
+  );
+}
+
 export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, paylasanlar, baglaniyor, buradayim, basKonus, baskasiPaylasiyor, yapanAd, onKatil, onProfil, onSohbet }: Props) {
   const [kalite, setKalite] = useState<EkranKalite>("720");
   const [kameraUyari, setKameraUyari] = useState("");
@@ -76,6 +94,7 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
 
       <div className={"sahne-alan" + (ekranVar ? " ekranli" : "")}>
         {ekranVar && ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={yapanAd(ses.izlenen.uyeId)} />}
+        {buradayim && ses.paylasiyorum && ses.kendiEkran && !ekranVar && <KendiEkranOnizleme akis={ses.kendiEkran} />}
         <ul className="karo-izgara" aria-label={t("Sesli odadaki katılımcılar")}>
           {katilimcilar.map((u) => {
             const konusuyor = ses.konusanlar.has(u.id) || (u.id === benId && basKonus.basili);

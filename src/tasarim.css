@@ -339,3 +339,8 @@
 .kanal-izin{width:100%;margin-top:8px}
 .kanal-izin-alan{display:flex;flex-direction:column;gap:2px;font:600 12px var(--ui);color:var(--muted)}
 .yon-kanal{flex-wrap:wrap}
+
+/* Kendi paylaştığım ekranın önizlemesi */
+.kendi-ekran{margin:0 0 12px;max-width:420px;border:1px solid var(--cizgi);border-radius:var(--yaricap-b);overflow:hidden;background:var(--zemin-girdi)}
+.kendi-ekran video{display:block;width:100%;max-height:220px;object-fit:contain;background:#000}
+.kendi-ekran figcaption{padding:6px 10px;font-size:12px;color:var(--soluk)}
