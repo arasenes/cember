@@ -25,6 +25,8 @@ type Props = {
   onKatil: () => void;
   onProfil: (uyeId: string) => void;
   onSohbet?: () => void;
+  /** Yazılı sohbet şu an görünüyor mu (düğme basılı durumu). */
+  sohbetAcik?: boolean;
 };
 
 /** Kamera akışını gösterir (kendi kameran sessiz önizlenir). */
@@ -59,7 +61,7 @@ function KendiEkranOnizleme({ akis }: { akis: MediaStream }) {
   );
 }
 
-export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, paylasanlar, baglaniyor, buradayim, basKonus, baskasiPaylasiyor, yapanAd, onKatil, onProfil, onSohbet }: Props) {
+export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, paylasanlar, baglaniyor, buradayim, basKonus, baskasiPaylasiyor, yapanAd, onKatil, onProfil, onSohbet, sohbetAcik }: Props) {
   const [kalite, setKalite] = useState<EkranKalite>("720");
   const [kameraUyari, setKameraUyari] = useState("");
   const ekranVar = !!ses.izlenen && buradayim;
@@ -89,7 +91,7 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
           {katilimcilar.length} kişi{paylasanSayisi > 0 ? ` · ${[...paylasanlar].map(yapanAd).join(", ")} ekranını paylaşıyor` : ""}
           {buradayim && ses.motor === "p2p" && " · doğrudan mod"}
         </span>
-        {onSohbet && <button type="button" className="sahne-sohbet" onClick={onSohbet}><Ikon ad="sohbet" boyut={18} />{" "}{t("Sohbet")}</button>}
+        {onSohbet && <button type="button" className="sahne-sohbet" aria-pressed={!!sohbetAcik} onClick={onSohbet}><Ikon ad="sohbet" boyut={18} />{" "}{t("Sohbet")}</button>}
       </div>
 
       <div className={"sahne-alan" + (ekranVar ? " ekranli" : "")}>

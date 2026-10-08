@@ -22,3 +22,6 @@ if (location.search.includes("sesli=1")) {
     b?.click();
   }, 1500);
 }
+if (location.search.includes("sohbet=1")) {
+  setTimeout(() => { document.querySelector<HTMLButtonElement>(".sahne-sohbet")?.click(); }, 2500);
+}

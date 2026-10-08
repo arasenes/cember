@@ -346,8 +346,25 @@
 .kendi-ekran figcaption{padding:6px 10px;font-size:12px;color:var(--soluk)}
 
 /* Sesli oda: sahne üstte, kanalın yazılı sohbeti (tam mesaj sistemi) altta */
-#app.ses-modu .ses-sahne{flex:0 0 44%;min-height:240px;max-height:60%;border-bottom:1px solid var(--line)}
-#app.ses-modu main.chat>.head.sohbet-ust{flex:none}
+#app.ses-modu .ses-sahne{flex:1 1 0;min-width:0}
+.ses-sohbet-kolon{display:contents}
+/* Sohbet görünürken (ekran paylaşımı ya da elle açma): sahne ve paylaşılan ekran tüm alanı kaplar, sohbet sağ kolonda açılır */
+#app.ses-modu.ses-sohbetli{grid-template-columns:var(--serit-genislik) var(--kanal-genislik) minmax(0,1fr)}
+#app.ses-modu.ses-sohbetli .members{display:none}
+#app.ses-modu.ses-sohbetli main.chat{flex-direction:row}
+#app.ses-modu.ses-sohbetli .ses-sohbet-kolon{display:flex;flex-direction:column;flex:0 0 360px;width:360px;min-width:0;min-height:0;border-left:1px solid var(--line);background:var(--bg)}
+#app.ses-modu.ses-sohbetli .ses-sohbet-kolon .msgs{min-height:0}
+.ses-yani-ac{flex:none;border-bottom:1px solid var(--line);padding:0 12px}
+.ses-yani-ac summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--muted)}
+.ses-yani-ac[open]{max-height:45%;overflow-y:auto}
+.ekranli .karo-izgara{grid-auto-rows:110px}
 @media (max-width:820px){
-  #app.ses-modu .ses-sahne{flex:0 0 40%}
+  #app.ses-modu.ses-sohbetli{grid-template-columns:minmax(0,1fr)}
+  #app.ses-modu.ses-sohbetli main.chat{flex-direction:column}
+  #app.ses-modu.ses-sohbetli .ses-sahne{flex:0 0 45%}
+  #app.ses-modu.ses-sohbetli .ses-sohbet-kolon{flex:1 1 0;width:auto;border-left:0;border-top:1px solid var(--line)}
 }
+}
+.ses-sohbet-kolon .ust-ara{width:auto}
+#app.ses-modu.ses-sohbetli .ses-sohbet-kolon .ust-ara span{display:none}
+#app.ses-modu.ses-sohbetli .ses-sohbet-kolon .composer{margin:0 8px 8px}
