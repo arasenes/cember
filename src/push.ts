@@ -23,9 +23,12 @@ type YerelPush = {
   addListener(ad: string, f: (v: { value?: string; error?: string }) => void): Promise<{ remove: () => Promise<void> }> | { remove: () => Promise<void> };
 };
 function yerelPush(): YerelPush | null {
-  const c = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean; registerPlugin?: (ad: string) => unknown } }).Capacitor;
-  if (!c?.isNativePlatform?.() || typeof c.registerPlugin !== "function") return null;
-  return c.registerPlugin("PushNotifications") as YerelPush;
+  const c = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean; Plugins?: Record<string, unknown>; registerPlugin?: (ad: string) => unknown } }).Capacitor;
+  if (!c?.isNativePlatform?.()) return null;
+  // Uzak adresten yüklenen sayfada köprü `registerPlugin` sunmayabilir; yerel eklentiler `Plugins` içinde hazırdır (bkz. yerelEkran)
+  let p = c.Plugins?.PushNotifications as YerelPush | undefined;
+  if (!p && typeof c.registerPlugin === "function") p = c.registerPlugin("PushNotifications") as YerelPush;
+  return p && typeof p.register === "function" ? p : null;
 }
 
 export function pushDestekli(): boolean {
@@ -34,9 +37,9 @@ export function pushDestekli(): boolean {
 }
 /** Bildirim desteklenmiyorsa nedenini kısaca anlatır (ayarlarda tanı satırı). */
 export function pushTani(): string {
-  const c = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string; registerPlugin?: unknown } }).Capacitor;
+  const c = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string; registerPlugin?: unknown; Plugins?: Record<string, unknown> } }).Capacitor;
   const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
-  return `Capacitor: ${c ? "var" : "yok"}, platform: ${c?.getPlatform?.() ?? "-"}, yerel: ${String(c?.isNativePlatform?.() ?? "-")}, registerPlugin: ${typeof c?.registerPlugin}, SW: ${typeof navigator !== "undefined" && "serviceWorker" in navigator}, PushManager: ${typeof window !== "undefined" && "PushManager" in window}, WebView: ${/; wv\)/.test(ua)}`;
+  return `Capacitor: ${c ? "var" : "yok"}, platform: ${c?.getPlatform?.() ?? "-"}, yerel: ${String(c?.isNativePlatform?.() ?? "-")}, registerPlugin: ${typeof c?.registerPlugin}, eklentiler: ${Object.keys(c?.Plugins ?? {}).join("/") || "-"}, SW: ${typeof navigator !== "undefined" && "serviceWorker" in navigator}, PushManager: ${typeof window !== "undefined" && "PushManager" in window}, WebView: ${/; wv\)/.test(ua)}`;
 }
 export function pushAcikMi(): boolean { return oku().acik; }
 export function pushSadeceEtiket(): boolean { return oku().sadeceEtiket; }
