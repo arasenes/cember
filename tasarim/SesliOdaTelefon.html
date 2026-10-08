@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sesli Oda Telefon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Tek koyu görünüm: Çember "Kömür ve Turuncu". İki telefon yan yana: ekran paylaşılıyor / paylaşılmıyor. */
+:root{
+  --serit:#0c0c0c; --panel:#141414; --girdi:#101010; --ana:#1b1b1b; --yuzey:#282828; --cizgi:#333333;
+  --yazi:#efefef; --yazi2:#cfcfcf; --soluk:#a3a3a3; --vurgu:#ff9f1c; --vurgu-yazi:#2b1900; --vurgu-zemin:#3d2a08;
+  --turkuaz:#5ee0c1; --tehlike-zemin:#4a1f1b; --tehlike-yazi:#ffb4ab;
+  --baslik:"Bricolage Grotesque",system-ui,sans-serif; --metin:"Figtree",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--serit);color:var(--yazi);font-family:var(--metin);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:20px 40px}
+.sayfa{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{margin:0;font-family:var(--baslik);font-size:clamp(24px,5vw,32px);line-height:1.15}
+.not{margin:4px 0 0;color:var(--soluk);max-width:70ch}
+.telefonlar{display:flex;flex-wrap:wrap;gap:28px;justify-content:center;align-items:flex-start}
+.kol{display:flex;flex-direction:column;gap:10px;align-items:center;min-width:0}
+.kol h2{margin:0;font-family:var(--baslik);font-size:16px;color:var(--soluk)}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* Telefon çerçevesi 390 x 800: uygulamanın kendisi, dikey flex; hiçbir bölüm üst üste binmez */
+.tel{position:relative;width:390px;max-width:100%;height:800px;background:var(--ana);border:1px solid var(--cizgi);border-radius:28px;overflow:hidden;display:flex;flex-direction:column}
+.durum{flex:none;height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:12px;color:var(--soluk);background:var(--ana)}
+
+/* 1) Oda başlığı: tek satır */
+.ust{flex:none;display:flex;align-items:center;gap:8px;height:48px;padding:0 14px;border-bottom:1px solid var(--cizgi)}
+.ust b{font-family:var(--baslik);font-size:17px;white-space:nowrap}
+.ust span{color:var(--soluk);font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 2) Ses alanı: ekran 16:9 (en çok 190px), altında yuvarlak kişiler */
+.ses{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+.ekran{position:relative;flex:1 1 0;min-height:0;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ekran .goruntu{height:100%;aspect-ratio:16/9;background:linear-gradient(135deg,#2a2f36,#14171b);position:relative}
+.ekran .goruntu i{position:absolute;border-radius:6px;background:#3a424c}
+.ekran .goruntu i:nth-child(1){left:12%;top:20%;width:30%;height:44%}
+.ekran .goruntu i:nth-child(2){left:50%;top:34%;width:30%;height:36%;background:#4a4036}
+.ekran .goruntu i:nth-child(3){left:6%;right:6%;bottom:8%;height:8px}
+.ekran .tam{position:absolute;right:8px;bottom:8px;width:36px;height:36px;border:0;border-radius:10px;background:rgba(12,12,12,.7);color:var(--yazi);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.kisiler{display:flex;gap:10px;justify-content:center;align-items:center;height:64px;padding:0 14px;overflow-x:auto;list-style:none;margin:0;border-bottom:1px solid var(--cizgi)}
+.kisiler li{position:relative;flex:none}
+.av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--baslik);font-weight:700;font-size:17px;color:#fff;border:0;padding:0;cursor:pointer;font-family:var(--baslik)}
+.av.ben{box-shadow:0 0 0 3px var(--vurgu)}
+.av.konusuyor{box-shadow:0 0 0 3px var(--turkuaz)}
+.av:focus-visible,.ikon:focus-visible,.dugme:focus-visible,.nav button:focus-visible{outline:2px solid var(--turkuaz);outline-offset:2px}
+.sus{position:absolute;right:-3px;bottom:-3px;width:18px;height:18px;border-radius:50%;background:var(--tehlike-zemin);color:var(--tehlike-yazi);display:flex;align-items:center;justify-content:center;border:2px solid var(--ana)}
+.sus .ic{width:10px;height:10px}
+/* paylaşılmıyorken: kişiler biraz büyük, tek satır, isimli */
+.buyuk{flex:1 1 0;height:auto;min-height:0;align-content:center;gap:18px}
+.buyuk .av{width:64px;height:64px;font-size:24px}
+.buyuk li{display:flex;flex-direction:column;align-items:center;gap:4px}
+.buyuk .ad{font-size:12px;font-weight:600;color:var(--yazi2);max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 3) Sohbet: kalan tüm yüksekliği alır */
+.sohbet{flex:1 1 0;min-height:0;display:flex;flex-direction:column} /* ses alanı %50, sohbet %50 */
+.s-ust{flex:none;display:flex;align-items:center;gap:8px;height:44px;padding:0 14px}
+.s-ust b{font-family:var(--baslik);font-size:16px}
+.s-ust{padding:0 4px 0 6px}
+.s-ust .ac{flex:1;min-width:0;height:44px;border:0;background:transparent;color:var(--yazi);display:flex;align-items:center;gap:8px;padding:0 8px;border-radius:10px;cursor:pointer;text-align:left}
+.s-ust .ac:focus-visible{outline:2px solid var(--turkuaz);outline-offset:-2px}
+.s-ust .ok{margin-left:auto;color:var(--soluk);transition:transform .2s}
+.s-ust .yeni{background:var(--vurgu);color:var(--vurgu-yazi);border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap}
+.s-ust .yeni[hidden]{display:none}
+.sohbet{border-top:1px solid var(--cizgi)}
+/* Sohbet kapalıyken: yalnızca başlık çubuğu kalır, ses alanı boşalan yeri doldurur */
+.tel.kapali .mesajlar,.tel.kapali .yaz,.tel.kapali .ara{display:none}
+.tel.kapali .sohbet{flex:none}
+.tel.kapali .ok{transform:rotate(180deg)}
+.tel.kapali .ses{flex:1 1 0;min-height:0}
+.tel.kapali .ekran{flex:1 1 0;height:auto;min-height:0}
+.tel.kapali .kisiler.buyuk{flex:1 1 0;height:auto;min-height:0;align-content:center;gap:22px}
+.tel.kapali .buyuk .av{width:76px;height:76px;font-size:30px}
+.tel.kapali .buyuk .ad{font-size:13px;max-width:80px}
+@media (prefers-reduced-motion:reduce){.s-ust .ok{transition:none}}
+.ikon{width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--soluk);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mesajlar{flex:1;min-height:0;overflow-y:auto;padding:4px 14px 8px;display:flex;flex-direction:column;gap:12px;justify-content:flex-end}
+.m{display:flex;gap:10px;min-width:0}
+.m .av{width:32px;height:32px;font-size:13px;cursor:default}
+.m .g{min-width:0}
+.m .g b{font-size:14px}
+.m .g small{color:var(--soluk);margin-left:6px;font-size:12px}
+.m .g p{margin:1px 0 0;color:var(--yazi2);overflow-wrap:anywhere}
+/* yazı alanı: tek satır, ekler "+" menüsünde */
+.yaz{flex:none;display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--cizgi)}
+.yaz .alan{flex:1;min-width:0;min-height:44px;display:flex;align-items:center;padding:0 14px;border-radius:22px;background:var(--yuzey);color:var(--soluk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.yaz .gonder{width:44px;height:44px;border:0;border-radius:50%;background:var(--vurgu);color:var(--vurgu-yazi);display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+/* 4) Kalıcı ses çubuğu: odadayken her sekmede görünür; sesli oda düğmelerinin TEK yeri */
+.ses-cubugu{flex:none;display:flex;align-items:center;gap:6px;height:56px;padding:0 10px 0 14px;background:var(--panel);border-top:1px solid var(--cizgi)}
+.ses-cubugu .oda{display:flex;align-items:center;gap:8px;min-width:0;flex:1;color:var(--vurgu);font-weight:700;font-size:14px}
+.ses-cubugu .oda i{width:10px;height:10px;border-radius:50%;background:var(--vurgu);flex:none}
+.ses-cubugu .oda span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dugme{width:44px;height:44px;border:1px solid transparent;border-radius:12px;background:var(--yuzey);color:var(--yazi);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.dugme[aria-pressed=true]{background:var(--tehlike-zemin);color:var(--tehlike-yazi)}
+.dugme.paylasim[aria-pressed=true]{background:var(--vurgu-zemin);border-color:var(--vurgu);color:#ffe0b0}
+.dugme.ayril{background:var(--tehlike-zemin);color:var(--tehlike-yazi)}
+
+/* 5) Alt gezinme */
+.nav{flex:none;display:flex;height:60px;border-top:1px solid var(--cizgi);background:var(--ana)}
+.nav button{flex:1;border:0;background:transparent;color:var(--soluk);font:600 11px var(--metin);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;cursor:pointer}
+.nav button[aria-current=page]{color:var(--vurgu)}
+
+/* Kişi başı ses: avatara dokununca alttan açılan sayfa (eski "Kişi başı ses düzeyi" şeridi kalktı) */
+.sayfa-alt{position:absolute;left:0;right:0;bottom:116px;background:var(--panel);border:1px solid var(--cizgi);border-radius:18px 18px 0 0;padding:14px 16px 16px;display:none;flex-direction:column;gap:10px;box-shadow:0 -12px 30px rgba(0,0,0,.5)}
+.sayfa-alt.acik{display:flex}
+.sayfa-alt .satir{display:flex;align-items:center;gap:12px}
+.sayfa-alt .satir b{font-size:15px}
+.sayfa-alt .satir .ikon{margin-left:auto;width:36px;height:36px}
+.sayfa-alt input[type=range]{width:100%;accent-color:var(--vurgu);height:44px;margin:0}
+.sayfa-alt .alt{display:flex;justify-content:space-between;color:var(--soluk);font-size:12px}
+
+.fark{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px;margin:0;padding:0;list-style:none}
+.fark li{background:var(--panel);border:1px solid var(--cizgi);border-radius:12px;padding:12px 14px;color:var(--soluk);font-size:14px;min-width:0}
+.fark b{display:block;color:var(--yazi);font-size:15px;margin-bottom:2px}
+@media (max-width:430px){.tel{height:760px}}
+</style>
+</head>
+<body>
+
+
+<div class="sayfa">
+<header>
+<h1>Sesli oda · telefon</h1>
+<p class="not">Telefonda sohbetin sıkışmasının nedeni, sesli oda düğmelerinin iki yerde durması ve araya giren boş şeritlerdi. Burada düğmeler tek yerde ve ekran ile sohbet yüksekliği yarı yarıya paylaşıyor. Bir kişiye dokununca ses ayarı açılır. Sohbet başlığına dokununca sohbet kapanır, ekran ya da kişiler tüm alanı alır.</p>
+</header>
+
+<div class="telefonlar">
+
+<div class="kol">
+<h2>Ekran paylaşılıyor</h2>
+<div class="tel" id="t1">
+<div class="durum"><span>10:45</span><span>77%</span></div>
+<div class="ust"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg><b>Sohbet odası</b><span>2 kişi · EXA ekranını paylaşıyor</span></div>
+<div class="ses">
+<div class="ekran"><div class="goruntu"><i></i><i></i><i></i></div>
+<button class="tam" type="button" aria-label="Tam ekran yap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+<ul class="kisiler" aria-label="Odadakiler">
+<li><button class="av konusuyor" style="background:#8c6a2f" type="button" data-kisi="EXA" aria-label="EXA, konuşuyor. Ses ayarı">E</button></li>
+<li><button class="av ben" style="background:#3f6f66" type="button" data-kisi="Sen" aria-label="Sen. Ses ayarı">S</button></li>
+</ul>
+</div>
+<section class="sohbet" aria-label="Oda sohbeti">
+<div class="s-ust">
+<button class="ac" type="button" aria-expanded="true" aria-label="Sohbeti aç veya kapat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg><b>Sohbet odası</b><span class="yeni" hidden>3 yeni</span><svg class="ic ok" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<button class="ikon ara" type="button" aria-label="Mesajlarda ara"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button></div>
+<div class="mesajlar">
+<div class="m"><div class="av" style="background:#8c6a2f">E</div><div class="g"><b>EXA</b><small>10:41</small><p>abi bi bakar mısın şuna</p></div></div>
+<div class="m"><div class="av" style="background:#3f6f66">S</div><div class="g"><b>Sen</b><small>10:42</small><p>geliyorum 5 dk</p></div></div>
+<div class="m"><div class="av" style="background:#8c6a2f">E</div><div class="g"><b>EXA</b><small>10:44</small><p>gelcen mi abi</p></div></div>
+</div>
+<div class="yaz">
+<button class="ikon" type="button" aria-label="Ekle: dosya, anket, GIF"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+<span class="alan">#Sohbet odası kanalına yaz</span>
+<button class="gonder" type="button" aria-label="Gönder"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13"/></svg></button>
+</div>
+</section>
+<div class="ses-cubugu" role="toolbar" aria-label="Sesli oda kontrolleri">
+<div class="oda"><i></i><span>Sohbet odası</span></div>
+<button class="dugme" type="button" aria-pressed="false" aria-label="Mikrofon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+<button class="dugme" type="button" aria-pressed="false" aria-label="Sağırlaştır"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3M4 15h3v5H4zM17 15h3v5h-3z"/></svg></button>
+<button class="dugme paylasim" type="button" aria-pressed="true" aria-label="Paylaşımı durdur"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
+<button class="dugme ayril" type="button" aria-label="Ayrıl"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
+<nav class="nav" aria-label="Ana gezinme">
+<button type="button" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg>Sunucu</button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Mesajlar</button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Arkadaşlar</button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0 1 14 0M17 5a3.500 3.500 0 0 1 0 7M22 20a6 6 0 0 0-4-5.500"/></svg>Üyeler</button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.200l2-1.500-2-3.400-2.300.9a7 7 0 0 0-2-1.200L14 3h-4l-.6 2.600a7 7 0 0 0-2 1.200l-2.300-.9-2 3.400 2 1.500a7 7 0 0 0 0 2.400l-2 1.500 2 3.400 2.300-.9a7 7 0 0 0 2 1.200L10 21h4l.6-2.600a7 7 0 0 0 2-1.200l2.300.9 2-3.400-2-1.500c.1-.4.100-.8.100-1.200z"/></svg>Ben</button>
+</nav>
+
+<div class="sayfa-alt" id="alt" role="dialog" aria-label="Kişi ses ayarı">
+<div class="satir"><div class="av" style="background:#8c6a2f;cursor:default" id="alt-av">E</div><b id="alt-ad">EXA</b>
+<button class="ikon" type="button" id="alt-kapat" aria-label="Kapat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+<label for="alt-ses" style="font-size:13px;color:var(--soluk)">Bu kişinin ses düzeyi</label>
+<input type="range" id="alt-ses" min="0" max="200" value="100">
+<div class="alt"><span>Sessiz</span><span>Normal</span><span>%200</span></div>
+</div>
+</div>
+</div>
+
+<div class="kol">
+<h2>Ekran paylaşılmıyor</h2>
+<div class="tel">
+<div class="durum"><span>10:45</span><span>77%</span></div>
+<div class="ust"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg><b>Sohbet odası</b><span>3 kişi sesli sohbette</span></div>
+<div class="ses">
+<ul class="kisiler buyuk" aria-label="Odadakiler">
+<li><button class="av konusuyor" style="background:#8c6a2f" type="button" aria-label="EXA, konuşuyor. Ses ayarı">E</button><span class="ad">EXA</span></li>
+<li><button class="av ben" style="background:#3f6f66" type="button" aria-label="Sen. Ses ayarı">S</button><span class="ad">Sen</span></li>
+<li><div style="position:relative"><button class="av" style="background:#6a4f8c" type="button" aria-label="Deniz, mikrofonu kapalı. Ses ayarı">D</button><span class="sus"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2M15 9V6a3 3 0 0 0-6 0"/></svg></span></div><span class="ad">Deniz</span></li>
+</ul>
+</div>
+<section class="sohbet" aria-label="Oda sohbeti">
+<div class="s-ust">
+<button class="ac" type="button" aria-expanded="true" aria-label="Sohbeti aç veya kapat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg><b>Sohbet odası</b><span class="yeni" hidden>3 yeni</span><svg class="ic ok" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<button class="ikon ara" type="button" aria-label="Mesajlarda ara"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button></div>
+<div class="mesajlar">
+<div class="m"><div class="av" style="background:#8c6a2f">E</div><div class="g"><b>EXA</b><small>10:38</small><p>akşam oyun var mı</p></div></div>
+<div class="m"><div class="av" style="background:#6a4f8c">D</div><div class="g"><b>Deniz</b><small>10:39</small><p>varım, 9 gibi</p></div></div>
+<div class="m"><div class="av" style="background:#3f6f66">S</div><div class="g"><b>Sen</b><small>10:40</small><p>tamam ben de gelirim</p></div></div>
+<div class="m"><div class="av" style="background:#8c6a2f">E</div><div class="g"><b>EXA</b><small>10:41</small><p>abi bi bakar mısın şuna</p></div></div>
+<div class="m"><div class="av" style="background:#3f6f66">S</div><div class="g"><b>Sen</b><small>10:42</small><p>geliyorum 5 dk</p></div></div>
+<div class="m"><div class="av" style="background:#8c6a2f">E</div><div class="g"><b>EXA</b><small>10:44</small><p>gelcen mi abi</p></div></div>
+</div>
+<div class="yaz">
+<button class="ikon" type="button" aria-label="Ekle: dosya, anket, GIF"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+<span class="alan">#Sohbet odası kanalına yaz</span>
+<button class="gonder" type="button" aria-label="Gönder"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13"/></svg></button>
+</div>
+</section>
+<div class="ses-cubugu" role="toolbar" aria-label="Sesli oda kontrolleri">
+<div class="oda"><i></i><span>Sohbet odası</span></div>
+<button class="dugme" type="button" aria-pressed="false" aria-label="Mikrofon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+<button class="dugme" type="button" aria-pressed="false" aria-label="Sağırlaştır"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3M4 15h3v5H4zM17 15h3v5h-3z"/></svg></button>
+<button class="dugme paylasim" type="button" aria-pressed="false" aria-label="Ekran paylaş"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
+<button class="dugme ayril" type="button" aria-label="Ayrıl"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
+<nav class="nav" aria-label="Ana gezinme">
+<button type="button" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg>Sunucu</button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Mesajlar</button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Arkadaşlar</button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0 1 14 0M17 5a3.500 3.500 0 0 1 0 7M22 20a6 6 0 0 0-4-5.500"/></svg>Üyeler</button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.200l2-1.500-2-3.400-2.300.9a7 7 0 0 0-2-1.200L14 3h-4l-.6 2.600a7 7 0 0 0-2 1.200l-2.300-.9-2 3.400 2 1.500a7 7 0 0 0 0 2.400l-2 1.500 2 3.400 2.300-.9a7 7 0 0 0 2 1.200L10 21h4l.6-2.600a7 7 0 0 0 2-1.200l2.300.9 2-3.400-2-1.500c.1-.4.100-.8.100-1.200z"/></svg>Ben</button>
+</nav>
+</div>
+</div>
+
+</div>
+
+<ul class="fark">
+<li><b>Düğmeler tek yerde</b>Sesli oda düğmeleri yalnızca alttaki kalıcı çubukta. Sayfa içindeki ikinci düğme sırası kalktı.</li>
+<li><b>Boş şerit yok</b>"Kişi başı ses düzeyi" şeridi kalktı; kişiye dokununca alttan sayfa açılır (soldaki telefonda avatara dokun).</li>
+<li><b>Yazı alanı tek satır</b>Ek, anket, GIF ve emoji "+" menüsüne girdi; sohbete yer açıldı.</li>
+<li><b>Sohbet açılır kapanır</b>Başlığa dokununca kapanır, sadece bir çubuk kalır ve "3 yeni" rozeti görünür; ekran ya da kişiler boşalan yeri doldurur. Tekrar dokununca açılır.</li>
+<li><b>Yarı yarıya</b>Başlık ile alt çubukların arasındaki alan ikiye bölünür: üstte ekran ve kişiler, altta sohbet (mesajlar kayar, yazı kutusu hep görünür). Sohbet kapanınca ekran tüm alanı alır.</li>
+</ul>
+</div>
+
+<script>
+document.querySelectorAll('.tel').forEach(t=>{
+  const b=t.querySelector('.ac'),y=t.querySelector('.yeni');
+  b.addEventListener('click',()=>{
+    const kapat=b.getAttribute('aria-expanded')==='true';
+    b.setAttribute('aria-expanded',kapat?'false':'true');
+    t.classList.toggle('kapali',kapat);
+    y.hidden=!kapat; // kapalıyken okunmamış sayısı görünür
+  });
+});
+const alt=document.getElementById('alt');
+document.querySelectorAll('#t1 .av[data-kisi]').forEach(b=>b.addEventListener('click',()=>{
+  document.getElementById('alt-ad').textContent=b.dataset.kisi;
+  const av=document.getElementById('alt-av');av.textContent=b.textContent;av.style.background=b.style.background;
+  alt.classList.add('acik');
+}));
+document.getElementById('alt-kapat').addEventListener('click',()=>alt.classList.remove('acik'));
+document.querySelectorAll('.dugme[aria-pressed]').forEach(b=>b.addEventListener('click',()=>b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true')));
+</script>
+
+</body>
+</html>
