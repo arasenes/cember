@@ -64,3 +64,8 @@ createRoot(document.getElementById("root")!).render(
   </div>,
 );
 
+
+// ?buyut=1: paylaşılan ekranı büyüt (görsel kontrol için)
+if (location.search.includes("buyut=1")) {
+  setTimeout(() => { [...document.querySelectorAll<HTMLButtonElement>(".ekran-ust .linkbtn")].find((b) => b.textContent === "Büyüt")?.click(); }, 1500);
+}
