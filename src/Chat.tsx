@@ -80,7 +80,6 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [ayarBolum, setAyarBolum] = useState<Bolum>("genel");
   const [sunucuDialogAcik, setSunucuDialogAcik] = useState(false);
   const [paletAcik, setPaletAcik] = useState(false);
-  const [sesSohbetAcik, setSesSohbetAcik] = useState(false);
   const [kategoriler, setKategoriler] = useState<Kategori[]>([]);
   const [yonBilgi, setYonBilgi] = useState("");
   const [sabitler, setSabitler] = useState<Mesaj[]>([]);
@@ -249,10 +248,9 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   }, [mesajlar, yanitlar, mesajIndex]);
   const aktifKanal = kanallar.find((k) => k.id === aktif);
   const ben = uyeHaritasi.get(me.id) ?? me;
-  // Sesli odada yazılı sohbet: ekran paylaşımı varken otomatik açılır, aksi halde sahne tüm alanı kaplar ("Sohbet" düğmesiyle elle açılabilir)
+  // Sesli odada kanalın yazılı sohbeti her zaman sağ kolonda görünür
   const sesliOda = aktifKanal?.tur === "sesli";
-  const kanaldaEkranVar = sesliOda && (ses.paylasiyorum || !!ses.izlenen || [...sesKonum].some(([, v]) => v.kanal === aktifKanal?.id && v.ekran));
-  const sesSohbetGoster = !sesliOda || kanaldaEkranVar || sesSohbetAcik;
+  const sesSohbetGoster = true;
   const paylasanId = ses.kanalId ? [...sesKonum].find(([uid, v]) => uid !== me.id && v.kanal === ses.kanalId && v.ekran)?.[0] ?? null : null;
   const paylasanAd = paylasanId ? uyeHaritasi.get(paylasanId)?.takma_ad ?? "Biri" : null;
   const profilUyesi = profilId ? uyeHaritasi.get(profilId) : undefined;
@@ -1215,8 +1213,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             baglaniyor={ses.durum === "baglaniyor"} buradayim={ses.kanalId === aktifKanal.id && ses.durum !== "kapali"}
             basKonus={{ ayar: basKonusAyar, basili: basKonus.basili, bas: basKonus.bas, birak: basKonus.birak }}
             baskasiPaylasiyor={paylasanAd} yapanAd={(id) => uyeHaritasi.get(id)?.takma_ad ?? "Biri"}
-            onKatil={() => kanalaGir(aktifKanal, () => { void ses.baglan(aktifKanal.id); })} onProfil={setProfilId}
-            onSohbet={kanaldaEkranVar ? undefined : () => setSesSohbetAcik((a) => !a)} sohbetAcik={sesSohbetGoster} />
+            onKatil={() => kanalaGir(aktifKanal, () => { void ses.baglan(aktifKanal.id); })} onProfil={setProfilId} />
         )}
         {sesSohbetGoster && <div className="ses-sohbet-kolon">
         {sesliOda && <details className="ses-yani-ac"><summary>{t("Kişi başı ses düzeyi")}</summary>{sesYaniEl}</details>}

@@ -82,6 +82,32 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
     return "";
   };
 
+  const kendiEkranVar = buradayim && ses.paylasiyorum && !!ses.kendiEkran && !ekranVar;
+  const paylasimGorunur = ekranVar || kendiEkranVar;
+
+  /** Yuvarlak kişi: büyük (ekran yokken, adıyla) ya da küçük (ekran paylaşılırken, tek satır). Kamera açıksa görüntü yuvarlak içinde gösterilir. */
+  const kisiOge = (u: Uye, buyuk: boolean) => {
+    const konusuyor = ses.konusanlar.has(u.id) || (u.id === benId && basKonus.basili);
+    const kamera = ses.kameralar.get(u.id);
+    const metin = durumMetni(u);
+    const ad = u.id === benId ? "Sen" : u.takma_ad;
+    const kapali = sagirlar.has(u.id) || (u.id === benId && (ses.sessiz || ses.sunucuSustur));
+    return (
+      <li key={u.id} className={"kisi" + (buyuk ? " buyuk" : "")}>
+        <button type="button" className="kisi-tikla" onClick={() => onProfil(u.id)} title={ad + (metin ? ` · ${metin}` : "")}>
+          <span className={"kisi-halka" + (konusuyor ? " konusuyor" : "") + (u.id === benId ? " ben" : "")}>
+            {kamera ? <KameraVideosu akis={kamera} ad={u.takma_ad} /> : <Avatar uye={u} className="kisi-av" />}
+          </span>
+          {buyuk ? <span className="kisi-ad">{ad}</span> : <span className="sr">{ad}</span>}
+          {(metin || ses.sorunlu.has(u.id) || paylasanlar.has(u.id)) && (
+            <span className="sr">{metin ? `, ${metin}` : ""}{paylasanlar.has(u.id) ? ", ekran paylaşıyor" : ""}{ses.sorunlu.has(u.id) ? ", bağlantı sorunu" : ""}</span>
+          )}
+        </button>
+        {kapali && <span className="kisi-sus" aria-hidden="true"><Ikon ad={sagirlar.has(u.id) ? "kulaklikKapali" : "mikKapali"} boyut={buyuk ? 14 : 12} /></span>}
+      </li>
+    );
+  };
+
   return (
     <section className="ses-sahne" aria-label={`${kanal.ad} sesli odası`}>
       <div className="head sahne-ust">
@@ -91,37 +117,24 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
           {katilimcilar.length} kişi{paylasanSayisi > 0 ? ` · ${[...paylasanlar].map(yapanAd).join(", ")} ekranını paylaşıyor` : ""}
           {buradayim && ses.motor === "p2p" && " · doğrudan mod"}
         </span>
-        {onSohbet && <button type="button" className="sahne-sohbet" aria-pressed={!!sohbetAcik} onClick={onSohbet}><Ikon ad="sohbet" boyut={18} />{" "}{t("Sohbet")}</button>}
       </div>
 
-      <div className={"sahne-alan" + (ekranVar ? " ekranli" : "")}>
+      <div className="sahne-alan">
         {ekranVar && ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={yapanAd(ses.izlenen.uyeId)} />}
-        {buradayim && ses.paylasiyorum && ses.kendiEkran && !ekranVar && <KendiEkranOnizleme akis={ses.kendiEkran} />}
-        <ul className="karo-izgara" aria-label={t("Sesli odadaki katılımcılar")}>
-          {katilimcilar.map((u) => {
-            const konusuyor = ses.konusanlar.has(u.id) || (u.id === benId && basKonus.basili);
-            const kamera = ses.kameralar.get(u.id);
-            const metin = durumMetni(u);
-            return (
-              <li key={u.id} className={"sahne-karo" + (konusuyor ? " konusuyor" : "") + (kamera ? " kameralı" : "")}>
-                <button type="button" className="karo-tikla" onClick={() => onProfil(u.id)}>
-                  {kamera ? <KameraVideosu akis={kamera} ad={u.takma_ad} /> : <Avatar uye={u} className="karo-avatar" />}
-                  <span className="karo-etiket">
-                    {sagirlar.has(u.id) ? <Ikon ad="kulaklikKapali" boyut={14} /> : konusuyor ? <Ikon ad="ses" boyut={14} /> : (u.id === benId && ses.sessiz) ? <Ikon ad="mikKapali" boyut={14} /> : null}
-                    {u.id === benId ? "Sen" : u.takma_ad}{metin ? ` · ${metin}` : ""}{ses.sorunlu.has(u.id) && <span className="sr">, bağlantı sorunu</span>}
-                  </span>
-                </button>
-                <span className="sahne-rozetler">
-                  {kamera && <span className="sahne-rozet"><Ikon ad="kamera" boyut={12} />{" "}{t("Kamera")}</span>}
-                  {paylasanlar.has(u.id) && <span className="sahne-rozet sahne-ekran"><Ikon ad="ekran" boyut={12} />{" "}{t("Ekran")}</span>}
-                  {ses.sorunlu.has(u.id) && <span className="sahne-rozet sahne-sorun">{t("Bağlantı sorunu")}</span>}
-                </span>
-              </li>
-            );
-          })}
-          {katilimcilar.length === 0 && <li className="sahne-bos">{t("Odada kimse yok.")}</li>}
-        </ul>
+        {kendiEkranVar && ses.kendiEkran && <KendiEkranOnizleme akis={ses.kendiEkran} />}
+        {!paylasimGorunur && (
+          <ul className="buyuk-liste" aria-label={t("Sesli odadaki katılımcılar")}>
+            {katilimcilar.map((u) => kisiOge(u, true))}
+            {katilimcilar.length === 0 && <li className="sahne-bos">{t("Odada kimse yok.")}</li>}
+          </ul>
+        )}
       </div>
+
+      {paylasimGorunur && (
+        <ul className="kisiler-satir" aria-label={t("Sesli odadaki katılımcılar")}>
+          {katilimcilar.map((u) => kisiOge(u, false))}
+        </ul>
+      )}
 
       {kameraUyari && <div className="banner" role="alert">{kameraUyari}</div>}
 

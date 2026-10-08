@@ -379,3 +379,38 @@
 .kendi-ekran{flex:none;width:100%;max-width:320px}
 .kontrol-cubugu{flex:none;position:static}
 .karo-tikla:focus-visible,.ch-sohbet:focus-visible,.sahne-sohbet:focus-visible{outline-offset:-3px}
+
+/* ===== Sesli oda düzeni (tasarim/SesliOdaDuzeni.html): solda sahne, yuvarlak kişiler, düğme çubuğu; sağda geniş sohbet ===== */
+#app.ses-modu.ses-sohbetli .ses-sohbet-kolon{flex:0 0 clamp(400px,42%,560px);width:auto}
+.sahne-alan{padding:16px;gap:14px;justify-content:center}
+.sahne-alan>.ekran-panel{flex:none;width:min(100%,960px);align-self:center;aspect-ratio:16/9;min-height:0}
+.sahne-alan>.ekran-panel video{height:100%}
+.kendi-ekran{align-self:center;width:min(100%,720px);max-width:720px;margin:0}
+.kendi-ekran video{aspect-ratio:16/9;max-height:none;height:auto}
+.buyuk-liste{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:24px 28px}
+.kisiler-satir{flex:none;list-style:none;margin:0;padding:10px 16px;display:flex;gap:12px;justify-content:center;overflow-x:auto}
+.kisi{position:relative;flex:none;min-width:0}
+.kisi.buyuk{display:flex;flex-direction:column;align-items:center}
+.kisi-tikla{display:flex;flex-direction:column;align-items:center;gap:8px;border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer;border-radius:50%}
+.kisi.buyuk .kisi-tikla{border-radius:12px;padding:4px}
+.kisi-halka{position:relative;display:block;width:48px;height:48px;border-radius:50%;overflow:hidden;box-sizing:content-box}
+.kisi.buyuk .kisi-halka{width:96px;height:96px}
+.kisi-halka.konusuyor{box-shadow:0 0 0 3px var(--bahsetme)}
+.kisi-halka.ben{box-shadow:0 0 0 3px var(--vurgu)}
+.kisi.buyuk .kisi-halka.konusuyor,.kisi.buyuk .kisi-halka.ben{box-shadow:0 0 0 4px var(--bahsetme)}
+.kisi.buyuk .kisi-halka.ben{box-shadow:0 0 0 4px var(--vurgu)}
+.kisi-halka .dot,.kisi-av{width:100%!important;height:100%!important;font-size:18px!important;border:0}
+.kisi.buyuk .kisi-halka .dot{font-size:36px!important}
+.kisi-halka .karo-video{border-radius:50%}
+.kisi-ad{font-weight:600;font-size:14px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kisi-sus{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;background:var(--tehlike-zemin);color:var(--tehlike-yazi);display:flex;align-items:center;justify-content:center;border:2px solid var(--ana,var(--bg))}
+.kisi.buyuk .kisi-sus{right:calc(50% - 52px);bottom:auto;top:72px;width:28px;height:28px;border-width:3px}
+.kisi-tikla:focus-visible{outline:2px solid var(--vurgu);outline-offset:3px}
+.kontrol-cubugu{background:var(--panel);border-block:1px solid var(--line);border-top:1px solid var(--line)}
+@media (max-width:820px){
+  #app.ses-modu.ses-sohbetli .ses-sohbet-kolon{flex:0 0 300px;width:auto}
+  #app.ses-modu.ses-sohbetli .ses-sahne{flex:1 1 0;min-height:0}
+  .buyuk-liste{gap:18px 20px}
+  .kisi.buyuk .kisi-halka{width:80px;height:80px}
+  .kisi.buyuk .kisi-sus{right:calc(50% - 44px);top:56px}
+}
