@@ -85,7 +85,7 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
   const kendiEkranVar = buradayim && ses.paylasiyorum && !!ses.kendiEkran && !ekranVar;
   const paylasimGorunur = ekranVar || kendiEkranVar;
 
-  /** Yuvarlak kişi: büyük (ekran yokken, adıyla) ya da küçük (ekran paylaşılırken, tek satır). Kamera açıksa görüntü yuvarlak içinde gösterilir. */
+  /** Yuvarlak kişi: büyük (ekran yokken, adıyla) ya da küçük (ekran paylaşılırken, tek satır). Kamera açıksa yuvarlak yerine kare (16:9) kutu gösterilir. */
   const kisiOge = (u: Uye, buyuk: boolean) => {
     const konusuyor = ses.konusanlar.has(u.id) || (u.id === benId && basKonus.basili);
     const kamera = ses.kameralar.get(u.id);
@@ -93,12 +93,12 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
     const ad = u.id === benId ? "Sen" : u.takma_ad;
     const kapali = sagirlar.has(u.id) || (u.id === benId && (ses.sessiz || ses.sunucuSustur));
     return (
-      <li key={u.id} className={"kisi" + (buyuk ? " buyuk" : "")}>
+      <li key={u.id} className={"kisi" + (buyuk ? " buyuk" : "") + (kamera ? " kamerali" : "")}>
         <button type="button" className="kisi-tikla" onClick={() => onProfil(u.id)} title={ad + (metin ? ` · ${metin}` : "")}>
           <span className={"kisi-halka" + (konusuyor ? " konusuyor" : "") + (u.id === benId ? " ben" : "")}>
             {kamera ? <KameraVideosu akis={kamera} ad={u.takma_ad} /> : <Avatar uye={u} className="kisi-av" />}
           </span>
-          {buyuk ? <span className="kisi-ad">{ad}</span> : <span className="sr">{ad}</span>}
+          {buyuk || kamera ? <span className="kisi-ad">{ad}</span> : <span className="sr">{ad}</span>}
           {(metin || ses.sorunlu.has(u.id) || paylasanlar.has(u.id)) && (
             <span className="sr">{metin ? `, ${metin}` : ""}{paylasanlar.has(u.id) ? ", ekran paylaşıyor" : ""}{ses.sorunlu.has(u.id) ? ", bağlantı sorunu" : ""}</span>
           )}
