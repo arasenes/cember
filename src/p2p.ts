@@ -256,6 +256,9 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             const p = g.getParameters();
             if (!p.encodings?.length) p.encodings = [{}];
             p.encodings[0].maxBitrate = bps;
+            // "motion" içerik ipucu varsayılan olarak "maintain-framerate" seçiyor, bu da bant genişliği
+            // yetmeyince çözünürlüğü agresifçe düşürüp görüntüyü bulanıklaştırıyordu; "balanced" daha dengeli.
+            p.degradationPreference = "balanced";
             await g.setParameters(p);
           } catch { /* tarayıcı desteklemiyorsa varsayılan bit hızı kalır */ }
         }

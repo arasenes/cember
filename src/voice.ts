@@ -308,7 +308,9 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
           contentHint: "motion", selfBrowserSurface: "exclude", systemAudio: "include", surfaceSwitching: "include",
           resolution: { width: k.genislik, height: k.yukseklik, frameRate: k.kare },
         },
-        { screenShareEncoding: { maxBitrate: k.bitHizi, maxFramerate: k.kare }, screenShareSimulcastLayers: [], degradationPreference: "maintain-framerate" },
+        // "maintain-framerate" bant genişliği yetmeyince çözünürlüğü agresifçe düşürüyordu (görüntü bulanıklaşıyordu);
+        // "balanced" çözünürlük ile kare hızı arasında daha dengeli bir ödün veriyor.
+        { screenShareEncoding: { maxBitrate: k.bitHizi, maxFramerate: k.kare }, screenShareSimulcastLayers: [], degradationPreference: "balanced" },
       );
       setPaylasiyorum(true);
       const yerelIz = room.localParticipant.getTrackPublications().find((p) => p.source === "screen_share")?.track?.mediaStreamTrack;
