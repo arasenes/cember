@@ -110,9 +110,10 @@ Deno.serve(async (req) => {
   let vapidHazir = false;
   if (ayar.vapid_public && ayar.vapid_private) { webpush.setVapidDetails(KONU, ayar.vapid_public, ayar.vapid_private); vapidHazir = true; }
   let sa: { client_email: string; private_key: string } | null = null;
-  try { const h = Deno.env.get("FCM_SERVICE_ACCOUNT"); if (h) sa = JSON.parse(h); } catch { /* yoksay */ }
+  try { const h = Deno.env.get("FCM_SERVICE_ACCOUNT"); if (h) sa = JSON.parse(h); } catch { console.error("FCM_SERVICE_ACCOUNT okunamadı (geçerli JSON değil)"); }
   const fcmProje = sa ? (sa as unknown as { project_id: string }).project_id : "";
   const etiketKanal = veri.dm_id ?? veri.kanal_id;
+  if (!sa && hedefler.some((a) => a.tur === "fcm")) console.error("FCM abonesi var ama FCM_SERVICE_ACCOUNT tanımlı değil");
 
   const olu: string[] = [];
   let gidenSayi = 0;
@@ -131,10 +132,12 @@ Deno.serve(async (req) => {
         if (r.ok) gidenSayi++;
         else {
           const t = await r.text();
+          console.error("FCM reddetti", r.status, t.slice(0, 300));
           if (r.status === 404 || /UNREGISTERED|INVALID_ARGUMENT/.test(t)) olu.push(a.id);
         }
       }
     } catch (e) {
+      console.error("bildir gönderim hatası", a.tur, (e as Error)?.message ?? String(e));
       const kod = (e as { statusCode?: number }).statusCode;
       if (kod === 404 || kod === 410) olu.push(a.id);
     }
