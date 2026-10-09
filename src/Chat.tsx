@@ -653,7 +653,14 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         oncekiEkranRef.current = new Set([...konum].filter(([, k]) => k.ekran).map(([id]) => id));
         oncekiKonumRef.current = { kanal: benimKanal, konum: new Map([...konum].map(([id, k]) => [id, k.kanal])) };
       })
-      .subscribe(async (durum) => { if (durum === "SUBSCRIBED") await kanal.track({ t: Date.now(), ses: null, motor: null, bosta: bostaRef.current, sagir: sagirRef.current }); });
+      .subscribe(async (durum) => {
+        // "SUBSCRIBED" yalnızca ilk bağlantıda değil, ağ kopup Realtime kanalı kendini yeniden kurduğunda da gelir.
+        // O an sesli odadaysak (duyuruRef.current.ses), bunu sabit null ile ezersek gerçek LiveKit/P2P bağlantısı
+        // sürerken (ses gelmeye devam eder) herkesin görünümünde odadan çıkmış gibi kayboluyorduk.
+        if (durum === "SUBSCRIBED") {
+          await kanal.track({ t: Date.now(), ...duyuruRef.current, ekran: sesRef.current.paylasiyorum, bosta: bostaRef.current, sagir: sagirRef.current });
+        }
+      });
 
     const nabiz = setInterval(() => {
       supabase.from("uyeler").update({ son_gorulme: new Date().toISOString() }).eq("id", me.id).then(() => {});
