@@ -31,6 +31,17 @@ async function fcmErisim(sa: { client_email: string; private_key: string }): Pro
   return fcmJeton.t;
 }
 
+// Sır değeri bozuk yapıştırılmış olabilir (tırnak içinde, kaçışsız satır sonu, base64): olabildiğince esnek oku
+function saOku(h: string): { client_email: string; private_key: string; project_id?: string } | null {
+  const t = h.trim();
+  try { let v = JSON.parse(t); if (typeof v === "string") v = JSON.parse(v); if (v?.client_email && v?.private_key) return v; } catch { /* sürdür */ }
+  try { const v = JSON.parse(atob(t)); if (v?.client_email && v?.private_key) return v; } catch { /* sürdür */ }
+  const email = t.match(/"client_email"\s*:\s*"([^"]+)"/)?.[1];
+  const proje = t.match(/"project_id"\s*:\s*"([^"]+)"/)?.[1];
+  const pem = t.match(/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/)?.[0]?.replace(/\\n/g, "\n");
+  return email && pem ? { client_email: email, private_key: pem, project_id: proje } : null;
+}
+
 type Abone = { id: string; uye_id: string; tur: string; uc: string; p256dh: string | null; auth: string | null; sadece_etiket: boolean };
 // Abonelik, kaydın yapıldığı üye satırına bağlıdır; çoklu sunucuda alıcıyı kullanıcı (user_id) üzerinden buluruz
 type AboneKullanici = Abone & { uyeler: { user_id: string | null } | { user_id: string | null }[] | null };
@@ -110,7 +121,12 @@ Deno.serve(async (req) => {
   let vapidHazir = false;
   if (ayar.vapid_public && ayar.vapid_private) { webpush.setVapidDetails(KONU, ayar.vapid_public, ayar.vapid_private); vapidHazir = true; }
   let sa: { client_email: string; private_key: string } | null = null;
-  try { const h = Deno.env.get("FCM_SERVICE_ACCOUNT"); if (h) sa = JSON.parse(h); } catch { console.error("FCM_SERVICE_ACCOUNT okunamadı (geçerli JSON değil)"); }
+  const ham = Deno.env.get("FCM_SERVICE_ACCOUNT");
+  if (ham) {
+    sa = saOku(ham);
+    // Yalnızca biçim bilgisi yazılır (anahtarın kendisi asla)
+    if (!sa) console.error("FCM_SERVICE_ACCOUNT okunamadı", JSON.stringify({ uzunluk: ham.length, ilk: ham.trim().slice(0, 1), son: ham.trim().slice(-1), satir: ham.split("\n").length }));
+  }
   const fcmProje = sa ? (sa as unknown as { project_id: string }).project_id : "";
   const etiketKanal = veri.dm_id ?? veri.kanal_id;
   if (!sa && hedefler.some((a) => a.tur === "fcm")) console.error("FCM abonesi var ama FCM_SERVICE_ACCOUNT tanımlı değil");
