@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { Izlenen } from "./ekranOrtak";
+import { sesYoneticisi } from "./ses/sesDuzeyi";
 import Ikon from "./mesaj/Ikon";
 import { t } from "./i18n";
 
-type Props = { izlenen: Izlenen; yapanAd: string };
+type Props = { izlenen: Izlenen; yapanAd: string; sesAnahtari?: string };
 
 type TamEkranVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
 
-/** Başkasının paylaştığı ekranı gösterir. Ses düzeyi için tarayıcının kendi denetimleri kullanılır. */
-export default function EkranPaneli({ izlenen, yapanAd }: Props) {
+/** Başkasının paylaştığı ekranı gösterir. Görüntü ve (varsa) ses aynı akıştan, aynı elemandan çalınır ki
+ *  ikisi birbirinden kopmasın; kişi başı ses düzeyi (sesAnahtari verilmişse) o elemandan WebAudio ile ayarlanır. */
+export default function EkranPaneli({ izlenen, yapanAd, sesAnahtari }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const [buyuk, setBuyuk] = useState(false);
   useEffect(() => {
@@ -17,8 +19,12 @@ export default function EkranPaneli({ izlenen, yapanAd }: Props) {
     v.srcObject = izlenen.akis;
     // Tarayıcı sesli otomatik oynatmayı engellerse kullanıcı denetimlerdeki oynat düğmesine basar
     try { void Promise.resolve(v.play()).catch(() => {}); } catch { /* oynatma engellendi */ }
+    if (sesAnahtari && izlenen.akis.getAudioTracks().length) sesYoneticisi.kaydetElemandan(sesAnahtari, v);
     return () => { v.srcObject = null; };
-  }, [izlenen.akis]);
+  }, [izlenen.akis, sesAnahtari]);
+  useEffect(() => {
+    return () => { if (sesAnahtari) sesYoneticisi.kaldir(sesAnahtari); };
+  }, [sesAnahtari]);
   useEffect(() => {
     if (!buyuk) return;
     const tus = (e: KeyboardEvent) => { if (e.key === "Escape") setBuyuk(false); };

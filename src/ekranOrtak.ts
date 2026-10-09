@@ -71,7 +71,9 @@ export function ekranIstegi(kalite: EkranKalite): DisplayMediaStreamOptions {
   const k = KALITE[kalite];
   return {
     video: { width: { ideal: k.genislik }, height: { ideal: k.yukseklik }, frameRate: { ideal: k.kare, max: k.kare } },
-    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } as MediaTrackConstraints,
+    // echoCancellation açık: kapalıyken, sesli sohbet sırasında ekran sesi paylaşan kişinin hoparlöründen
+    // çıkan karşı tarafın sesi de yakalanıp geri gönderiliyor, karşı taraf kendi sesini yankı olarak duyuyordu.
+    audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } as MediaTrackConstraints,
     // Chrome'a özel ipuçları: bu sekmeyi paylaşmayı önerme, sekme sesi seçeneğini göster
     selfBrowserSurface: "exclude",
     systemAudio: "include",

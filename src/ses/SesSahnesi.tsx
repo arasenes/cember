@@ -168,7 +168,13 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
       </div>
 
       <div className="sahne-alan">
-        {ekranVar && ses.izlenen && <EkranPaneli izlenen={ses.izlenen} yapanAd={yapanAd(ses.izlenen.uyeId)} />}
+        {ekranVar && ses.izlenen && (
+          <EkranPaneli
+            izlenen={ses.izlenen}
+            yapanAd={yapanAd(ses.izlenen.uyeId)}
+            sesAnahtari={ses.motor === "livekit" ? `${ses.izlenen.uyeId}~ekran` : undefined}
+          />
+        )}
         {kendiEkranVar && ses.kendiEkran && <KendiEkranOnizleme akis={ses.kendiEkran} />}
         {!paylasimGorunur && (
           <ul className="buyuk-liste" aria-label={t("Sesli odadaki katılımcılar")}>

@@ -1292,7 +1292,13 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             <button className="ust-ara" onClick={() => setAramaAcik(true)} aria-label={t("Mesajlarda ara")} aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /><span>{t("Mesajlarda ara")}</span></button>
           </div>
         </div>
-        {ses.izlenen && !sesliOda && <EkranPaneli izlenen={ses.izlenen} yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"} />}
+        {ses.izlenen && !sesliOda && (
+          <EkranPaneli
+            izlenen={ses.izlenen}
+            yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"}
+            sesAnahtari={ses.motor === "livekit" ? `${ses.izlenen.uyeId}~ekran` : undefined}
+          />
+        )}
         <GuncellemeBandi />
         {hata && <div className="banner" role="alert">{t(hata)}</div>}
         {ses.sorunlu.size > 0 && (

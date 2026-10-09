@@ -71,6 +71,9 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
   const [kameraAcik, setKameraAcik] = useState(false);
   const yerelDinleyici = useRef<{ remove: () => Promise<void> } | null>(null);
   const yerelAktif = useRef(false); // telefonda ekran paylaşımı başlatıldı mı (yerel eklentiyi gereksiz çağırmamak için)
+  // Ekranın görüntüsü ve sesi ayrı RTC akışlarıyla gelir; görüntü/ses kopmasın diye ikisi aynı <video>'da birleştirilir (bkz. EkranPaneli)
+  const ekranVideoRef = useRef(new Map<string, MediaStreamTrack>());
+  const ekranSesRef = useRef(new Map<string, MediaStreamTrack>());
 
   const temizle = useCallback(async () => {
     if (nabizRef.current) { clearInterval(nabizRef.current); nabizRef.current = null; }
@@ -82,6 +85,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
     if (room) { try { await room.disconnect(); } catch { /* yoksay */ } }
     if (sesKabi.current) sesKabi.current.replaceChildren();
     sesYoneticisi.hepsiniKaldir();
+    ekranVideoRef.current.clear(); ekranSesRef.current.clear();
     setKameralar(new Map()); setKameraAcik(false);
     setKonusanlar(new Set());
     setIzlenen(null); setPaylasiyorum(false); setKendiEkran(null);
@@ -118,32 +122,52 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
         audioCaptureDefaults: { echoCancellation: true, noiseSuppression: gurultuTercihi(), autoGainControl: gurultuTercihi() },
       });
       odaRef.current = room;
-      // Ses anahtarı: mikrofon "<üye>", paylaşılan ekranın sesi (tarayıcı ya da telefon) "<üye>~ekran" (kişi başı ses düzeyi için)
+      // Ses anahtarı: mikrofon "<üye>", paylaşılan ekranın sesi (telefon, ~ekran katılımcısı üzerinden) "<üye>~ekran" (kişi başı ses düzeyi için)
       const sesAnahtari = (kimlik: string, kaynak: string) => {
         const uye = kimlik.split("~")[0];
         return kaynak === Track.Source.ScreenShareAudio || kimlik.includes("~ekran") ? `${uye}~ekran` : uye;
       };
+      // Ekranın görüntüsü ve sesi (tarayıcıda) iki ayrı RTC akışı olarak gelir; ikisini aynı <video>'ya birleştiriyoruz
+      // ki tarayıcı kendi senkronunu yapsın (ayrı <audio>+WebAudio ile oynatmak görüntü/ses arasında kopukluğa yol açıyordu).
+      const ekranAkisiGuncelle = (uye: string) => {
+        const v = ekranVideoRef.current.get(uye);
+        if (!v) { setIzlenen((i) => (i?.uyeId === uye ? null : i)); return; }
+        const s = ekranSesRef.current.get(uye);
+        setIzlenen({ uyeId: uye, akis: new MediaStream(s ? [v, s] : [v]) });
+      };
       room.on(RoomEvent.TrackSubscribed, (track, yayin, katilimci) => {
+        const uye = katilimci.identity.split("~")[0];
+        if (track.kind === Track.Kind.Audio && yayin.source === Track.Source.ScreenShareAudio) {
+          ekranSesRef.current.set(uye, track.mediaStreamTrack);
+          ekranAkisiGuncelle(uye);
+          return;
+        }
         if (track.kind === Track.Kind.Audio) {
-          // Mikrofon sesi ve paylaşılan ekranın sesi aynı yoldan çalınır; ses düzeyi WebAudio kazancıyla ayarlanır
+          // Mikrofon sesi: ses düzeyi WebAudio kazancıyla ayarlanır (video ile eşleşmesi gerekmediği için ayrı oynatılabilir)
           const el = track.attach();
           sesKabi.current?.appendChild(el);
           sesYoneticisi.kaydet(sesAnahtari(katilimci.identity, yayin.source), new MediaStream([track.mediaStreamTrack]), el);
         } else if (track.kind === Track.Kind.Video && yayin.source === Track.Source.ScreenShare) {
-          setIzlenen({ uyeId: katilimci.identity.split("~")[0], akis: new MediaStream([track.mediaStreamTrack]) });
+          ekranVideoRef.current.set(uye, track.mediaStreamTrack);
+          ekranAkisiGuncelle(uye);
         } else if (track.kind === Track.Kind.Video && yayin.source === Track.Source.Camera) {
-          const uye = katilimci.identity.split("~")[0];
           setKameralar((x) => new Map(x).set(uye, new MediaStream([track.mediaStreamTrack])));
         }
       });
       room.on(RoomEvent.TrackUnsubscribed, (track, yayin, katilimci) => {
         track.detach().forEach((el) => el.remove());
+        const uye = katilimci.identity.split("~")[0];
+        if (track.kind === Track.Kind.Audio && yayin.source === Track.Source.ScreenShareAudio) {
+          ekranSesRef.current.delete(uye);
+          ekranAkisiGuncelle(uye);
+          return;
+        }
         if (track.kind === Track.Kind.Audio) sesYoneticisi.kaldir(sesAnahtari(katilimci.identity, yayin.source));
         if (yayin.source === Track.Source.ScreenShare && track.kind === Track.Kind.Video) {
-          setIzlenen((i) => (i?.uyeId === katilimci.identity.split("~")[0] ? null : i));
+          ekranVideoRef.current.delete(uye);
+          ekranAkisiGuncelle(uye);
         }
         if (yayin.source === Track.Source.Camera && track.kind === Track.Kind.Video) {
-          const uye = katilimci.identity.split("~")[0];
           setKameralar((x) => { const y = new Map(x); y.delete(uye); return y; });
         }
       });
@@ -278,7 +302,10 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       await room.localParticipant.setScreenShareEnabled(
         true,
         {
-          audio: true, contentHint: "motion", selfBrowserSurface: "exclude", systemAudio: "include", surfaceSwitching: "include",
+          // echoCancellation açık: kapalıyken, paylaşanın hoparlöründen çıkan sesli sohbet sesi de yakalanıp
+          // karşı tarafa geri gönderiliyor, o da kendi sesini yankı olarak duyuyordu.
+          audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false },
+          contentHint: "motion", selfBrowserSurface: "exclude", systemAudio: "include", surfaceSwitching: "include",
           resolution: { width: k.genislik, height: k.yukseklik, frameRate: k.kare },
         },
         { screenShareEncoding: { maxBitrate: k.bitHizi, maxFramerate: k.kare }, screenShareSimulcastLayers: [], degradationPreference: "maintain-framerate" },

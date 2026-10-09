@@ -19,7 +19,7 @@ function duzeyleriYaz(d: Record<string, number>) {
 }
 export const sinirla = (v: number) => Math.min(DUZEY_MAX, Math.max(DUZEY_MIN, Math.round(v)));
 
-type Kayit = { kaynak: MediaStreamAudioSourceNode | null; kazanc: GainNode | null; el?: HTMLMediaElement };
+type Kayit = { kaynak: AudioNode | null; kazanc: GainNode | null; el?: HTMLMediaElement };
 type BaglamUretici = () => AudioContext | null;
 
 const varsayilanBaglam: BaglamUretici = () => {
@@ -70,6 +70,31 @@ export class SesYoneticisi {
     } else {
       if (el) { el.muted = this.sagirMi; el.volume = Math.min(1, this.duzey(anahtar) / 100); }
       this.kayitlar.set(anahtar, { kaynak: null, kazanc: null, el });
+    }
+    this.bildir();
+  }
+
+  /**
+   * Görüntü ve sesi aynı <video>/<audio> elemanından çalınan akışlar için (ör. paylaşılan ekran): ses düzeyini
+   * elemanın kendisinden alınan tek bir WebAudio kaynağıyla ayarlar, böylece görüntü/ses senkronu elemanın
+   * kendi oynatma tamponuna kalır (iki ayrı akıştan - biri <video>, biri WebAudio - çalmak zamanla kayabiliyordu).
+   */
+  kaydetElemandan(anahtar: string, el: HTMLMediaElement) {
+    const mevcut = this.kayitlar.get(anahtar);
+    if (mevcut?.el === el && mevcut.kazanc) return; // zaten bu elemana bağlı
+    this.kaldir(anahtar);
+    const ctx = this.baglam();
+    if (!ctx || !this.ana) return; // WebAudio yoksa eleman kendi düzeyiyle (varsayılan %100) çalmaya devam eder
+    try {
+      void ctx.resume?.().catch?.(() => {});
+      const kaynak = ctx.createMediaElementSource(el);
+      const kazanc = ctx.createGain();
+      kazanc.gain.value = this.duzey(anahtar) / 100;
+      kaynak.connect(kazanc);
+      kazanc.connect(this.ana);
+      this.kayitlar.set(anahtar, { kaynak, kazanc, el });
+    } catch {
+      // Eleman başka bir yerde zaten bir MediaElementSource'a bağlıysa (ör. StrictMode çift çağrı) yoksay
     }
     this.bildir();
   }
