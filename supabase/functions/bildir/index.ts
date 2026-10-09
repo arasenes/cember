@@ -127,6 +127,8 @@ Deno.serve(async (req) => {
     // Yalnızca biçim bilgisi yazılır (anahtarın kendisi asla)
     if (!sa) console.error("FCM_SERVICE_ACCOUNT okunamadı", JSON.stringify({ uzunluk: ham.length, ilk: ham.trim().slice(0, 1), son: ham.trim().slice(-1), satir: ham.split("\n").length }));
   }
+  // Panel sırrı yoksa ya da okunamıyorsa push_ayar tablosundaki kayda bak (yalnızca service role okuyabilir)
+  if (!sa && ayar.fcm_servis_hesabi) sa = saOku(ayar.fcm_servis_hesabi);
   const fcmProje = sa ? (sa as unknown as { project_id: string }).project_id : "";
   const etiketKanal = veri.dm_id ?? veri.kanal_id;
   if (!sa && hedefler.some((a) => a.tur === "fcm")) console.error("FCM abonesi var ama FCM_SERVICE_ACCOUNT tanımlı değil");
