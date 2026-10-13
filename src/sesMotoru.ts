@@ -33,9 +33,9 @@ export function useSesMotoru(
   const sagirOncesiSessiz = useRef(false);
   const baglanRef = useRef<(k: string) => Promise<void>>(async () => {});
 
-  const lk = useSes(uyeId, (k) => onKanal(k, k ? "livekit" : null), (k) => {
+  const lk = useSes(uyeId, (k) => onKanal(k, k ? "livekit" : null), (k, neden) => {
     // LiveKit beklenmedik şekilde koptu: ücretsiz moda geç
-    setBilgi("LiveKit bağlantısı koptu, ücretsiz doğrudan moda geçiliyor.");
+    setBilgi(`LiveKit bağlantısı koptu (${neden}), ücretsiz doğrudan moda geçiliyor.`);
     sesCal("hata");
     void p2pBaglan(k);
   });

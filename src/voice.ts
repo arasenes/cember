@@ -52,7 +52,7 @@ async function tokenIste(govde: Record<string, unknown>): Promise<Response> {
   return r;
 }
 
-export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void, onKoptu?: (kanalId: string) => void) {
+export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void, onKoptu?: (kanalId: string, neden: string) => void) {
   const [durum, setDurum] = useState<SesDurumu>("kapali");
   const [kanalId, setKanalId] = useState<string | null>(null);
   const [sessiz, setSessiz] = useState(false);
@@ -117,7 +117,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       setKullanilan(j.kullanilan ?? null);
       oturumRef.current = j.oturum_id;
 
-      const { Room: LkRoom, RoomEvent, Track, AudioPresets } = await import("livekit-client");
+      const { Room: LkRoom, RoomEvent, Track, AudioPresets, DisconnectReason } = await import("livekit-client");
       const room = new LkRoom({
         audioCaptureDefaults: { echoCancellation: true, noiseSuppression: gurultuTercihi(), autoGainControl: gurultuTercihi() },
       });
@@ -180,11 +180,13 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
         if (yayin.source === Track.Source.Camera) { setKameraAcik(false); setKameralar((x) => { const y = new Map(x); y.delete(uyeId); return y; }); }
       });
       room.on(RoomEvent.ActiveSpeakersChanged, (liste) => setKonusanlar(new Set(liste.map((p) => p.identity))));
-      room.on(RoomEvent.Disconnected, () => {
+      room.on(RoomEvent.Disconnected, (sebep) => {
         if (odaRef.current !== room) return;
         odaRef.current = null;
         const k = hedefRef.current;
-        void ayril().then(() => { if (k) onKoptu?.(k); });
+        // Kopma nedeni (ağ, kota, sunucu attı, jeton...) tanı için bilgi şeridinde gösterilir
+        const neden = sebep === undefined ? "bilinmiyor" : ((DisconnectReason as unknown as Record<number, string>)[sebep] ?? String(sebep));
+        void ayril().then(() => { if (k) onKoptu?.(k, neden); });
       });
       // Tarayıcı sesi otomatik çalmayı engellediyse ilk dokunuşta/tuşta başlat
       const sesiAc = () => { if (!room.canPlaybackAudio) void room.startAudio().catch(() => {}); };
