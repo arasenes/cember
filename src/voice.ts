@@ -117,7 +117,7 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       setKullanilan(j.kullanilan ?? null);
       oturumRef.current = j.oturum_id;
 
-      const { Room: LkRoom, RoomEvent, Track } = await import("livekit-client");
+      const { Room: LkRoom, RoomEvent, Track, AudioPresets } = await import("livekit-client");
       const room = new LkRoom({
         audioCaptureDefaults: { echoCancellation: true, noiseSuppression: gurultuTercihi(), autoGainControl: gurultuTercihi() },
       });
@@ -198,7 +198,15 @@ export function useSes(uyeId: string, onKanal: (kanalId: string | null) => void,
       // Mikrofon yoksa odaya yine de girilir (yalnızca dinleyici olarak)
       let mikYok = false;
       let izinYok = false;
-      try { await room.localParticipant.setMicrophoneEnabled(true); } catch (e) {
+      try {
+        await room.localParticipant.setMicrophoneEnabled(true, undefined, {
+          // Varsayılan (music, 48kbps) yerine daha net ses; kullanıcı sayısı az olduğu için bant genişliği sorun değil.
+          audioPreset: AudioPresets.musicHighQuality,
+          // dtx (sessizlikte yayını kesme) kapalı: açıkken konuşmaya her başlangıçta ilk hece/kelime
+          // bazen kırpılıyor ya da bir anlık donuyormuş gibi hissettiriyordu ("akıcı değil" şikayeti).
+          dtx: false,
+        });
+      } catch (e) {
         const mesaj = String((e as Error)?.message ?? "");
         if ((e as { name?: string })?.name === "NotFoundError" || /requested device not found/i.test(mesaj)) mikYok = true;
         else if (/permission|not allowed|insufficient|publish/i.test(mesaj) && (e as { name?: string })?.name !== "NotAllowedError") { mikYok = true; izinYok = true; }
