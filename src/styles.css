@@ -535,7 +535,7 @@ body{transition:background-color .2s,color .2s}
 .durum-nokta{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--vurgu);border:2px solid var(--panel);flex:none}
 .durum-nokta[data-durum=cevrimdisi]{background:#6b7280}
 .durum-nokta[data-durum=bosta]{background:var(--durum-bosta)}
-.durum-nokta[data-durum=mesgul]{background:var(--acc)}
+.durum-nokta[data-durum=mesgul]{background:#ffd23f}
 .durum-nokta[data-durum=rahatsiz]{background:var(--uyari)}
 .dm-avatar{position:relative;display:inline-flex;flex:none}
 .dm-avatar .durum-nokta{position:absolute;right:-2px;bottom:-2px}

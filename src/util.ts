@@ -21,6 +21,6 @@ export function rolEtiketi(rol: "sahip" | "moderator" | "uye"): string {
 }
 export const DURUM_BILGI = {
   cevrimici: { ad: t("Çevrimiçi"), renk: "var(--live)" },
-  mesgul: { ad: t("Meşgul"), renk: "var(--acc)" },
+  mesgul: { ad: t("Meşgul"), renk: "#ffd23f" }, // sabit sarı: tema vurgusuna bağlı olursa Çevrimiçi ile aynı renge düşüyordu
   rahatsiz: { ad: t("Rahatsız etmeyin"), renk: "var(--danger)" },
 } as const;
