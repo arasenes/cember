@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase, SUPABASE_KEY, SUPABASE_URL } from "./supabase";
 import { t } from "./i18n";
+import { Logo } from "./Logo";
 
 /** Google ile ilk kez gelen kişi: takma adını seçip odaya kaydolur. */
 export default function KayitAdi({ onBitti, varsayilan }: { onBitti: () => void; varsayilan?: string }) {
@@ -34,7 +35,7 @@ export default function KayitAdi({ onBitti, varsayilan }: { onBitti: () => void;
   return (
     <main className="gate-wrap" id="kayit">
       <form className="gatecard" onSubmit={gonder} noValidate>
-        <div className="logo"><b>{t("Çember")}</b></div>
+        <div className="logo"><Logo /><b>{t("Çember")}</b></div>
         <p>{t("Google hesabın doğrulandı. Odada görünecek bir takma ad seç.")}</p>
         <div className="field">
           <label htmlFor="kayit-ad">{t("Takma ad")}</label>

@@ -4,11 +4,13 @@ from PIL import Image, ImageDraw
 
 LACIVERT = (14, 23, 48, 255)
 TURUNCU = (232, 163, 61, 255)
+KREM = (250, 246, 238, 255)
 CIKTI = Path(__file__).parent / "res"
 YOGUNLUK = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
 
 def halka(boyut, oran, zemin=None, daire=False):
-    """boyut x boyut tuval; oran: halka dış çapının tuval boyuna oranı. 4x büyük çizip küçültür (pürüzsüz kenar)."""
+    """boyut x boyut tuval; oran: halka dış çapının tuval boyuna oranı. 4x büyük çizip küçültür (pürüzsüz kenar).
+    Uygulama içindeki Logo bileşeni ve public/ikon.svg ile aynı motif: turuncu halka + ortada krem nokta."""
     k = 4
     b = boyut * k
     im = Image.new("RGBA", (b, b), (0, 0, 0, 0))
@@ -20,6 +22,8 @@ def halka(boyut, oran, zemin=None, daire=False):
     kalin = r * 0.40
     c = b / 2
     d.ellipse([c - r, c - r, c + r, c + r], outline=TURUNCU, width=int(kalin))
+    nokta = r * 0.25
+    d.ellipse([c - nokta, c - nokta, c + nokta, c + nokta], fill=KREM)
     return im.resize((boyut, boyut), Image.LANCZOS)
 
 for ad, k in YOGUNLUK.items():

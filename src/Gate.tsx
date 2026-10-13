@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase, SUPABASE_KEY, SUPABASE_URL } from "./supabase";
 import { googleAcikMi, googleIleGir } from "./google";
 import { t } from "./i18n";
+import { Logo } from "./Logo";
 
 const SOZLER = ["Arkadaşlarınla yaz", "Sesli odada sohbet et", "Ekranını paylaş", "Birlikte film izle", "Çemberine katıl"];
 
@@ -66,10 +67,7 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
       </div>
       <form className="gatecard" onSubmit={gonder} noValidate>
         <div className="logo">
-          <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
-            <circle cx="22" cy="22" r="16" fill="none" stroke="#4fd1a5" strokeWidth="7" />
-            <circle cx="22" cy="22" r="4" fill="currentColor" />
-          </svg>
+          <Logo />
           <b>{t("Çember")}</b>
         </div>
         <DonenSoz />
