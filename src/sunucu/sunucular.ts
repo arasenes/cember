@@ -36,6 +36,9 @@ export function sunucuBasHarf(s: { ad: string; ikon_metin: string | null }): str
   return (s.ikon_metin?.trim() || s.ad.trim()[0] || "?").toLocaleUpperCase("tr");
 }
 
+/** Çember'in kendi resmi topluluk sunucusu: harf/renk rozeti yerine gerçek marka simgesi (Logo) gösterilir. */
+export const RESMI_CEMBER_SUNUCU_ID = "680ea57c-8b3e-4a57-b21c-ea7bcfd14659";
+
 // ===== Davet bağlantıları =====
 const DAVET_ANAHTAR = "cember-davet";
 const KOD = /^[A-Za-z0-9]{6,16}$/;

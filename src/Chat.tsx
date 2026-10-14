@@ -24,7 +24,8 @@ import KomutPaleti from "./komut/KomutPaleti";
 import { komutOner } from "./mesaj/botKomutlari";
 import type { Komut } from "./komut/komutlar";
 import { cevir, dilKodu, t, onayla, dilBulutaYaz, dilBuluttanOku, dilOku, dilYaz } from "./i18n";
-import { sunucuBasHarf, type Sunucu } from "./sunucu/sunucular";
+import { RESMI_CEMBER_SUNUCU_ID, sunucuBasHarf, type Sunucu } from "./sunucu/sunucular";
+import { Logo } from "./Logo";
 import { IZIN, useIzinler } from "./sunucu/izin";
 import { gruplariKur } from "./sunucu/siralama";
 import Avatar from "./Avatar";
@@ -1189,9 +1190,10 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           const buradaki = x.oda_id === me.oda_id;
           return (
             <button key={x.oda_id} type="button" className={"sr-dugme sr-sunucu" + (buradaki && gorunum === "sunucu" ? " aktif" : "")} aria-label={t(`${buradaki ? odaAdi : x.ad} sunucusu`)}
-              aria-current={buradaki && gorunum === "sunucu"} title={x.ad} style={x.ikon_renk ? { background: x.ikon_renk } : undefined}
+              aria-current={buradaki && gorunum === "sunucu"} title={x.ad}
+              style={x.oda_id === RESMI_CEMBER_SUNUCU_ID ? undefined : x.ikon_renk ? { background: x.ikon_renk } : undefined}
               onClick={() => { if (buradaki) setGorunum("sunucu"); else onSunucuSec?.(x.oda_id); }}>
-              {sunucuBasHarf({ ad: buradaki ? odaAdi : x.ad, ikon_metin: x.ikon_metin })}
+              {x.oda_id === RESMI_CEMBER_SUNUCU_ID ? <Logo boyut={32} /> : sunucuBasHarf({ ad: buradaki ? odaAdi : x.ad, ikon_metin: x.ikon_metin })}
             </button>
           );
         })}
