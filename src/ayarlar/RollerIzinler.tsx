@@ -48,7 +48,7 @@ export default function RollerIzinler({ odaId, uyeler, sahipMi }: Props) {
   const ozel = secim.tur === "ozel" ? roller.find((r) => r.id === secim.id) : undefined;
   // Seçim değişince editör alanları doldurulur
   useEffect(() => {
-    if (secim.tur === "sahip") { setAd("Sahip"); setIzin(IZIN_TUMU); }
+    if (secim.tur === "sahip") { setAd("Admin"); setIzin(IZIN_TUMU); }
     else if (secim.tur === "moderator") { setAd("Moderatör"); setIzin(moderatorIzin); }
     else if (secim.tur === "herkes") { setAd("Herkes"); setIzin(herkesIzin); }
     else if (ozel) { setAd(ozel.ad); setRenk(ozel.renk); setIzin(ozel.izinler); }
@@ -100,7 +100,7 @@ export default function RollerIzinler({ odaId, uyeler, sahipMi }: Props) {
   }
 
   const liste: { s: Secim; ad: string; renk: string }[] = [
-    { s: { tur: "sahip" }, ad: "Sahip", renk: "var(--bahsetme)" },
+    { s: { tur: "sahip" }, ad: "Admin", renk: "var(--bahsetme)" },
     { s: { tur: "moderator" }, ad: "Moderatör", renk: "var(--mavi)" },
     ...roller.map((r) => ({ s: { tur: "ozel", id: r.id } as Secim, ad: r.ad, renk: r.renk })),
     { s: { tur: "herkes" }, ad: "Herkes", renk: "var(--soluk)" },

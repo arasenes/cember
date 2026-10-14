@@ -55,7 +55,7 @@ function KanalIzinleri({ kanal, onBildir }: { kanal: Kanal; onBildir: (b: { ok: 
   const bitler = KANAL_IZINLERI.filter((b) => ((b.bit === IZIN.MESAJ_YAZ || b.bit === IZIN.DOSYA) ? kanal.tur === "yazili" : kanal.tur === "sesli"));
   return (
     <div className="kanal-izin kart" role="group" aria-label={t(`${kanal.ad} kanal izinleri`)}>
-      <p className="hint">{t("“Varsayılan”: sunucu izni geçerli. Sahip her zaman her şeyi yapabilir.")}</p>
+      <p className="hint">{t("“Varsayılan”: sunucu izni geçerli. Admin her zaman her şeyi yapabilir.")}</p>
       {hedefler.map((h) => (
         <div key={h.hedef + (h.rolId ?? "")} className="izin">
           <div>{h.ad}</div>
