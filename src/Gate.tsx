@@ -65,6 +65,12 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
         <i className="blob b1" /><i className="blob b2" /><i className="blob b3" /><i className="blob b4" />
         <i className="halka h1" /><i className="halka h2" /><i className="halka h3" /><i className="halka h4" />
         <i className="parcacik p1" /><i className="parcacik p2" /><i className="parcacik p3" /><i className="parcacik p4" /><i className="parcacik p5" /><i className="parcacik p6" />
+        <div className="gate-donenler">
+          <i className="donen d1" /><i className="donen d2" /><i className="donen d3" />
+          <i className="donen-nokta" style={{ top: "36%", left: "18%", animationDelay: "0s" }} />
+          <i className="donen-nokta" style={{ top: "72%", left: "68%", animationDelay: "1.1s" }} />
+          <i className="donen-nokta" style={{ top: "14%", left: "62%", animationDelay: "2s" }} />
+        </div>
       </div>
       <form className="gatecard" onSubmit={gonder} noValidate>
         <div className="logo">
