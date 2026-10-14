@@ -1249,6 +1249,10 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setSurukle(true); } }}
         onDragLeave={(e) => { if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setSurukle(false); }}
         onDrop={(e) => { e.preventDefault(); setSurukle(false); const f = resimBul(e.dataTransfer.files); if (f) void ekSec(f); else if (e.dataTransfer.files.length) setHata("Yalnızca resim dosyaları gönderilebilir."); }}>
+        <div className="chat-arka" aria-hidden="true">
+          <i className="sblob s1" /><i className="sblob s2" /><i className="sblob s3" />
+          <i className="sparcacik q1" /><i className="sparcacik q2" /><i className="sparcacik q3" /><i className="sparcacik q4" />
+        </div>
         {aktifKanal?.tur === "sesli" && (
           <SesSahnesi ses={ses} kanal={aktifKanal} katilimcilar={uyeler.filter((u) => sesKonum.get(u.id)?.kanal === aktifKanal.id)} benId={me.id}
             sagirlar={sagirlar} paylasanlar={new Set([...sesKonum].filter(([, v]) => v.kanal === aktifKanal.id && v.ekran).map(([id]) => id))}

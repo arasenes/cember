@@ -102,6 +102,22 @@ input[type=text],input[type=password],textarea{width:100%;min-height:48px;paddin
 .me b{display:block;font-size:14px}
 .me span{font-size:12px;color:var(--muted)}
 
+/* sohbet alanı arka planı: hafif, metnin okunabilirliğini bozmayan bir hareket */
+.chat{position:relative;overflow:hidden}
+.chat-arka{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:-1}
+.chat-arka .sblob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.05;background:var(--acc);animation:sohbet-gez 34s ease-in-out infinite alternate}
+.chat-arka .s1{width:36vmax;height:36vmax;left:-10vmax;top:-12vmax}
+.chat-arka .s2{width:30vmax;height:30vmax;right:-12vmax;bottom:-8vmax;animation-duration:40s;animation-delay:-14s}
+.chat-arka .s3{width:22vmax;height:22vmax;left:55%;top:60%;opacity:.035;animation-duration:46s;animation-delay:-22s}
+.chat-arka .sparcacik{position:absolute;bottom:-4vmax;width:4px;height:4px;border-radius:50%;background:var(--acc);opacity:0;animation:sohbet-parcacik linear infinite}
+.chat-arka .q1{left:15%;animation-duration:26s;animation-delay:0s}
+.chat-arka .q2{left:38%;width:3px;height:3px;animation-duration:32s;animation-delay:-8s}
+.chat-arka .q3{left:67%;animation-duration:29s;animation-delay:-4s}
+.chat-arka .q4{left:85%;width:3px;height:3px;animation-duration:35s;animation-delay:-18s}
+@keyframes sohbet-gez{from{transform:translate(0,0) scale(1)}to{transform:translate(4vmax,3vmax) scale(1.1)}}
+@keyframes sohbet-parcacik{0%{transform:translateY(0);opacity:0}10%{opacity:.14}90%{opacity:.08}100%{transform:translateY(-70vh);opacity:0}}
+@media (prefers-reduced-motion:reduce){.chat-arka .sblob,.chat-arka .sparcacik{animation:none}.chat-arka .sparcacik{display:none}}
+
 /* sohbet */
 .msgs{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
 .day{align-self:center;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
