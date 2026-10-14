@@ -62,8 +62,9 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
   return (
     <main className="gate-wrap" id="gate">
       <div className="gate-arka" aria-hidden="true">
-        <i className="blob b1" /><i className="blob b2" /><i className="blob b3" />
-        <i className="halka h1" /><i className="halka h2" /><i className="halka h3" />
+        <i className="blob b1" /><i className="blob b2" /><i className="blob b3" /><i className="blob b4" />
+        <i className="halka h1" /><i className="halka h2" /><i className="halka h3" /><i className="halka h4" />
+        <i className="parcacik p1" /><i className="parcacik p2" /><i className="parcacik p3" /><i className="parcacik p4" /><i className="parcacik p5" /><i className="parcacik p6" />
       </div>
       <form className="gatecard" onSubmit={gonder} noValidate>
         <div className="logo">
