@@ -32,6 +32,17 @@ async function misafirSil(admin: any, uye: { id: string; user_id: string | null 
   if (uye.user_id) await admin.auth.admin.deleteUser(uye.user_id);
 }
 
+// İstemci IP'si. cf-connecting-ip'yi Cloudflare koyar, istemci değiştiremez. x-forwarded-for'un SOLDAKİ adresleri istemci
+// tarafından uydurulabilir; yalnızca yedek olarak ve en SAĞDaki (en yakın güvenilir vekilin eklediği) adres alınır.
+// Geçerli bir adres bulunamazsa "bilinmiyor" döner; bu paylaşılan tek kova olarak sınırlanır (kontrolsüz bırakılmaz).
+function istemciIp(req: Request): string {
+  const gecerli = (v: string | null | undefined) => (v && /^[0-9a-fA-F:.]{3,45}$/.test(v.trim()) ? v.trim() : null);
+  const cf = gecerli(req.headers.get("cf-connecting-ip"));
+  if (cf) return cf;
+  const xff = (req.headers.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  return gecerli(xff[xff.length - 1]) ?? "bilinmiyor";
+}
+
 Deno.serve(async (req) => {
   const CORS = corsHazirla(req);
   const json = (body: unknown, status = 200) =>
@@ -46,8 +57,7 @@ Deno.serve(async (req) => {
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-  // Önce Cloudflare'in doğruladığı adres; istemcinin kendi gönderebildiği x-forwarded-for yalnızca yedek
-  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "bilinmiyor").split(",")[0].trim();
+  const ip = istemciIp(req);
 
   // Basit deneme sınırı
   const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -78,9 +88,10 @@ Deno.serve(async (req) => {
     const { data: ipYasagi } = ip === "bilinmiyor" ? { data: null } : await admin.from("yasaklar").select("id").eq("oda_id", oda.id).eq("ip", ip).maybeSingle();
     if (adYasagi || ipYasagi) return json({ hata: "Bu odaya girişin engellendi." }, 403);
 
-    const { count: denemeler } = await admin.from("giris_denemeleri").select("id", { count: "exact", head: true }).eq("ip", ip).gte("zaman", since);
-    if ((denemeler ?? 0) >= DENEME_LIMIT * 2) return json({ hata: "Çok fazla deneme. Birkaç dakika sonra tekrar dene." }, 429);
-    if (ip !== "bilinmiyor") await admin.from("giris_denemeleri").insert({ ip });
+    // Sayma ve kaydetme tek işlemde (039): paralel isteklerle limit aşılamaz
+    const { data: izinli, error: dErr } = await admin.rpc("deneme_kaydet", { p_ip: ip, p_limit: DENEME_LIMIT * 2 });
+    if (dErr) { console.error("deneme_kaydet hatası", dErr.message); return json({ hata: "Şu an kayıt yapılamıyor, biraz sonra tekrar dene." }, 503); }
+    if (izinli === false) return json({ hata: "Çok fazla deneme. Birkaç dakika sonra tekrar dene." }, 429);
 
     const { count: misafirSayisi } = await admin.from("uyeler").select("id", { count: "exact", head: true }).eq("oda_id", oda.id).eq("misafir", true).eq("silindi", false);
     if ((misafirSayisi ?? 0) >= MAX_MISAFIR) return json({ hata: "Şu an çok fazla misafir var, biraz sonra tekrar dene." }, 409);
@@ -123,9 +134,10 @@ Deno.serve(async (req) => {
     if (adYasagi || ipYasagi) return json({ hata: "Bu odaya girişin engellendi." }, 403);
 
     // Herkese açık kayıt: aynı IP'den art arda kayıt denemelerini sınırla
-    const { count: denemeler } = await admin.from("giris_denemeleri").select("id", { count: "exact", head: true }).eq("ip", ip).gte("zaman", since);
-    if ((denemeler ?? 0) >= DENEME_LIMIT * 2) return json({ hata: "Çok fazla deneme. Birkaç dakika sonra tekrar dene." }, 429);
-    if (ip !== "bilinmiyor") await admin.from("giris_denemeleri").insert({ ip });
+    // Sayma ve kaydetme tek işlemde (039): paralel isteklerle limit aşılamaz
+    const { data: izinli, error: dErr } = await admin.rpc("deneme_kaydet", { p_ip: ip, p_limit: DENEME_LIMIT * 2 });
+    if (dErr) { console.error("deneme_kaydet hatası", dErr.message); return json({ hata: "Şu an kayıt yapılamıyor, biraz sonra tekrar dene." }, 503); }
+    if (izinli === false) return json({ hata: "Çok fazla deneme. Birkaç dakika sonra tekrar dene." }, 429);
 
     const { count: uyeSayisi } = await admin.from("uyeler").select("id", { count: "exact", head: true }).eq("oda_id", oda.id).eq("silindi", false);
     if ((uyeSayisi ?? 0) >= MAX_UYE) return json({ hata: "Oda dolu." }, 409);
