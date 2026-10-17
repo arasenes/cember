@@ -1384,9 +1384,6 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       </main>
 
       <aside className="col members sunucu-kolon" aria-label={t("Üyeler")}>
-        {aktifKanal?.tur === "sesli" ? (
-          sesYaniEl
-        ) : (<>
         <div className="head"><h2>{t("Üyeler — {n}", { n: aktifUyeler.length })}</h2></div>
         <div className="scroll">
           {(["sahip", "moderator", "uye"] as const).map((rol) => {
@@ -1402,7 +1399,6 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           {cevrimdisiUyeler.length > 0 && <div className="sec">{t("Çevrimdışı — {n}", { n: cevrimdisiUyeler.length })}</div>}
           {cevrimdisiUyeler.map((u) => uyeSatiri(u, false))}
         </div>
-        </>)}
       </aside>
 
       {gorunum === "dm" && (

@@ -349,8 +349,7 @@
 #app.ses-modu .ses-sahne{flex:1 1 0;min-width:0}
 .ses-sohbet-kolon{display:contents}
 /* Sohbet görünürken (ekran paylaşımı ya da elle açma): sahne ve paylaşılan ekran tüm alanı kaplar, sohbet sağ kolonda açılır */
-#app.ses-modu.ses-sohbetli{grid-template-columns:var(--serit-genislik) var(--kanal-genislik) minmax(0,1fr)}
-#app.ses-modu.ses-sohbetli .members{display:none}
+#app.ses-modu.ses-sohbetli{grid-template-columns:var(--serit-genislik) var(--kanal-genislik) minmax(0,1fr) var(--uye-genislik)}
 #app.ses-modu.ses-sohbetli main.chat{flex-direction:row}
 #app.ses-modu.ses-sohbetli .ses-sohbet-kolon{display:flex;flex-direction:column;flex:0 0 360px;width:360px;min-width:0;min-height:0;border-left:1px solid var(--line);background:var(--bg)}
 #app.ses-modu.ses-sohbetli .ses-sohbet-kolon .msgs{min-height:0}
