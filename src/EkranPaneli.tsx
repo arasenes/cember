@@ -1,18 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import type { Izlenen } from "./ekranOrtak";
 import { sesYoneticisi } from "./ses/sesDuzeyi";
+import { EkranCizimKatmani, type CizimOlayi } from "./ses/BeyazTahta";
 import Ikon from "./mesaj/Ikon";
 import { t } from "./i18n";
 
-type Props = { izlenen: Izlenen; yapanAd: string; sesAnahtari?: string };
+type Props = {
+  izlenen: Izlenen;
+  yapanAd: string;
+  sesAnahtari?: string;
+  benId?: string;
+  kisiAd?: (uyeId: string) => string;
+  onCizimGonder?: (olay: CizimOlayi) => void;
+};
 
 type TamEkranVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
 
 /** Başkasının paylaştığı ekranı gösterir. Görüntü ve (varsa) ses aynı akıştan, aynı elemandan çalınır ki
  *  ikisi birbirinden kopmasın; kişi başı ses düzeyi (sesAnahtari verilmişse) o elemandan WebAudio ile ayarlanır. */
-export default function EkranPaneli({ izlenen, yapanAd, sesAnahtari }: Props) {
+export default function EkranPaneli({ izlenen, yapanAd, sesAnahtari, benId, kisiAd, onCizimGonder }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const [buyuk, setBuyuk] = useState(false);
+  const [lazerAcik, setLazerAcik] = useState(false);
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
@@ -47,11 +56,27 @@ export default function EkranPaneli({ izlenen, yapanAd, sesAnahtari }: Props) {
       <div className="ekran-ust">
         <span className="ekran-ust-ad"><Ikon ad="ekran" boyut={16} /> <b>{yapanAd}</b>{" "}{t("ekranını paylaşıyor")}</span>
         <span className="ekran-dugmeler">
+          {benId && (
+            <button type="button" className="linkbtn" onClick={() => setLazerAcik((x) => !x)} aria-pressed={lazerAcik} title={t("Ekran üzerinde lazer işaretçi tut")}>
+              🎯 {lazerAcik ? t("İşaretlemeyi kapat") : t("İşaretle")}
+            </button>
+          )}
           <button className="linkbtn" onClick={() => setBuyuk((b) => !b)} aria-pressed={buyuk}>{buyuk ? "Küçült" : "Büyüt"}</button>
           <button className="linkbtn" onClick={tamEkran}>{t("Tam ekran")}</button>
         </span>
       </div>
-      <video ref={ref} controls autoPlay playsInline disablePictureInPicture={false} aria-label={t(`${yapanAd} ekran yayını`)} />
+      <div style={{ position: "relative" }}>
+        <video ref={ref} controls={!lazerAcik} autoPlay playsInline disablePictureInPicture={false} aria-label={t(`${yapanAd} ekran yayını`)} />
+        {benId && (
+          <EkranCizimKatmani
+            aktif={lazerAcik}
+            benId={benId}
+            renk="#ff4d4f"
+            yapanAd={kisiAd}
+            onGonder={onCizimGonder}
+          />
+        )}
+      </div>
     </section>
   );
 }

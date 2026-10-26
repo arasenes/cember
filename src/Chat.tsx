@@ -39,6 +39,9 @@ import AnketOlustur, { type AnketTaslak } from "./mesaj/AnketOlustur";
 import AramaPaneli from "./mesaj/AramaPaneli";
 import GifSecici from "./mesaj/GifSecici";
 import { SesKayitDugmesi } from "./mesaj/SesliMesaj";
+import { OyunBaslatMenusu, miniOyunCoz } from "./mesaj/MiniOyun";
+import { useKaydedilenler } from "./mesaj/kaydedilenler";
+import KaydedilenlerPaneli from "./mesaj/KaydedilenlerPaneli";
 import IletDialog from "./mesaj/IletDialog";
 import Ikon from "./mesaj/Ikon";
 import SesSahnesi from "./ses/SesSahnesi";
@@ -112,6 +115,9 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [aramaAcik, setAramaAcik] = useState(false);
   const [anketAcik, setAnketAcik] = useState(false);
   const [gifAcik, setGifAcik] = useState(false);
+  const [oyunMenuAcik, setOyunMenuAcik] = useState(false);
+  const [kayitlarAcik, setKayitlarAcik] = useState(false);
+  const kaydedilenler = useKaydedilenler(me.id);
   const [vurguId, setVurguId] = useState<string | null>(null);
   const [alintiOnbellek, setAlintiOnbellek] = useState<Map<string, Mesaj>>(new Map());
   const alintiSorulan = useRef(new Set<string>());
@@ -380,7 +386,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       if (!yedek) { setMesajlar([]); setTepkiler([]); }
     }
     const sk = ses.kanalId ? kanallar.find((k) => k.id === ses.kanalId) : null;
-    if (ses.kanalId && ses.durum !== "kapali" && (!sk || !girebilir(sk))) {
+    if (ses.kanalId && !ses.kanalId.startsWith("dm:") && ses.durum !== "kapali" && (!sk || !girebilir(sk))) {
       setYonBilgi("Bu sesli odanın şifresi değişti ya da oda kapandı; yeniden girmen gerekebilir.");
       void ses.ayril();
     }
@@ -533,6 +539,15 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     const kanal = supabase.channel(`oda-${me.oda_id}`, { config: { presence: { key: me.id } } });
     kanalRef.current = kanal;
     kanal
+      .on("broadcast", { event: "oyun-hamle" }, ({ payload }) => {
+        const v = payload as { mesajId?: string; yeniMetin?: string; yazarId?: string };
+        if (!v?.mesajId || !v.yeniMetin || !miniOyunCoz(v.yeniMetin)) return;
+        window.dispatchEvent(new CustomEvent("cember-oyun-hamle", { detail: { mesajId: v.mesajId, yeniMetin: v.yeniMetin } }));
+        setMesajlar((x) => x.map((m) => (m.id === v.mesajId ? { ...m, metin: v.yeniMetin! } : m)));
+        if (v.yazarId === me.id) {
+          void supabase.from("mesajlar").update({ metin: v.yeniMetin }).eq("id", v.mesajId);
+        }
+      })
       .on("broadcast", { event: "yaziyor" }, ({ payload }) => {
         const v = payload as { uye?: string; ad?: string; kanal?: string };
         if (!v?.uye || v.uye === me.id || typeof v.ad !== "string" || typeof v.kanal !== "string") return;
@@ -1164,7 +1179,25 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           onYanitla: yazamaz ? undefined : (x) => { setYanitlanan(x); metinRef.current?.focus(); },
           onIlet: (x) => setIletMesaj(x),
           anket: anketler.get(m.id), onOyla: anketOyla, onHata: (h) => toastAt(h, "hata"),
+          uyeAd: (id) => uyeHaritasi.get(id)?.takma_ad ?? "Oyuncu",
+          onOyunHamle: (msj, yeni) => {
+            setMesajlar((x) => x.map((y) => (y.id === msj.id ? { ...y, metin: yeni } : y)));
+            void kanalRef.current?.send({ type: "broadcast", event: "oyun-hamle", payload: { mesajId: msj.id, yeniMetin: yeni, yazarId: msj.uye_id } });
+            if (msj.uye_id === me.id) void supabase.from("mesajlar").update({ metin: yeni }).eq("id", msj.id);
+          },
         }} yazar={uyeHaritasi.get(m.uye_id)} benim={ben}
+        kayitliMi={kaydedilenler.kayitliIds.has(m.id)}
+        onKaydet={(msj) => {
+          const eklendi = kaydedilenler.degistir({
+            id: msj.id,
+            kanalId: msj.kanal_id,
+            kanalAdi: aktifKanal?.ad ?? "kanal",
+            yazarAd: uyeHaritasi.get(msj.uye_id)?.takma_ad ?? "Üye",
+            metin: msj.metin || (msj.ek_yol ? "🖼️ Resim" : ""),
+            olusturma: msj.olusturma,
+          });
+          toastAt(eklendi ? "🔖 Mesaj kaydedilenlere eklendi" : "Kaydedilenlerden çıkarıldı");
+        }}
         tepkiler={tepkiler.filter((t) => t.mesaj_id === m.id)} onTepki={tepkiDegistir} onSil={sil} onDuzenle={mesajDuzenle} onSabitle={sabitle} onProfil={setProfilId}
         yanitSayisi={yanitlar.filter((y) => y.ust_mesaj_id === m.id && !y.silindi).length} onKonu={(x) => setKonuId(x.id)} />,
     );
@@ -1234,7 +1267,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           {bolumKanallari("sesli", sesKategorisiz).map(sesSatiri)}
           {kategoriGruplari.map((g) => kategoriBolumu(g.kategori!, g.kanallar))}
         </nav>
-        <SesCubugu className="vbar-side" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
+        <SesCubugu className="vbar-side" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={ses.kanalId?.startsWith("dm:") ? t("Özel Arama") : (kanallar.find((k) => k.id === ses.kanalId)?.ad ?? "")} />
         <div className="me">
           <button className="me-profil" onClick={() => setProfilId(me.id)} title={t("Profilimi aç ve düzenle")}>
             <Avatar uye={ben}><span className="on-dot" style={{ background: DURUM_BILGI[ben.durum ?? "cevrimici"].renk }} /></Avatar>
@@ -1303,6 +1336,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             {sabitler.length > 0 && (
               <button className="cb-ibtn ust-sabit" onClick={() => setSabitAcik(true)} aria-label={t(`${sabitler.length} sabitlenmiş mesajı göster`)}><Ikon ad="pin" /><span className="ust-sayi" aria-hidden="true">{sabitler.length}</span></button>
             )}
+            <button className="cb-ibtn ust-sabit" onClick={() => setKayitlarAcik(true)} aria-label={t(`Kaydedilen mesajlar (${kaydedilenler.liste.length})`)} title={t("Kaydedilen mesajlar")}>🔖{kaydedilenler.liste.length > 0 && <span className="ust-sayi" aria-hidden="true">{kaydedilenler.liste.length}</span>}</button>
             <button className="ust-ara" onClick={() => setAramaAcik(true)} aria-label={t("Mesajlarda ara")} aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /><span>{t("Mesajlarda ara")}</span></button>
           </div>
         </div>
@@ -1311,6 +1345,9 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             izlenen={ses.izlenen}
             yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"}
             sesAnahtari={`${ses.izlenen.uyeId}~ekran`}
+            benId={me.id}
+            kisiAd={(id) => uyeHaritasi.get(id)?.takma_ad ?? "Biri"}
+            onCizimGonder={ses.cizimGonder}
           />
         )}
         <GuncellemeBandi />
@@ -1367,7 +1404,9 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <button className="sq ek-dugme" onClick={() => dosyaRef.current?.click()} aria-label={t("Resim ekle")} disabled={gonderiliyor || yazamaz || !kanalDosyaEkleyebilir}><Ikon ad="ek" /></button>
           <button className="sq ek-dugme" onClick={() => setAnketAcik(true)} aria-label={t("Anket oluştur")} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
           <button className="sq ek-dugme" onClick={() => setGifAcik((x) => !x)} aria-label={t("GIF seç")} aria-expanded={gifAcik} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
+          <button className="sq ek-dugme" onClick={() => setOyunMenuAcik((x) => !x)} aria-label={t("Mini oyun başlat")} aria-expanded={oyunMenuAcik} disabled={yazamaz} title={t("Mini oyun başlat")}>🎮</button>
           <SesKayitDugmesi odaId={me.oda_id} uyeId={me.id} disabled={gonderiliyor || yazamaz} onGonder={(m) => void gifGonder(m)} onHata={setHata} />
+          {oyunMenuAcik && <OyunBaslatMenusu benId={me.id} onBaslat={(kod) => void gifGonder(kod)} onKapat={() => setOyunMenuAcik(false)} />}
           {gifAcik && <GifSecici onSec={(u) => void gifGonder(u)} onKapat={() => setGifAcik(false)} />}
           <input ref={dosyaRef} type="file" accept={IZINLI_TURLER.join(",")} hidden
             onChange={(e) => { void ekSec(e.target.files?.[0]); e.target.value = ""; }} />
@@ -1411,7 +1450,8 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           onSunucuya={() => setGorunum("sunucu")}
           onProfil={setProfilId}
           onHata={(m) => toastAt(m, "hata")} onBilgi={(m) => toastAt(m)}
-          sesBilgisi={ses.kanalId ? `Sesli odadasın: #${kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""}` : null} />
+          sesBilgisi={ses.kanalId && !ses.kanalId.startsWith("dm:") ? `Sesli odadasın: #${kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""}` : null}
+          ses={ses} sesKonum={sesKonum} sagirlar={sagirlar} />
       )}
       {profilUyesi && (
         <ProfilDialog key={profilUyesi.id} uye={profilUyesi} benim={profilUyesi.id === me.id}
@@ -1455,6 +1495,14 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           onTamam={(id) => { setSunucuDialogAcik(false); onSunucularYenile?.(id); }} />
       )}
       {aramaAcik && <AramaPaneli odaId={me.oda_id} kanallar={kanallar} uyeler={uyeler} onGit={mesajaGit} onKapat={() => setAramaAcik(false)} />}
+      {kayitlarAcik && (
+        <KaydedilenlerPaneli
+          liste={kaydedilenler.liste}
+          onKaldir={kaydedilenler.kaldir}
+          onGit={(k) => { setAktif(k.kanalId); setPane("chat"); setVurguId(k.id); setTimeout(() => setVurguId(null), 2500); }}
+          onKapat={() => setKayitlarAcik(false)}
+        />
+      )}
       {anketAcik && <AnketOlustur onOlustur={anketOlustur} onKapat={() => setAnketAcik(false)} />}
       {iletMesaj && (
         <IletDialog mesaj={iletMesaj} yazar={uyeHaritasi.get(iletMesaj.uye_id)} aktifKanal={aktif}
@@ -1485,7 +1533,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         {bildirimler.map((b) => <div key={b.id} className={"toast " + b.tur}>{t(b.metin)}</div>)}
       </div>
       {ses.kabiRefleri.map((r, i) => <div key={i} ref={r} className="sr" aria-hidden="true" />)}
-      <SesCubugu className="vbar-dock" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={kanallar.find((k) => k.id === ses.kanalId)?.ad ?? ""} />
+      <SesCubugu className="vbar-dock" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={ses.kanalId?.startsWith("dm:") ? t("Özel Arama") : (kanallar.find((k) => k.id === ses.kanalId)?.ad ?? "")} />
       <nav className="nav" aria-label={t("Ana sekmeler")}>
         <button aria-current={gorunum === "sunucu" && pane !== "mem"} onClick={() => { setGorunum("sunucu"); setPane(gorunum === "sunucu" && pane === "chat" ? "side" : "chat"); }}>
           <Ikon ad="hash" boyut={22} />{cevir("sekme.sunucu")}{gorunum !== "sunucu" && Object.values(okunmamis).some((o) => o.n > 0) && <span className="nokta nav-nokta" aria-hidden="true" />}

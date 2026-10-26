@@ -10,6 +10,8 @@ import { t } from "../i18n";
 import { DUZEY_MAX, DUZEY_MIN, useSesDuzeyleri } from "./sesDuzeyi";
 import BirlikteIzle from "./BirlikteIzle";
 import { SES_EFEKTLERI } from "./efektler";
+import BeyazTahta from "./BeyazTahta";
+import { SES_MODLARI } from "./sesDegistirici";
 
 type BasKonusDurumu = { ayar: BasKonusAyar; basili: boolean; bas: () => void; birak: () => void };
 
@@ -109,15 +111,18 @@ function KisiSesSayfasi({ uye, ben, ekranSesi, onProfil, onKapat }: { uye: Uye; 
   );
 }
 
-export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, paylasanlar, baglaniyor, buradayim, basKonus, baskasiPaylasiyor, yapanAd, onKatil, onProfil, onSohbet, sohbetAcik }: Props) {
+export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, paylasanlar, baglaniyor, buradayim, basKonus, baskasiPaylasiyor, yapanAd, onKatil, onProfil }: Props) {
   const [kalite, setKalite] = useState<EkranKalite>("720");
   const [kameraUyari, setKameraUyari] = useState("");
   const dar = useDarEkran();
   const [sayfaKisi, setSayfaKisi] = useState<Uye | null>(null);
   const [izlePanelAcik, setIzlePanelAcik] = useState(false);
   const [efektPanelAcik, setEfektPanelAcik] = useState(false);
+  const [tahtaAcik, setTahtaAcik] = useState(false);
+  const [sesModPanelAcik, setSesModPanelAcik] = useState(false);
   const ekranVar = !!ses.izlenen && buradayim;
   const izleVar = buradayim && (!!ses.birlikteIzle || izlePanelAcik);
+  const tahtaVar = buradayim && tahtaAcik;
   const paylasanSayisi = paylasanlar.size;
 
   async function kameraTikla() {
@@ -136,7 +141,7 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
   };
 
   const kendiEkranVar = buradayim && ses.paylasiyorum && !!ses.kendiEkran && !ekranVar;
-  const paylasimGorunur = ekranVar || kendiEkranVar || izleVar;
+  const paylasimGorunur = ekranVar || kendiEkranVar || izleVar || tahtaVar;
 
   /** Yuvarlak kişi: büyük (ekran yokken, adıyla) ya da küçük (ekran paylaşılırken, tek satır). Kamera açıksa yuvarlak yerine kare (16:9) kutu gösterilir. */
   const kisiOge = (u: Uye, buyuk: boolean) => {
@@ -163,6 +168,8 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
     );
   };
 
+  const aktifMod = ses.sesModu ?? "normal";
+
   return (
     <section className="ses-sahne" aria-label={t(`${kanal.ad} sesli odası`)}>
       <div className="head sahne-ust">
@@ -180,6 +187,9 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
             izlenen={ses.izlenen}
             yapanAd={yapanAd(ses.izlenen.uyeId)}
             sesAnahtari={`${ses.izlenen.uyeId}~ekran`}
+            benId={benId}
+            kisiAd={yapanAd}
+            onCizimGonder={ses.cizimGonder}
           />
         )}
         {kendiEkranVar && ses.kendiEkran && <KendiEkranOnizleme akis={ses.kendiEkran} />}
@@ -190,6 +200,14 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
             benId={benId}
             onDegistir={(yeni) => { ses.birlikteIzleAyarla?.(yeni); if (!yeni) setIzlePanelAcik(false); }}
             onKapatPanel={() => setIzlePanelAcik(false)}
+          />
+        )}
+        {tahtaVar && (
+          <BeyazTahta
+            benId={benId}
+            yapanAd={yapanAd}
+            onGonder={ses.cizimGonder}
+            onKapat={() => setTahtaAcik(false)}
           />
         )}
         {!paylasimGorunur && (
@@ -212,6 +230,21 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
           {SES_EFEKTLERI.map((e) => (
             <button key={e.kod} type="button" className="kontrol" onClick={() => ses.efektGonder?.(e.kod)} title={t(e.etiket)}>
               <span aria-hidden="true">{e.simge}</span>{" "}{t(e.etiket)}
+            </button>
+          ))}
+        </div>
+      )}
+      {buradayim && sesModPanelAcik && (
+        <div className="efekt-cubugu" role="group" aria-label={t("Ses değiştirici modları")} style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", padding: "6px 12px" }}>
+          {SES_MODLARI.map((m) => (
+            <button
+              key={m.kod}
+              type="button"
+              className={"kontrol" + (aktifMod === m.kod ? " vurgulu" : "")}
+              aria-pressed={aktifMod === m.kod}
+              onClick={() => ses.sesModuAyarla?.(m.kod)}
+            >
+              <span aria-hidden="true">{m.simge}</span>{" "}{t(m.etiket)}
             </button>
           ))}
         </div>
@@ -257,9 +290,15 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
             <button type="button" className={"kontrol" + (izleVar ? " vurgulu" : "")} aria-pressed={izleVar}
               onClick={() => setIzlePanelAcik((x) => !x)} title={t("YouTube videosunu odadaki herkesle senkronize izle")}>
               🎬 {t("Birlikte İzle")}</button>
+            <button type="button" className={"kontrol" + (tahtaVar ? " vurgulu" : "")} aria-pressed={tahtaVar}
+              onClick={() => setTahtaAcik((x) => !x)} title={t("Odadaki herkesle ortak beyaz tahtada çizim yap")}>
+              🎨 {t("Beyaz Tahta")}</button>
             <button type="button" className={"kontrol" + (efektPanelAcik ? " vurgulu" : "")} aria-pressed={efektPanelAcik}
               onClick={() => setEfektPanelAcik((x) => !x)} title={t("Odadaki herkese ses efekti çal")}>
               🔊 {t("Efektler")}</button>
+            <button type="button" className={"kontrol" + (sesModPanelAcik || aktifMod !== "normal" ? " vurgulu" : "")} aria-pressed={sesModPanelAcik}
+              onClick={() => setSesModPanelAcik((x) => !x)} title={t("Canlı ses değiştirici modları")}>
+              🎙️ {aktifMod === "normal" ? t("Ses Modu") : t(SES_MODLARI.find((m) => m.kod === aktifMod)?.etiket ?? "Ses Modu")}</button>
             <button type="button" className="kontrol tehlike" onClick={() => void ses.ayril()} aria-label={t("Sesli odadan ayrıl")}><Ikon ad="cikis" />{" "}{t("Ayrıl")}</button>
           </>
         )}

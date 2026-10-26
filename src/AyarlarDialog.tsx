@@ -5,6 +5,7 @@ import { googleAcikMi, googleBagla, googleBagliMi } from "./google";
 import { TEMALAR, type TemaId } from "./temalar";
 import type { YaziBoyutu } from "./yerel";
 import { tusAdi, tusAtanabilir, type BasKonusAyar } from "./ses/basKonus";
+import { SES_MODLARI, sesFiltresiKur, type SesEfektModu } from "./ses/sesDegistirici";
 import { cevir, dilOku, dilYaz, type Dil, t, DILLER } from "./i18n";
 import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushTani, pushSadeceEtiket, pushTercih } from "./push";
 
@@ -19,6 +20,99 @@ type Props = {
 };
 
 const BOYUTLAR: { id: YaziBoyutu; ad: string }[] = [{ id: "kucuk", ad: t("Küçük") }, { id: "orta", ad: t("Orta") }, { id: "buyuk", ad: t("Büyük") }];
+
+function MikrofonTestBolumu() {
+  const [testAcik, setTestAcik] = useState(false);
+  const [seviye, setSeviye] = useState(0);
+  const [mod, setMod] = useState<SesEfektModu>("normal");
+  const [hata, setHata] = useState("");
+  const kapatRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => { kapatRef.current?.(); };
+  }, []);
+
+  async function baslat(secilenMod: SesEfektModu) {
+    kapatRef.current?.();
+    setHata("");
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setHata("Mikrofon erişimi desteklenmiyor.");
+        return;
+      }
+      const ham = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AC();
+      await ctx.resume();
+      const filtre = sesFiltresiKur(ctx, ham, secilenMod);
+      const kaynak = ctx.createMediaStreamSource(filtre.akis);
+      const analiz = ctx.createAnalyser();
+      analiz.fftSize = 256;
+      kaynak.connect(analiz);
+      kaynak.connect(ctx.destination);
+      const buf = new Uint8Array(256);
+      const olcum = setInterval(() => {
+        analiz.getByteTimeDomainData(buf);
+        let top = 0;
+        for (const v of buf) { const d = (v - 128) / 128; top += d * d; }
+        const rms = Math.min(100, Math.round(Math.sqrt(top / buf.length) * 320));
+        setSeviye(rms);
+      }, 60);
+      setTestAcik(true);
+      kapatRef.current = () => {
+        clearInterval(olcum);
+        filtre.kapat();
+        ham.getTracks().forEach((tr) => tr.stop());
+        void ctx.close().catch(() => {});
+        setTestAcik(false);
+        setSeviye(0);
+      };
+    } catch {
+      setHata("Mikrofon izni alınamadı veya cihaz bulunamadı.");
+    }
+  }
+
+  return (
+    <div className="ayar-grup">
+      <div className="yon-baslik">🎙️ {t("Mikrofon Testi & Ses Efektleri")}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="pk-btn"
+          aria-pressed={testAcik}
+          onClick={() => { if (testAcik) { kapatRef.current?.(); kapatRef.current = null; } else void baslat(mod); }}
+        >
+          {testAcik ? `⏹️ ${t("Testi Durdur")}` : `🎙️ ${t("Mikrofonu Test Et")}`}
+        </button>
+        <div
+          role="progressbar"
+          aria-label={t("Mikrofon ses seviyesi")}
+          aria-valuenow={seviye}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          style={{ flex: 1, minWidth: 120, height: 10, borderRadius: 6, background: "rgba(255,255,255,0.1)", overflow: "hidden" }}
+        >
+          <div style={{ width: `${seviye}%`, height: "100%", background: seviye > 75 ? "#ff6b6b" : "#51cf66", transition: "width 60ms linear" }} />
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+        {SES_MODLARI.map((m) => (
+          <button
+            key={m.kod}
+            type="button"
+            className="pk-btn"
+            aria-pressed={mod === m.kod}
+            onClick={() => { setMod(m.kod); if (testAcik) void baslat(m.kod); }}
+            style={{ opacity: mod === m.kod ? 1 : 0.72 }}
+          >
+            {m.simge} {t(m.etiket)}
+          </button>
+        ))}
+      </div>
+      {hata && <p className="err" role="alert">{t(hata)}</p>}
+    </div>
+  );
+}
 
 export default function AyarlarDialog({ tema, onTema, onDil, yazi, onYazi, onSesAyar, onSeslerAcildi, basKonus, onBasKonus, onKapat }: Props) {
   const [tusBekleniyor, setTusBekleniyor] = useState(false);
@@ -125,6 +219,8 @@ export default function AyarlarDialog({ tema, onTema, onDil, yazi, onYazi, onSes
         </div>
 
         <SeslerAyari onDegisti={onSesAyar} onAcildi={onSeslerAcildi} />
+
+        <MikrofonTestBolumu />
 
         {basKonus && onBasKonus && (
           <div className="ayar-grup">

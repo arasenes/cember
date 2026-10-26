@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../supabase";
 import MessageView from "../MessageView";
 import Avatar from "../Avatar";
 import Ikon from "../mesaj/Ikon";
-import type { Uye } from "../types";
+import type { Kanal, Uye } from "../types";
 import { gunEtiketi } from "../util";
 import { dmBasligi, karsiUye, mesajaCevir, type DmMesaj } from "./tipler";
 import type { DmDurumu } from "./useDm";
@@ -13,6 +14,10 @@ import { sesCal } from "../sesler";
 import { boyutMetni, ekHazirla, EkHatasi, type HazirEk } from "../ekler";
 import GifSecici from "../mesaj/GifSecici";
 import { SesKayitDugmesi } from "../mesaj/SesliMesaj";
+import { OyunBaslatMenusu, miniOyunCoz } from "../mesaj/MiniOyun";
+import { useKaydedilenler } from "../mesaj/kaydedilenler";
+import type { Motor, SesArayuzu } from "../sesMotoru";
+import SesSahnesi from "../ses/SesSahnesi";
 
 const SAYFA = 50;
 
@@ -25,6 +30,9 @@ type Props = {
   onProfil: (uyeId: string) => void;
   onGeri?: () => void;
   onHata: (metin: string) => void;
+  ses?: SesArayuzu;
+  sesKonum?: Map<string, { kanal: string; motor: Motor | null; ekran: boolean }>;
+  sagirlar?: Set<string>;
 };
 
 function birlestir(eski: DmMesaj[], yeni: DmMesaj[]): DmMesaj[] {
@@ -33,8 +41,8 @@ function birlestir(eski: DmMesaj[], yeni: DmMesaj[]): DmMesaj[] {
   return [...m.values()].sort((a, b) => a.olusturma.localeCompare(b.olusturma));
 }
 
-/** Bir DM'in mesaj akışı: yükleme, canlı güncelleme, yazma, resim/GIF/sesli mesaj gönderme, düzenleme, silme. */
-export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, onGeri, onHata }: Props) {
+/** Bir DM'in mesaj akışı: yükleme, canlı güncelleme, yazma, resim/GIF/sesli mesaj/oyun gönderme, sesli arama, düzenleme, silme. */
+export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, onGeri, onHata, ses, sesKonum, sagirlar }: Props) {
   const [mesajlar, setMesajlar] = useState<DmMesaj[]>([]);
   const [dahaVar, setDahaVar] = useState(false);
   const [metin, setMetin] = useState("");
@@ -42,8 +50,10 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   const [eklenecek, setEklenecek] = useState("");
   const [ek, setEk] = useState<HazirEk | null>(null);
   const [gifAcik, setGifAcik] = useState(false);
+  const [oyunMenuAcik, setOyunMenuAcik] = useState(false);
   const dosyaRef = useRef<HTMLInputElement>(null);
   const akisRef = useRef<HTMLDivElement>(null);
+  const dmKanalRef = useRef<RealtimeChannel | null>(null);
   // "Yeni mesaj" çizgisi: sohbet açılırken kayıtlı son okuma zamanı (açılınca okundu sayıldığı için bir kez alınır)
   const okumaRef = useRef<{ dm: string; zaman: string | null } | null>(null);
   const altaKaydir = useRef(true);
@@ -55,6 +65,19 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   const iliski = karsi ? dm.iliski(karsi) : "yok";
   const baslik = kanal ? dmBasligi(kanal, dm.uyeleri, harita, me.id) : "Mesaj";
   const grupUyeleri = kanal?.tur === "grup" ? dm.uyeleri.filter((u) => u.dm_id === dmId) : [];
+  const kaydedilenler = useKaydedilenler(me.id);
+
+  const dmSesAnahtari = `dm:${dmId}`;
+  const dmSesKatilimcilar = useMemo(
+    () => uyeler.filter((u) => sesKonum?.get(u.id)?.kanal === dmSesAnahtari),
+    [uyeler, sesKonum, dmSesAnahtari],
+  );
+  const dmAramadayim = ses?.kanalId === dmSesAnahtari && ses.durum !== "kapali";
+  const dmPaylasanlar = useMemo(
+    () => new Set([...(sesKonum ?? [])].filter(([, v]) => v.kanal === dmSesAnahtari && v.ekran).map(([id]) => id)),
+    [sesKonum, dmSesAnahtari],
+  );
+
   if (okumaRef.current?.dm !== dmId) {
     const benimki = dm.uyeleri.find((u) => u.dm_id === dmId && u.uye_id === me.id);
     if (benimki) okumaRef.current = { dm: dmId, zaman: benimki.son_okuma || null };
@@ -77,7 +100,7 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
     return () => { iptal = true; };
   }, [dmId, onHata]);
 
-  // Canlı: yeni ve güncellenen mesajlar (RLS yalnızca üyelere iletir)
+  // Canlı: yeni ve güncellenen mesajlar (RLS yalnızca üyelere iletir) + oyun hamleleri
   useEffect(() => {
     const k = supabase.channel(`dm-sohbet-${dmId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "dm_mesajlari", filter: `dm_id=eq.${dmId}` }, (p) => {
@@ -87,8 +110,21 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
         setMesajlar((x) => birlestir(x, [m]));
         if (p.eventType === "INSERT" && m.uye_id !== me.id && document.visibilityState === "visible") void dm.okundu(dmId);
       })
+      .on("broadcast", { event: "oyun-hamle" }, ({ payload }) => {
+        const v = payload as { mesajId?: string; yeniMetin?: string; yazarId?: string };
+        if (!v?.mesajId || !v.yeniMetin || !miniOyunCoz(v.yeniMetin)) return;
+        window.dispatchEvent(new CustomEvent("cember-oyun-hamle", { detail: { mesajId: v.mesajId, yeniMetin: v.yeniMetin } }));
+        setMesajlar((x) => x.map((m) => (m.id === v.mesajId ? { ...m, metin: v.yeniMetin! } : m)));
+        if (v.yazarId === me.id) {
+          void supabase.from("dm_mesajlari").update({ metin: v.yeniMetin }).eq("id", v.mesajId);
+        }
+      })
       .subscribe();
-    return () => { void supabase.removeChannel(k); };
+    dmKanalRef.current = k;
+    return () => {
+      dmKanalRef.current = null;
+      void supabase.removeChannel(k);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dmId, me.id]);
 
@@ -166,6 +202,18 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
     return true;
   }
 
+  function oyunHamleIsle(m: { id: string; uye_id: string }, yeniMetin: string) {
+    setMesajlar((x) => x.map((y) => (y.id === m.id ? { ...y, metin: yeniMetin } : y)));
+    void dmKanalRef.current?.send({
+      type: "broadcast",
+      event: "oyun-hamle",
+      payload: { mesajId: m.id, yeniMetin, yazarId: m.uye_id },
+    });
+    if (m.uye_id === me.id) {
+      void supabase.from("dm_mesajlari").update({ metin: yeniMetin }).eq("id", m.id);
+    }
+  }
+
   async function sil(m: { id: string }) {
     if (!onayla("Bu mesaj silinsin mi?")) return;
     const { error } = await supabase.from("dm_mesajlari").update({ silindi: true }).eq("id", m.id);
@@ -203,11 +251,50 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
       cizgiYazildi = true;
       satirlar.push(<div className="yeni-cizgi" role="separator" aria-label={t(`${yeniSayisi} yeni mesaj`)} key={"yeni" + m.id}><span>{yeniSayisi} yeni mesaj</span></div>);
     }
+    const cevrili = mesajaCevir(m);
+    const yazarUye = harita.get(m.uye_id);
     satirlar.push(
-      <MessageView key={m.id} devam={devam} mesaj={mesajaCevir(m)} yazar={harita.get(m.uye_id)} benim={me} tepkiler={[]} tepkisiz
-        onTepki={() => {}} onSil={() => void sil(m)} onDuzenle={(x, t) => duzenle(x, t)} onProfil={onProfil} />,
+      <MessageView
+        key={m.id}
+        devam={devam}
+        mesaj={cevrili}
+        yazar={yazarUye}
+        benim={me}
+        tepkiler={[]}
+        tepkisiz
+        kayitliMi={kaydedilenler.kayitliIds.has(m.id)}
+        onKaydet={() => {
+          kaydedilenler.degistir({
+            id: m.id,
+            kanalId: dmId,
+            kanalAdi: baslik,
+            dmMi: true,
+            yazarAd: yazarUye?.takma_ad ?? "Üye",
+            metin: m.metin,
+            olusturma: m.olusturma,
+          });
+        }}
+        zengin={{
+          uyeAd: (id) => harita.get(id)?.takma_ad ?? "Oyuncu",
+          onOyunHamle: (_msj, yeni) => oyunHamleIsle(m, yeni),
+        }}
+        onTepki={() => {}}
+        onSil={() => void sil(m)}
+        onDuzenle={(x, t) => duzenle(x, t)}
+        onProfil={onProfil}
+      />,
     );
   }
+
+  const sahteDmKanali: Kanal = {
+    id: dmSesAnahtari,
+    oda_id: me.oda_id,
+    ad: `${baslik} (${t("Özel Arama")})`,
+    tur: "sesli",
+    sira: 0,
+    sifreli: false,
+    aciklama: null,
+  };
 
   return (
     <main className="col chat dm-sohbet" aria-label={t(`${baslik} ile mesajlaşma`)}>
@@ -219,8 +306,39 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
           {kanal?.tur === "ikili" && karsiUyesi && [durumMetni(karsiUyesi, cevrimici.has(karsiUyesi.id)), karsiUyesi.durum_metin].filter(Boolean).join(" · ")}
           {kanal?.tur === "grup" && `${grupUyeleri.length} kişi`}
         </span>
+        {ses && iliski !== "engelli" && (
+          <button
+            type="button"
+            className={"head-dugme" + (dmAramadayim ? " tehlike" : "")}
+            onClick={() => void (dmAramadayim ? ses.ayril() : ses.baglan(dmSesAnahtari))}
+            aria-label={dmAramadayim ? t("Sesli aramadan ayrıl") : t("Sesli arama başlat")}
+            title={dmAramadayim ? t("Aramadan ayrıl") : t("Sesli / görüntülü arama başlat")}
+          >
+            {dmAramadayim ? `🔴 ${t("Aramadan Ayrıl")}` : `📞 ${dmSesKatilimcilar.length > 0 ? t("Aramaya Katıl") : t("Sesli Ara")}`}
+          </button>
+        )}
         {kanal?.tur === "grup" && <button type="button" className="head-dugme" onClick={() => void ayril()}>{t("Gruptan ayrıl")}</button>}
       </div>
+
+      {ses && (dmAramadayim || dmSesKatilimcilar.length > 0) && (
+        <div className="dm-arama-kutu" style={{ borderBottom: "1px solid var(--border, rgba(255,255,255,0.1))", maxHeight: "48vh", overflowY: "auto" }}>
+          <SesSahnesi
+            ses={ses}
+            kanal={sahteDmKanali}
+            katilimcilar={dmSesKatilimcilar.length > 0 ? dmSesKatilimcilar : (dmAramadayim ? [me] : [])}
+            benId={me.id}
+            sagirlar={sagirlar ?? new Set()}
+            paylasanlar={dmPaylasanlar}
+            baglaniyor={ses.durum === "baglaniyor"}
+            buradayim={dmAramadayim}
+            basKonus={{ ayar: { acik: false, tus: "KeyV" }, basili: false, bas: () => {}, birak: () => {} }}
+            baskasiPaylasiyor={null}
+            yapanAd={(id) => harita.get(id)?.takma_ad ?? "Biri"}
+            onKatil={() => void ses.baglan(dmSesAnahtari)}
+            onProfil={onProfil}
+          />
+        </div>
+      )}
 
       {kanal?.tur === "grup" && (
         <div className="dm-grup-bar">
@@ -264,6 +382,13 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
               onKapat={() => setGifAcik(false)}
             />
           )}
+          {oyunMenuAcik && (
+            <OyunBaslatMenusu
+              benId={me.id}
+              onBaslat={(kod) => void dmMesajGonder(kod)}
+              onKapat={() => setOyunMenuAcik(false)}
+            />
+          )}
           {ek && (
             <div className="ek-onizleme" role="region" aria-label={t("Seçilen resim önizlemesi")}>
               <img src={ek.onizleme} alt={ek.ad} />
@@ -279,6 +404,9 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
             </button>
             <button type="button" className="sq ek-sec" onClick={() => setGifAcik((x) => !x)} disabled={gonderiliyor} aria-label={t("GIF seç")} title="GIF">
               GIF
+            </button>
+            <button type="button" className="sq ek-sec" onClick={() => setOyunMenuAcik((x) => !x)} disabled={gonderiliyor} aria-label={t("Mini oyun başlat")} title={t("Mini oyun başlat")}>
+              🎮
             </button>
             <SesKayitDugmesi odaId={me.oda_id} uyeId={me.id} disabled={gonderiliyor} onGonder={async (m) => { await dmMesajGonder(m); }} onHata={onHata} />
             <textarea ref={girdiRef} rows={1} value={metin} maxLength={4000} aria-label={t("Mesaj yaz")} placeholder={t(`${baslik} kişisine mesaj yaz`)}

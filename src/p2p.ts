@@ -7,6 +7,8 @@ import { sesHatasiMetni, type BaglanSonuc, type SesDurumu } from "./voice";
 import { ekranHatasi, ekranIstegi, KALITE, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
 import { efektCal, gecerliEfektMi, type EfektKodu } from "./ses/efektler";
 import type { IzlemeDurumu } from "./ses/BirlikteIzle";
+import { gecerliCizimOlayiMi, type CizimOlayi } from "./ses/BeyazTahta";
+import { gecerliSesModuMu, sesFiltresiKur, type SesEfektModu } from "./ses/sesDegistirici";
 
 /**
  * Doğrudan (P2P) motor: konuşanlar tarayıcıdan tarayıcıya bağlanır (mesh).
@@ -19,7 +21,7 @@ const VARSAYILAN_ICE: RTCIceServer[] = [{ urls: ["stun:stun.cloudflare.com:3478"
 
 // Ekran paylaşımı için ayrı "ekran-*" sinyalleri kullanılır: ses bağlantılarına dokunmaz ve ekran paylaşımını bilmeyen eski sürümler bunları yok sayar.
 // Ekranı paylaşan her izleyiciye ayrı bir bağlantı kurar (teklifi her zaman paylaşan verir).
-type Sinyal = { to: string; from: string; tur: "offer" | "answer" | "ice" | "ekran-offer" | "ekran-answer" | "ekran-ice" | "kamera-offer" | "kamera-answer" | "kamera-ice" | "efekt" | "izle"; veri: unknown };
+type Sinyal = { to: string; from: string; tur: "offer" | "answer" | "ice" | "ekran-offer" | "ekran-answer" | "ekran-ice" | "kamera-offer" | "kamera-answer" | "kamera-ice" | "efekt" | "izle" | "cizim"; veri: unknown };
 type EkranEs = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean };
 type Es = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean; baslatan: boolean; el?: HTMLAudioElement; analiz?: AnalyserNode; sonlandir: () => void; sorunZamani?: number };
 
@@ -59,7 +61,13 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const ekranRef = useRef<{ baslat: (k: EkranKalite) => Promise<EkranSonuc>; durdur: () => Promise<void> } | null>(null);
   const [sonEfekt, setSonEfekt] = useState<{ uyeId: string; kod: EfektKodu } | null>(null);
   const [birlikteIzle, setBirlikteIzle] = useState<IzlemeDurumu | null>(null);
-  const odaEylemRef = useRef<{ efekt: (kod: EfektKodu) => void; izle: (yeni: IzlemeDurumu | null) => void } | null>(null);
+  const [sesModu, setSesModu] = useState<SesEfektModu>("normal");
+  const odaEylemRef = useRef<{
+    efekt: (kod: EfektKodu) => void;
+    izle: (yeni: IzlemeDurumu | null) => void;
+    cizim: (olay: CizimOlayi) => void;
+    sesModu: (mod: SesEfektModu) => void;
+  } | null>(null);
 
   const temizle = useCallback(async () => {
     const k = kapatRef.current;
@@ -72,7 +80,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     setKonusanlar(new Set()); setSorunlu(new Set());
     setIzlenen(null); setPaylasiyorum(false); setKendiEkran(null);
     odaEylemRef.current = null;
-    setSonEfekt(null); setBirlikteIzle(null);
+    setSonEfekt(null); setBirlikteIzle(null); setSesModu("normal");
   }, []);
 
   const ayril = useCallback(async () => {
@@ -88,6 +96,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     setDurum("baglaniyor"); setKanalId(hedef); setSessiz(false);
 
     let stream: MediaStream | null = null;
+    let aktifGidenSesAkisi: MediaStream | null = null;
+    let filtreKapat: (() => void) | null = null;
     let kanal: RealtimeChannel | null = null;
     let ctx: AudioContext | null = null;
     let olcum: ReturnType<typeof setInterval> | null = null;
@@ -123,6 +133,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       kameraAkis?.getTracks().forEach((t) => t.stop());
       for (const e of [...kameraGiden.values(), ...kameraGelen.values()]) { try { e.pc.close(); } catch { /* yoksay */ } }
       kameraGiden.clear(); kameraGelen.clear();
+      filtreKapat?.(); filtreKapat = null;
       stream?.getTracks().forEach((t) => t.stop());
       if (kanal) { try { await kanal.untrack(); } catch { /* yoksay */ } await supabase.removeChannel(kanal); }
       if (ctx) { try { await ctx.close(); } catch { /* yoksay */ } }
@@ -155,6 +166,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       }
       if (islem !== islemRef.current) { stream?.getTracks().forEach((t) => t.stop()); return { ok: false, neden: "iptal" }; }
       yerelRef.current = stream;
+      aktifGidenSesAkisi = stream;
 
       // Konuşma algılama (yeşil halka)
       const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -194,7 +206,11 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       document.addEventListener("keydown", sesAc, true);
 
       const benimT = Date.now();
-      kanal = supabase.channel(`ses:${hedef}`, { config: { private: true, broadcast: { self: false }, presence: { key: uyeId } } });
+      const dmMi = hedef.startsWith("dm:");
+      const kanalAdi = dmMi ? `dm-ses-${hedef.slice(3)}` : `ses:${hedef}`;
+      kanal = supabase.channel(kanalAdi, {
+        config: { ...(dmMi ? {} : { private: true }), broadcast: { self: false }, presence: { key: uyeId } },
+      });
       const aktifKanal = kanal;
       const gonder = (to: string, tur: Sinyal["tur"], veri: unknown) => {
         void aktifKanal.send({ type: "broadcast", event: "sinyal", payload: { to, from: uyeId, tur, veri } satisfies Sinyal });
@@ -204,8 +220,9 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         const pc = new RTCPeerConnection({ iceServers });
         const es: Es = { pc, bekleyenIce: bekleyenIcePeer.get(peerId) ?? [], uzakVar: false, baslatan, sonlandir: () => {}, sorunZamani: Date.now() };
         bekleyenIcePeer.delete(peerId);
-        if (stream) {
-          stream.getTracks().forEach((t) => pc.addTrack(t, stream!));
+        const gidenAkis = aktifGidenSesAkisi ?? stream;
+        if (gidenAkis) {
+          gidenAkis.getTracks().forEach((t) => pc.addTrack(t, gidenAkis));
         } else if (baslatan) {
           try { pc.addTransceiver("audio", { direction: "recvonly" }); } catch { /* yoksay */ }
         }
@@ -273,8 +290,6 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             const p = g.getParameters();
             if (!p.encodings?.length) p.encodings = [{}];
             p.encodings[0].maxBitrate = bps;
-            // "motion" içerik ipucu varsayılan olarak "maintain-framerate" seçiyor, bu da bant genişliği
-            // yetmeyince çözünürlüğü agresifçe düşürüp görüntüyü bulanıklaştırıyordu; "balanced" daha dengeli.
             p.degradationPreference = "balanced";
             await g.setParameters(p);
           } catch { /* tarayıcı desteklemiyorsa varsayılan bit hızı kalır */ }
@@ -353,7 +368,6 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             setPaylasiyorum(true);
             setKendiEkran(yakalanan);
             await kanal?.track({ t: benimT, ekran: true, kamera: kameraAkis !== null });
-            // Odadakilere hemen başla (yeni gelenler için presence senkronu devam ettirir)
             for (const id of Object.keys(kanal?.presenceState() ?? {})) {
               if (id !== uyeId && !ekranGiden.has(id)) kuyruk = kuyruk.then(() => ekranTeklif(id)).catch(() => {});
             }
@@ -462,6 +476,12 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           else if (v && typeof v.videoId === "string" && typeof v.baslangicSn === "number") setBirlikteIzle(v);
           return;
         }
+        if (s.tur === "cizim") {
+          if (gecerliCizimOlayiMi(s.veri)) {
+            window.dispatchEvent(new CustomEvent("cember-cizim-olayi", { detail: s.veri }));
+          }
+          return;
+        }
         if (s.to !== uyeId) return;
         if (s.tur === "offer") {
           esler.get(s.from)?.sonlandir(); esler.delete(s.from);
@@ -492,7 +512,6 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           await bitHiziSinirla(e.pc, ekranBitHizi);
         } else if (s.tur === "ekran-ice") {
           const { c, rol } = s.veri as { c: RTCIceCandidateInit; rol: "gonderen" | "alici" };
-          // rol, adayı üreten tarafın rolüdür: izleyiciden geliyorsa paylaşan olarak benim bağlantımdır ve tersi
           const e = rol === "alici" ? ekranGiden.get(s.from) : ekranGelen?.peerId === s.from ? ekranGelen.es : undefined;
           if (e && e.uzakVar) await e.pc.addIceCandidate(c).catch(() => {});
           else if (e) e.bekleyenIce.push(c);
@@ -536,6 +555,25 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           gonder("*", "izle", yeni);
           void kanal?.track({ t: benimT, ekran: ekranAkis !== null, kamera: kameraAkis !== null, izle: yeni });
         },
+        cizim: (olay) => {
+          gonder("*", "cizim", olay);
+        },
+        sesModu: (mod) => {
+          if (!gecerliSesModuMu(mod)) return;
+          setSesModu(mod);
+          if (!stream || !ctx) return;
+          filtreKapat?.();
+          const f = sesFiltresiKur(ctx, stream, mod);
+          filtreKapat = f.kapat;
+          aktifGidenSesAkisi = f.akis;
+          const yeniIz = f.akis.getAudioTracks()[0] ?? null;
+          if (!yeniIz) return;
+          yeniIz.enabled = stream.getAudioTracks()[0]?.enabled ?? true;
+          for (const es of esler.values()) {
+            const gonderici = es.pc.getSenders().find((g) => g.track?.kind === "audio");
+            if (gonderici) void gonderici.replaceTrack(yeniIz).catch(() => {});
+          }
+        },
       };
       let doluHatasi = false;
       kanal.on("broadcast", { event: "sinyal" }, ({ payload }) => {
@@ -552,20 +590,17 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         if (enYeniIzle) setBirlikteIzle((onceki) => (onceki ?? enYeniIzle));
         const kisiler = Object.entries(durumlar).map(([id, m]) => ({ id, t: m[0]?.t ?? 0, ekran: !!m[m.length - 1]?.ekran, kamera: !!m[m.length - 1]?.kamera }));
         kisiler.sort((a, b) => a.t - b.t || a.id.localeCompare(b.id));
-        // Kapasite: ilk P2P_MAX_KISI kişi sığar
         const sira = kisiler.findIndex((k) => k.id === uyeId);
         if (sira >= P2P_MAX_KISI) { doluHatasi = true; void ayril(); return; }
         const varOlanlar = new Set(kisiler.map((k) => k.id));
         for (const k of kisiler) {
           if (k.id === uyeId || esler.has(k.id)) continue;
-          // Daha yeni katılan, eskilere teklif gönderir
           const benYeniyim = benimT > k.t || (benimT === k.t && uyeId > k.id);
           if (benYeniyim) kuyruk = kuyruk.then(() => teklifGonder(k.id)).catch(() => {});
         }
         for (const [id, e] of esler) {
           if (!varOlanlar.has(id)) { e.sonlandir(); esler.delete(id); }
         }
-        // Ekran paylaşıyorsam: odaya yeni gelenlere de yayını başlat; ayrılanların bağlantısını kapat
         for (const [id, e] of ekranGiden) {
           if (!varOlanlar.has(id)) { try { e.pc.close(); } catch { /* yoksay */ } ekranGiden.delete(id); }
         }
@@ -574,7 +609,6 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             if (k.id !== uyeId && !ekranGiden.has(k.id)) kuyruk = kuyruk.then(() => ekranTeklif(k.id)).catch(() => {});
           }
         }
-        // Kamera: açıksam yeni gelenlere de yayınla; ayrılan ya da kamerasını kapatan kişinin görüntüsünü kaldır
         for (const [id, e] of kameraGiden) {
           if (!varOlanlar.has(id)) { try { e.pc.close(); } catch { /* yoksay */ } kameraGiden.delete(id); }
         }
@@ -587,7 +621,6 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           const k = kisiler.find((x) => x.id === id);
           if (!k || !k.kamera) kameraGelenKapat(id);
         }
-        // Başkasının yayınını izliyorsam ve o paylaşımı bıraktıysa / odadan çıktıysa kapat
         if (ekranGelen) {
           const kaynak = kisiler.find((k) => k.id === ekranGelen!.peerId);
           if (!kaynak || !kaynak.ekran) ekranGelenKapat();
@@ -642,6 +675,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const ekranDurdur = useCallback(async () => { await ekranRef.current?.durdur(); }, []);
   const efektGonder = useCallback((kod: EfektKodu) => { odaEylemRef.current?.efekt(kod); }, []);
   const birlikteIzleAyarla = useCallback((yeni: IzlemeDurumu | null) => { odaEylemRef.current?.izle(yeni); }, []);
+  const cizimGonder = useCallback((olay: CizimOlayi) => { odaEylemRef.current?.cizim(olay); }, []);
+  const sesModuAyarla = useCallback((mod: SesEfektModu) => { odaEylemRef.current?.sesModu(mod); }, []);
 
-  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, kendiEkran, ekranPaylas, ekranDurdur, kameralar, kameraAcik, kameraDegistir, sonEfekt, efektGonder, birlikteIzle, birlikteIzleAyarla };
+  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, kendiEkran, ekranPaylas, ekranDurdur, kameralar, kameraAcik, kameraDegistir, sonEfekt, efektGonder, birlikteIzle, birlikteIzleAyarla, cizimGonder, sesModu, sesModuAyarla };
 }

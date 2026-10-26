@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import BirlikteIzle, { hesaplananKonum, youtubeIdCikar } from "./ses/BirlikteIzle";
 import { efektCal, gecerliEfektMi, SES_EFEKTLERI } from "./ses/efektler";
 import { dmResimCoz, SesliMesajOynatici, sesliMesajCoz } from "./mesaj/SesliMesaj";
-import { duzMetin } from "./mesaj/markdown";
+import { duzMetin, kodRenklendir, metinOge } from "./mesaj/markdown";
+import { MiniOyunKart, miniOyunCoz, miniOyunKodla, tkmKazanan, xoxBotHamlesi, xoxKazanan } from "./mesaj/MiniOyun";
+import { kaydedilenleriOku, mesajKaydetDegistir } from "./mesaj/kaydedilenler";
+import KaydedilenlerPaneli from "./mesaj/KaydedilenlerPaneli";
+import BeyazTahta, { gecerliCizimOlayiMi } from "./ses/BeyazTahta";
+import { gecerliSesModuMu, SES_MODLARI } from "./ses/sesDegistirici";
 import Gate from "./Gate";
 
 describe("1. Birlikte İzle (Watch Party)", () => {
@@ -72,5 +77,91 @@ describe("5. Gate Davet Karşılama Kartı", () => {
     expect(screen.getByText("(ARKADAS1)")).toBeTruthy();
     fireEvent.click(screen.getByLabelText("Daveti kaldır"));
     expect(screen.queryByText("Bir sunucuya davet edildin")).toBeNull();
+  });
+});
+
+describe("6. Ortak Beyaz Tahta & Lazer İşaretçi", () => {
+  it("çizim olaylarını doğrular ve BeyazTahta bileşenini render eder", () => {
+    expect(gecerliCizimOlayiMi({ uyeId: "u1", renk: "#ff4d4f", mod: "lazer", x0: 0.1, y0: 0.2, x1: 0.3, y1: 0.4, zaman: 1 })).toBe(true);
+    expect(gecerliCizimOlayiMi({ uyeId: "u1", mod: "gecersiz" })).toBe(false);
+    const onGonder = vi.fn();
+    render(<BeyazTahta benId="u1" yapanAd={() => "Aras"} onGonder={onGonder} onKapat={vi.fn()} />);
+    expect(screen.getByText("Ortak Beyaz Tahta")).toBeTruthy();
+    fireEvent.click(screen.getByText(/Temizle/));
+    expect(onGonder).toHaveBeenCalledWith(expect.objectContaining({ mod: "temizle", uyeId: "u1" }));
+  });
+});
+
+describe("7. Sohbet İçi Etkileşimli Mini Oyunlar (XOX & Taş-Kağıt-Makas)", () => {
+  it("XOX oyun durumunu çözer, kazananı ve bot hamlesini hesaplar", () => {
+    const kod = miniOyunKodla({ tur: "xox", xId: "u1", oId: "bot", tahta: "XX-------", sira: "O" });
+    expect(miniOyunCoz(kod)).toEqual({ tur: "xox", xId: "u1", oId: "bot", tahta: "XX-------", sira: "O" });
+    expect(duzMetin(kod)).toBe("🎮 Mini oyun");
+    // Bot rakibin 3'lemesini engellemeli (2. indeks)
+    expect(xoxBotHamlesi("XX-------")).toBe(2);
+    expect(xoxKazanan("XXXOO----")).toBe("X");
+    expect(xoxKazanan("XOXOXOOXO")).toBe("berabere");
+  });
+
+  it("XOX kartında tıklayınca hamle yapar ve bot karşılık verir", () => {
+    const onHamle = vi.fn();
+    const baslangic = miniOyunKodla({ tur: "xox", xId: "u1", oId: "bot", tahta: "---------", sira: "X" });
+    render(<MiniOyunKart mesajId="m1" metin={baslangic} benId="u1" uyeAd={() => "Aras"} onHamle={onHamle} />);
+    fireEvent.click(screen.getByLabelText("Kare 1: boş"));
+    expect(onHamle).toHaveBeenCalledTimes(1);
+    const yeniKod = onHamle.mock.calls[0][0] as string;
+    const cozulmus = miniOyunCoz(yeniKod);
+    expect(cozulmus?.tur).toBe("xox");
+    if (cozulmus?.tur === "xox") {
+      expect(cozulmus.tahta[0]).toBe("X");
+      expect(cozulmus.tahta.includes("O")).toBe(true);
+    }
+  });
+
+  it("Taş-Kağıt-Makas kazananını doğru belirler", () => {
+    expect(tkmKazanan("T", "M")).toBe(1);
+    expect(tkmKazanan("M", "K")).toBe(1);
+    expect(tkmKazanan("K", "T")).toBe(1);
+    expect(tkmKazanan("T", "K")).toBe(2);
+    expect(tkmKazanan("T", "T")).toBe(0);
+  });
+});
+
+describe("8. Canlı Ses Değiştirici Modları", () => {
+  it("5 ses değiştirici modunu doğrular", () => {
+    expect(SES_MODLARI.map((m) => m.kod)).toEqual(["normal", "telsiz", "magara", "robot", "megafon"]);
+    expect(gecerliSesModuMu("robot")).toBe(true);
+    expect(gecerliSesModuMu("uzayli")).toBe(false);
+  });
+});
+
+describe("9. Mesaj Kaydetme (Yer İmleri) & Kod Bloğu Kopyalama/Renklendirme", () => {
+  it("mesajı kaydedilenlere ekler, listeler ve çıkarır", () => {
+    localStorage.clear();
+    const eklendi = mesajKaydetDegistir("u1", {
+      id: "msg-1",
+      kanalId: "k-1",
+      kanalAdi: "genel",
+      yazarAd: "Aras",
+      metin: "Önemli bağlantı https://cember.onrender.com",
+      olusturma: "2026-10-26T10:00:00Z",
+    });
+    expect(eklendi).toBe(true);
+    expect(kaydedilenleriOku("u1")).toHaveLength(1);
+
+    const onKaldir = vi.fn();
+    render(<KaydedilenlerPaneli liste={kaydedilenleriOku("u1")} onKaldir={onKaldir} onKapat={vi.fn()} />);
+    expect(screen.getByText(/Önemli bağlantı/)).toBeTruthy();
+    fireEvent.click(screen.getByLabelText("Kaydı kaldır"));
+    expect(onKaldir).toHaveBeenCalledWith("msg-1");
+  });
+
+  it("kod bloğunu sözdizimi renklendirmesi ve Kopyala düğmesiyle render eder", () => {
+    const parcalar = kodRenklendir('const x = 42; // yorum\nreturn "merhaba";');
+    expect(parcalar.length).toBeGreaterThan(3);
+    const { container } = render(<div>{metinOge("```ts\nconst x = 42;\n```", "Aras")}</div>);
+    expect(container.querySelector(".md-kopyala")).toBeTruthy();
+    expect(container.querySelector(".kod-anahtar")?.textContent).toBe("const");
+    expect(container.querySelector(".kod-sayi")?.textContent).toBe("42");
   });
 });

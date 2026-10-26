@@ -9,6 +9,7 @@ import ProfilKarti from "./ProfilKarti";
 import YeniGrupDialog from "./YeniGrupDialog";
 import { dmBasligi, karsiUye } from "./tipler";
 import type { DmDurumu } from "./useDm";
+import type { Motor, SesArayuzu } from "../sesMotoru";
 import { t, onayla } from "../i18n";
 
 export type DmSayfa = "arkadaslar" | "sohbet";
@@ -32,6 +33,9 @@ type Props = {
   /** Dar ekranda hangi bölme görünür (Chat, #app[data-pane] için kullanır). */
   mobil: "liste" | "icerik";
   onMobil: (m: "liste" | "icerik") => void;
+  ses?: SesArayuzu;
+  sesKonum?: Map<string, { kanal: string; motor: Motor | null; ekran: boolean }>;
+  sagirlar?: Set<string>;
 };
 
 function zamanMetni(iso: string): string {
@@ -40,7 +44,7 @@ function zamanMetni(iso: string): string {
 }
 
 /** DM görünümü: sol liste (arama, arkadaşlar, DM'ler), orta sohbet ya da arkadaşlar sayfası, sağ profil kartı. */
-export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, sayfa, onSec, onArkadaslar, onSunucuya, onProfil, onHata, onBilgi, sesBilgisi, mobil, onMobil }: Props) {
+export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, sayfa, onSec, onArkadaslar, onSunucuya, onProfil, onHata, onBilgi, sesBilgisi, mobil, onMobil, ses, sesKonum, sagirlar }: Props) {
   const [ara, setAra] = useState("");
   const [grupAcik, setGrupAcik] = useState(false);
   const setMobil = onMobil;
@@ -85,6 +89,7 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
           {dmler.map(({ k, baslik }) => {
             const kisi = k.tur === "ikili" ? harita.get(karsiUye(k, dm.uyeleri, me.id) ?? "") : undefined;
             const n = dm.okunmamis[k.id] ?? 0;
+            const aramadaVar = [...(sesKonum ?? [])].some(([, v]) => v.kanal === `dm:${k.id}`);
             return (
               <button key={k.id} type="button" className={"dm-satir" + (sayfa === "sohbet" && aktifDm === k.id ? " aktif" : "") + (n ? " okunmamis" : "")} onClick={() => sec(k.id)}>
                 {n > 0 && <span className="sr">{n} okunmamış mesaj, </span>}
@@ -94,6 +99,7 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
                 {k.tur === "grup"
                   ? <span className="dm-ad"><span className="dm-ad-ust">{baslik}</span><small>{dm.uyeleri.filter((u) => u.dm_id === k.id).length} üye</small></span>
                   : <span className="dm-ad">{baslik}</span>}
+                {aramadaVar && <span title={t("Sesli arama aktif")} aria-label={t("Sesli arama aktif")}>📞</span>}
                 <span className="dm-zaman">{zamanMetni(k.son_mesaj)}</span>
                 {n > 0 && <span className="rozet" aria-hidden="true">{n}</span>}
               </button>
@@ -116,7 +122,8 @@ export default function DmAlani({ dm, me, uyeler, cevrimici, bosta, aktifDm, say
             onMesaj={(id) => void dm.dmAc(id).then((r) => { if (r.hata) onHata(r.hata); else if (r.id) sec(r.id); })} />
         </main>
       ) : aktifDm ? (
-        <DmSohbet key={aktifDm} dmId={aktifDm} dm={dm} me={me} uyeler={uyeler} cevrimici={cevrimici} onProfil={onProfil} onHata={onHata} onGeri={() => setMobil("liste")} />
+        <DmSohbet key={aktifDm} dmId={aktifDm} dm={dm} me={me} uyeler={uyeler} cevrimici={cevrimici} onProfil={onProfil} onHata={onHata} onGeri={() => setMobil("liste")}
+          ses={ses} sesKonum={sesKonum} sagirlar={sagirlar} />
       ) : (
         <main className="col chat dm-orta"><div className="empty">{t("Bir kişi seç ya da arkadaşlarına göz at.")}</div></main>
       )}

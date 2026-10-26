@@ -11,6 +11,7 @@ import { gifUrlMi } from "./mesaj/gif";
 import type { Anket } from "./mesaj/anket";
 import EmojiDeposu from "./EmojiDeposu";
 import { DmEkResim, dmResimCoz, SesliMesajOynatici, sesliMesajCoz } from "./mesaj/SesliMesaj";
+import { MiniOyunKart, miniOyunCoz } from "./mesaj/MiniOyun";
 import { t } from "./i18n";
 
 /** Aşama 1 mesaj özellikleri: alıntılı yanıt, iletme, anket. Hepsi isteğe bağlıdır. */
@@ -22,6 +23,8 @@ export type Zengin = {
   anket?: Anket;
   onOyla?: (mesajId: string, secenekId: string, oy: boolean) => Promise<string | null>;
   onHata?: (metin: string) => void;
+  uyeAd?: (uyeId: string) => string;
+  onOyunHamle?: (mesaj: Mesaj, yeniMetin: string) => void;
 };
 
 type Props = {
@@ -35,6 +38,8 @@ type Props = {
   /** Kendi mesajını düzenleme; false dönerse düzenleme kutusu açık kalır. */
   onDuzenle?: (mesaj: Mesaj, metin: string) => Promise<boolean> | boolean;
   onSabitle?: (mesaj: Mesaj, sabit: boolean) => void;
+  onKaydet?: (mesaj: Mesaj) => void;
+  kayitliMi?: boolean;
   onProfil?: (uyeId: string) => void;
   yanitSayisi?: number;
   onKonu?: (mesaj: Mesaj) => void;
@@ -47,7 +52,7 @@ type Props = {
 };
 
 // Metin her zaman düz metin olarak render edilir: React içeriği kaçışlar, dangerouslySetInnerHTML kullanılmaz.
-export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onDuzenle, onSabitle, onProfil, yanitSayisi, onKonu, devam = false, vurgu = false, tepkisiz = false, zengin }: Props) {
+export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, onSil, onDuzenle, onSabitle, onKaydet, kayitliMi, onProfil, yanitSayisi, onKonu, devam = false, vurgu = false, tepkisiz = false, zengin }: Props) {
   const [sec, setSec] = useState(false);
   const [tum, setTum] = useState(false);
   const [arac, setArac] = useState(false);
@@ -63,7 +68,8 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
   const aracVar = !mesaj.silindi;
   const sesliEk = mesaj.metin ? sesliMesajCoz(mesaj.metin) : null;
   const dmResim = mesaj.metin ? dmResimCoz(mesaj.metin) : null;
-  const duzenlenebilir = !!onDuzenle && benimMi && !mesaj.silindi && !!mesaj.metin && !sesliEk && !dmResim;
+  const miniOyun = mesaj.metin ? miniOyunCoz(mesaj.metin) : null;
+  const duzenlenebilir = !!onDuzenle && benimMi && !mesaj.silindi && !!mesaj.metin && !sesliEk && !dmResim && !miniOyun;
 
   async function kaydet() {
     const t = taslak.trim();
@@ -92,9 +98,10 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
             <b className={"rol-" + (yazar?.rol ?? "uye")}>{yazar?.takma_ad ?? "Eski üye"}</b>
           )}
           <time dateTime={mesaj.olusturma}>{saat(mesaj.olusturma)}</time>
-          {mesaj.duzenleme && !mesaj.silindi && <span className="hint">{t("(düzenlendi)")}</span>}
+          {mesaj.duzenleme && !mesaj.silindi && !miniOyun && <span className="hint">{t("(düzenlendi)")}</span>}
         </div>
         {mesaj.sabit && !mesaj.silindi && <span className="pin-isaret" title={t("Sabitlenmiş mesaj")}><Ikon ad="pin" boyut={14} /><span className="sr">{" "}{t("sabitlenmiş")}</span></span>}
+        {kayitliMi && !mesaj.silindi && <span className="pin-isaret" title={t("Kaydedilen mesaj")} style={{ marginLeft: 4 }}>🔖<span className="sr">{" "}{t("kaydedilmiş")}</span></span>}
         {mesaj.silindi ? (
           <div className="txt silindi">{t("Bu mesaj silindi.")}</div>
         ) : (
@@ -130,6 +137,17 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
               </div>
             ) : zengin?.anket ? null : sesliEk ? (
               <SesliMesajOynatici yol={sesliEk.yol} sureSn={sesliEk.sureSn} />
+            ) : miniOyun ? (
+              <MiniOyunKart
+                mesajId={mesaj.id}
+                metin={mesaj.metin}
+                benId={benim.id}
+                uyeAd={(id) => (id === yazar?.id ? yazar.takma_ad : zengin?.uyeAd?.(id) ?? "Oyuncu")}
+                onHamle={(yeni) => {
+                  if (zengin?.onOyunHamle) zengin.onOyunHamle(mesaj, yeni);
+                  else if (onDuzenle && benimMi) void onDuzenle(mesaj, yeni);
+                }}
+              />
             ) : dmResim ? (
               <>
                 {dmResim.yazi && <div className="txt">{metinOge(dmResim.yazi, benim.takma_ad)}</div>}
@@ -179,6 +197,11 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
           {!tepkisiz && <button onClick={() => setSec(!sec)} aria-expanded={sec} aria-label={t("Tepki ekle")} title={t("Tepki ekle")}><Ikon ad="gulen" /></button>}
           {zengin?.onYanitla && <button onClick={() => zengin.onYanitla!(mesaj)} aria-label={t("Yanıtla")} title={t("Yanıtla")}><Ikon ad="yanit" /></button>}
           {onKonu && !yanitSayisi && <button onClick={() => onKonu(mesaj)} aria-label={t("Konu aç ve yanıtla")} title={t("Yanıtla (konu aç)")}><Ikon ad="sohbet" /></button>}
+          {onKaydet && (
+            <button onClick={() => onKaydet(mesaj)} aria-pressed={!!kayitliMi} aria-label={kayitliMi ? t("Kaydedilenlerden çıkar") : t("Mesajı kaydet")} title={kayitliMi ? t("Kaydedildi") : t("Kaydet")}>
+              🔖
+            </button>
+          )}
           {pinGoster && (
             <button className="pin-btn" onClick={() => onSabitle!(mesaj, !mesaj.sabit)} title={mesaj.sabit ? t("Sabitlemeyi kaldır") : t("Sabitle")}
               aria-label={mesaj.sabit ? t("Sabitlemeyi kaldır") : t("Mesajı sabitle")}><Ikon ad="pin" /></button>

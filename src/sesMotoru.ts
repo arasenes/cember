@@ -134,6 +134,9 @@ export function useSesMotoru(
     efektGonder: p2p.efektGonder,
     birlikteIzle: p2p.birlikteIzle,
     birlikteIzleAyarla: p2p.birlikteIzleAyarla,
+    cizimGonder: p2p.cizimGonder,
+    sesModu: p2p.sesModu,
+    sesModuAyarla: p2p.sesModuAyarla,
     hataTemizle: () => { setHata(""); setBilgi(""); },
   };
 }
