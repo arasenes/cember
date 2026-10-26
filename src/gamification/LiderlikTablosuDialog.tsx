@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { liderlikTablosuGetir } from "./seviye";
 import { t } from "../i18n";
-import Ikon from "../mesaj/Ikon";
 
 type Props = {
   benId: string;
@@ -14,6 +13,12 @@ export default function LiderlikTablosuDialog({ benId, onKapat, onProfil }: Prop
   const liste = liderlikTablosuGetir();
 
   useEffect(() => {
+    const onceki = document.activeElement as HTMLElement | null;
+    dialogRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => { onceki?.focus?.(); };
+  }, []);
+
+  useEffect(() => {
     const tus = (e: KeyboardEvent) => {
       if (e.key === "Escape") onKapat();
     };
@@ -22,28 +27,27 @@ export default function LiderlikTablosuDialog({ benId, onKapat, onProfil }: Prop
   }, [onKapat]);
 
   return (
-    <div className="perde" onClick={(e) => { if (e.target === e.currentTarget) onKapat(); }}>
+    <div className="modal-arka" onMouseDown={(e) => { if (e.target === e.currentTarget) onKapat(); }}>
       <div
         ref={dialogRef}
-        className="dialog liderlik-dialog"
+        className="modal liderlik-modal"
         role="dialog"
-        aria-label={t("Sunucu Liderlik Tablosu")}
-        style={{ maxWidth: 540, width: "95%", maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+        aria-modal="true"
+        aria-labelledby="liderlik-baslik"
       >
-        <div className="dialog-ust" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--line)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 24 }}>🏆</span>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t("Liderlik Tablosu")}</h2>
-              <span style={{ fontSize: 12, color: "var(--muted)" }}>{t("Mesaj yazarak ve sesli odada kalarak XP kazan")}</span>
-            </div>
+        <div className="modal-ust">
+          <div>
+            <h2 id="liderlik-baslik">🏆 {t("Liderlik Tablosu")}</h2>
+            <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--muted)" }}>
+              {t("Mesaj yazarak ve sesli odada kalarak XP kazan")}
+            </p>
           </div>
-          <button type="button" className="cb-ibtn" onClick={onKapat} aria-label={t("Kapat")}>
-            <Ikon ad="kapat" />
+          <button className="lb-kapat modal-x" onClick={onKapat} aria-label={t("Kapat")}>
+            ✕
           </button>
         </div>
 
-        <div className="scroll" style={{ padding: "14px 20px", flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <div className="scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 4, marginTop: 8 }}>
           {liste.length === 0 ? (
             <div style={{ textAlign: "center", padding: "36px 12px", color: "var(--muted)" }}>
               🌱 {t("Henüz XP kazanan kimse yok. İlk mesajı sen yaz ve zirveye yerleş!")}
@@ -61,12 +65,12 @@ export default function LiderlikTablosuDialog({ benId, onKapat, onProfil }: Prop
                       alignItems: "center",
                       gap: 12,
                       padding: "10px 14px",
-                      borderRadius: 12,
-                      background: benMi ? "var(--secili-zemin)" : "var(--card)",
-                      border: benMi ? "1px solid var(--acc)" : "1px solid var(--line)",
+                      borderRadius: 14,
+                      background: benMi ? "color-mix(in srgb, var(--vurgu) 15%, var(--card))" : "var(--card)",
+                      border: benMi ? "1.5px solid var(--vurgu)" : "1px solid var(--line)",
                     }}
                   >
-                    <span style={{ width: 32, textAlign: "center", fontSize: oge.sira <= 3 ? 20 : 14, fontWeight: 700, color: "var(--muted)" }}>
+                    <span style={{ width: 32, textAlign: "center", fontSize: oge.sira <= 3 ? 20 : 13, fontWeight: 800, color: "var(--muted)", flex: "none" }}>
                       {madalya}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -77,17 +81,21 @@ export default function LiderlikTablosuDialog({ benId, onKapat, onProfil }: Prop
                         >
                           {oge.ad}
                         </span>
-                        {benMi && <span className="rozet" style={{ fontSize: 10 }}>{t("Sen")}</span>}
+                        {benMi && (
+                          <span style={{ fontSize: 10, background: "var(--vurgu)", color: "var(--vurgu-yazi)", padding: "1px 6px", borderRadius: 999, fontWeight: 800 }}>
+                            {t("Sen")}
+                          </span>
+                        )}
                         <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>
                           · {oge.bilgi.rozet} {oge.bilgi.unvan}
                         </span>
                       </div>
-                      <div style={{ marginTop: 4, height: 6, background: "var(--girdi)", borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ marginTop: 5, height: 6, background: "var(--line)", borderRadius: 3, overflow: "hidden" }}>
                         <div
                           style={{
-                            width: `${oge.bilgi.yuzde}%`,
+                            width: `${Math.min(100, Math.max(0, oge.bilgi.yuzde))}%`,
                             height: "100%",
-                            background: "var(--acc)",
+                            background: "var(--vurgu)",
                             borderRadius: 3,
                             transition: "width 0.3s ease",
                           }}
@@ -95,7 +103,7 @@ export default function LiderlikTablosuDialog({ benId, onKapat, onProfil }: Prop
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flex: "none" }}>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: "var(--acc)" }}>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: "var(--vurgu)" }}>
                         {t("Sv. {s}", { s: oge.bilgi.seviye })}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--muted)" }}>

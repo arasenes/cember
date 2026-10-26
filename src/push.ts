@@ -43,6 +43,10 @@ export function pushTani(): string {
 }
 export function pushAcikMi(): boolean { return oku().acik; }
 export function pushSadeceEtiket(): boolean { return oku().sadeceEtiket; }
+export function bildirimIzniEngelliMi(): boolean {
+  if (typeof Notification === "undefined") return false;
+  return Notification.permission === "denied";
+}
 
 function anahtarCoz(b64: string): Uint8Array<ArrayBuffer> {
   const s = (b64 + "=".repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
@@ -59,7 +63,7 @@ async function sunucuyaKaydet(tur: "web" | "fcm", uc: string, p256dh: string | n
 }
 
 async function webKaydol(sadeceEtiket: boolean): Promise<PushSonuc> {
-  if (Notification.permission === "denied") return { ok: false, mesaj: "Bildirim izni engellenmiş. Tarayıcı ayarlarından siteye bildirim iznini aç." };
+  if (Notification.permission === "denied") return { ok: false, mesaj: "Bildirim izni engellenmiş. Tarayıcınızın adres çubuğundaki kilit (🔒) simgesinden izin verin." };
   const izin = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
   if (izin !== "granted") return { ok: false, mesaj: "Bildirim izni verilmedi." };
   const reg = await navigator.serviceWorker.register("/sw.js");

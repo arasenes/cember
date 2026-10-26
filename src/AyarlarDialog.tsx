@@ -7,7 +7,7 @@ import type { YaziBoyutu } from "./yerel";
 import { tusAdi, tusAtanabilir, type BasKonusAyar } from "./ses/basKonus";
 import { SES_MODLARI, sesFiltresiKur, type SesEfektModu } from "./ses/sesDegistirici";
 import { cevir, dilOku, dilYaz, type Dil, t, DILLER } from "./i18n";
-import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushTani, pushSadeceEtiket, pushTercih } from "./push";
+import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushTani, pushSadeceEtiket, pushTercih, bildirimIzniEngelliMi } from "./push";
 
 type Props = {
   tema: TemaId; onTema: (t: TemaId) => void;
@@ -256,7 +256,49 @@ export default function AyarlarDialog({ tema, onTema, onDil, yazi, onYazi, onSes
                 <button role="radio" aria-checked={sadeceEtiket} onClick={() => void etiketDegistir(true)}>{t("Sadece etiketlenince")}</button>
               </div>
             )}
-            {pushHata && <p className="err" role="alert">{t(pushHata)}</p>}
+            {pushHata && (
+              <div
+                className="ayar-yardim-kutu"
+                role="alert"
+                style={{
+                  marginTop: 10,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  background: "color-mix(in srgb, var(--danger, #ef4444) 12%, var(--card))",
+                  border: "1.5px solid color-mix(in srgb, var(--danger, #ef4444) 40%, var(--line))",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <span style={{ fontSize: 20, lineHeight: 1 }}>🔒</span>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
+                    <div style={{ fontWeight: 800, color: "var(--danger, #ef4444)", marginBottom: 4 }}>
+                      {t("Bildirim İzni Gerekli")}
+                    </div>
+                    <div style={{ color: "var(--fg)", lineHeight: 1.45 }}>
+                      {t("Tarayıcınız bildirim iznini engellemiş veya izin isteği kapatılmış:")}
+                    </div>
+                    <ul style={{ margin: "6px 0 0", paddingLeft: 18, color: "var(--muted)", lineHeight: 1.5 }}>
+                      <li>{t("Tarayıcınızın adres çubuğundaki kilit (🔒) simgesine veya site ayarlarına tıklayın.")}</li>
+                      <li>{t("Bildirimler seçeneğini 'İzin Ver' olarak değiştirin.")}</li>
+                    </ul>
+                  </div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    className="pk-btn"
+                    disabled={pushMesgul}
+                    onClick={() => void pushDegistir()}
+                    style={{ minHeight: 36, padding: "0 14px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}
+                  >
+                    🔄 {t("Tekrar Dene")}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
