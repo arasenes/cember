@@ -75,34 +75,44 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
         </div>
       </div>
       <form className="gatecard" onSubmit={gonder} noValidate>
-        <div className="logo">
-          <Logo />
+        <div className="logo gate-logo">
+          <Logo boyut={38} />
           <b>{t("Çember")}</b>
         </div>
         <DonenSoz />
         {davetKodu && (
-          <div className="gate-davet-karti" role="status" style={{ padding: "10px 12px", borderRadius: 12, background: "rgba(88,101,242,0.16)", border: "1px solid rgba(88,101,242,0.38)", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, textAlign: "left" }}>
+          <div className="gate-davet-karti" role="status" style={{ padding: "10px 14px", borderRadius: 12, background: "rgba(88,101,242,0.16)", border: "1px solid rgba(88,101,242,0.38)", marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, textAlign: "left" }}>
             <span style={{ fontSize: 13 }}>
               🎟️ <b>{t("Bir sunucuya davet edildin")}</b> <span className="hint">({davetKodu})</span>
             </span>
             <button type="button" className="linkbtn" onClick={() => { davetiUnut(); setDavetKodu(null); }} aria-label={t("Daveti kaldır")}>✕</button>
           </div>
         )}
-        <p>{google ? "Arkadaşlarla yazış ve konuş. Google ile gir ya da misafir olarak katıl." : "Arkadaşlarla yazış ve konuş. Bir takma ad yazıp misafir olarak katıl."}</p>
+        <p className="gate-aciklama">{google ? t("Arkadaşlarla yazış ve konuş. Google ile gir ya da misafir olarak katıl.") : t("Arkadaşlarla yazış ve konuş. Bir takma ad yazıp misafir olarak katıl.")}</p>
         {google && (
           <>
             <button className="cta google-btn" type="button" onClick={googleGir} disabled={bekle}>
-              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.96 10.71A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.17.28-1.71V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/></svg>{t("Google ile devam et")}</button>
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.96 10.71A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.17.28-1.71V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/></svg>
+              <span>{t("Google ile devam et")}</span>
+            </button>
             <div className="gate-ayrac"><span>{t("ya da misafir olarak")}</span></div>
           </>
         )}
-        <div className="field">
+        <div className="field gate-field">
           <label htmlFor="ad">{t("Takma ad")}</label>
-          <input id="ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder={t("Örn. Aras")} />
+          <div className="gate-input-kutu">
+            <span className="gate-input-ikon" aria-hidden="true">👤</span>
+            <input id="ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder={t("Örn. Aras")} />
+          </div>
         </div>
         <div className="err" role="alert">{t(hata)}</div>
-        <button className="cta" type="submit" disabled={bekle}>{bekle ? "Giriliyor…" : "Misafir olarak gir"}</button>
-        <p className="hint">{t("Misafir hesabı Çıkış'a basınca silinir; mesajların \"Silinmiş üye\" adıyla kalır.")}</p>
+        <button className="cta gate-giris-btn" type="submit" disabled={bekle}>{bekle ? t("Giriliyor…") : t("Misafir olarak gir")}</button>
+        <p className="hint gate-hint">{t("Misafir hesabı Çıkış'a basınca silinir; mesajların \"Silinmiş üye\" adıyla kalır.")}</p>
+        <div className="gate-rozetler">
+          <span>🔒 {t("Uçtan Uca")}</span>
+          <span>⚡ {t("Doğrudan P2P")}</span>
+          <span>✨ {t("Ücretsiz")}</span>
+        </div>
       </form>
     </main>
   );
