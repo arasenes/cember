@@ -4,6 +4,8 @@ import { avatarHazirla, EkHatasi, IZINLI_TURLER, type HazirEk } from "./ekler";
 import type { Durum, Uye } from "./types";
 import { DURUM_BILGI, rolEtiketi } from "./util";
 import { t } from "./i18n";
+import { uyeXpGetir } from "./gamification/seviye";
+import { BANNER_RENKLERI, CERCEVELER, profilAyarGetir, profilAyarKaydet } from "./profilOzellestirme";
 
 // Seçici renkleri, üzerindeki baş harfin kontrastı en az 4.5 olacak şekilde seçildi (profil.test.tsx denetler).
 export const PROFIL_RENKLERI = ["#E8A33D", "#1F7A4D", "#0B7A91", "#B3261E", "#6B4FA0", "#B04680", "#3C6FB5", "#8A6D3B", "#287878", "#68761F", "#B5563C", "#4F5BA0"];
@@ -40,6 +42,8 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
   const [durumMetin, setDurumMetin] = useState(uye.durum_metin ?? "");
   const [yeni, setYeni] = useState<HazirEk | null>(null);
   const [kaldir, setKaldir] = useState(false);
+  const [ekAyar, setEkAyar] = useState(() => profilAyarGetir(uye.id));
+  const seviyeBilgisi = uyeXpGetir(uye.id);
   const [hata, setHata] = useState("");
   const [kaydediliyor, setKaydediliyor] = useState(false);
   const dosyaRef = useRef<HTMLInputElement>(null);
@@ -112,9 +116,16 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
         </div>
 
         <div className="profil-kimlik">
-          <Avatar uye={gosterilenUye} onizleme={yeni?.onizleme ?? null} className="buyuk" />
+          <div style={{ position: "relative", display: "inline-flex" }}>
+            <div style={{ borderRadius: "50%", boxShadow: CERCEVELER.find((c) => c.kod === ekAyar.cerceve)?.stil ?? "none", transition: "box-shadow 0.2s" }}>
+              <Avatar uye={gosterilenUye} onizleme={yeni?.onizleme ?? null} className="buyuk" />
+            </div>
+          </div>
           <div>
             {!benim && <div className="profil-ad">{uye.takma_ad}</div>}
+            <div className="hint" style={{ fontWeight: 600 }}>
+              {seviyeBilgisi.rozet} {seviyeBilgisi.unvan} · {t("Sv. {s}", { s: seviyeBilgisi.seviye })} ({seviyeBilgisi.xp} XP)
+            </div>
             <div className="hint">{rolEtiketi(uye.rol)} · {!cevrimici ? "Çevrimdışı" : DURUM_BILGI[uye.durum ?? "cevrimici"].ad}</div>
             {benim && (
               <div className="profil-foto">
@@ -157,6 +168,24 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
 
             <label htmlFor="pf-dm">{t("Durum metni")}</label>
             <input id="pf-dm" type="text" value={durumMetin} maxLength={DURUM_METNI_MAX} onChange={(e) => setDurumMetin(e.target.value)} placeholder={t("Ne yapıyorsun? (örn. Oyundayım)")} autoComplete="off" />
+
+            <label>{t("Avatar Çerçevesi")}</label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+              {CERCEVELER.map((c) => (
+                <button
+                  key={c.kod}
+                  type="button"
+                  className={"ciple" + (ekAyar.cerceve === c.kod ? " acik" : "")}
+                  onClick={() => {
+                    const yeniAyar = { ...ekAyar, cerceve: c.kod };
+                    setEkAyar(yeniAyar);
+                    profilAyarKaydet(uye.id, yeniAyar);
+                  }}
+                >
+                  {c.ad}
+                </button>
+              ))}
+            </div>
 
             <div className="err" role="alert">{t(hata)}</div>
             <div className="modal-alt">

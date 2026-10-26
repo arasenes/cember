@@ -48,6 +48,9 @@ import SesSahnesi from "./ses/SesSahnesi";
 import SesYani from "./ses/SesYani";
 import { ayarOku as basKonusAyarOku, ayarYaz as basKonusAyarYaz, useBasKonus, type BasKonusAyar } from "./ses/basKonus";
 import DmAlani, { type DmSayfa } from "./dm/DmAlani";
+import { xpKaydet } from "./gamification/seviye";
+import LiderlikTablosuDialog from "./gamification/LiderlikTablosuDialog";
+import { yeniCekilisOlustur, cekilisKodla } from "./mesaj/Cekilis";
 import { useDm } from "./dm/useDm";
 import type { DmMesaj } from "./dm/tipler";
 import ProfilDialog, { type ProfilDegisiklik } from "./ProfilDialog";
@@ -96,6 +99,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [yonBilgi, setYonBilgi] = useState("");
   const [sabitler, setSabitler] = useState<Mesaj[]>([]);
   const [sabitAcik, setSabitAcik] = useState(false);
+  const [liderlikAcik, setLiderlikAcik] = useState(false);
   const [konuDuzen, setKonuDuzen] = useState<string | null>(null);
   const [acik, setAcik] = useState<Set<string>>(new Set());
   const [sifreKanal, setSifreKanal] = useState<{ kanal: Kanal; sonra: () => void } | null>(null);
@@ -860,6 +864,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       }
       setMetin(""); setEmojiAcik(false); ekTemizle(); setYanitlanan(null);
       sesCal("gonder");
+      try { xpKaydet(me.id, ben.takma_ad, 10); } catch { /* yoksay */ }
       altaKaydir.current = true;
       setMesajlar((x) => birlestir(x, [data as Mesaj]));
       if (/https?:\/\//i.test(t)) void supabase.functions.invoke("onizleme", { body: { mesaj_id: (data as Mesaj).id } });
@@ -1343,6 +1348,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
               <button className="cb-ibtn ust-sabit" onClick={() => setSabitAcik(true)} aria-label={t(`${sabitler.length} sabitlenmiş mesajı göster`)}><Ikon ad="pin" /><span className="ust-sayi" aria-hidden="true">{sabitler.length}</span></button>
             )}
             <button className="cb-ibtn ust-sabit" onClick={() => setKayitlarAcik(true)} aria-label={t(`Kaydedilen mesajlar (${kaydedilenler.liste.length})`)} title={t("Kaydedilen mesajlar")}>🔖{kaydedilenler.liste.length > 0 && <span className="ust-sayi" aria-hidden="true">{kaydedilenler.liste.length}</span>}</button>
+            <button className="cb-ibtn" onClick={() => setLiderlikAcik(true)} aria-label={t("Liderlik Tablosu")} title={t("Liderlik Tablosu & XP")}>🏆</button>
             <button className="ust-ara" onClick={() => setAramaAcik(true)} aria-label={t("Mesajlarda ara")} aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /><span>{t("Mesajlarda ara")}</span></button>
             {sesliOda && (
               <button className="cb-ibtn ust-kapat" onClick={() => { kapanisSayisi.current = mesajlar.length; setSesSohbetKapali(true); }} aria-label={t("Sohbeti gizle")} title={t("Sohbeti gizle")}><Ikon ad="kapat" /></button>
@@ -1414,6 +1420,13 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <button className="sq ek-dugme" onClick={() => setAnketAcik(true)} aria-label={t("Anket oluştur")} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
           <button className="sq ek-dugme" onClick={() => setGifAcik((x) => !x)} aria-label={t("GIF seç")} aria-expanded={gifAcik} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
           <button className="sq ek-dugme" onClick={() => setOyunMenuAcik((x) => !x)} aria-label={t("Mini oyun başlat")} aria-expanded={oyunMenuAcik} disabled={yazamaz} title={t("Mini oyun başlat")}>🎮</button>
+          <button className="sq ek-dugme" onClick={() => {
+            const odul = window.prompt("Çekiliş ödülü nedir? (örn. Steam Kodu, Rol, Nitro):");
+            if (odul?.trim()) {
+              const c = yeniCekilisOlustur(odul.trim(), 5, me.id, ben.takma_ad);
+              void gifGonder(cekilisKodla(c));
+            }
+          }} aria-label={t("Çekiliş başlat")} disabled={yazamaz} title={t("Çekiliş başlat")}>🎉</button>
           <SesKayitDugmesi odaId={me.oda_id} uyeId={me.id} disabled={gonderiliyor || yazamaz} onGonder={(m) => void gifGonder(m)} onHata={setHata} />
           {oyunMenuAcik && <OyunBaslatMenusu benId={me.id} onBaslat={(kod) => void gifGonder(kod)} onKapat={() => setOyunMenuAcik(false)} />}
           {gifAcik && <GifSecici onSec={(u) => void gifGonder(u)} onKapat={() => setGifAcik(false)} />}
@@ -1499,6 +1512,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           onSunucuSilindi={() => { setYonetimAcik(false); onSunucularYenile?.(sunucular.find((x) => x.oda_id !== me.oda_id)?.oda_id); }} />
       )}
       {paletAcik && <KomutPaleti komutlar={paletKomutlari} onKapat={() => setPaletAcik(false)} />}
+      {liderlikAcik && <LiderlikTablosuDialog benId={me.id} onKapat={() => setLiderlikAcik(false)} onProfil={setProfilId} />}
       {sunucuDialogAcik && (
         <SunucuDialog misafir={!!ben.misafir} onKapat={() => setSunucuDialogAcik(false)}
           onTamam={(id) => { setSunucuDialogAcik(false); onSunucularYenile?.(id); }} />

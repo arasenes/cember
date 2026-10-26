@@ -10,6 +10,9 @@ import KaydedilenlerPaneli from "./mesaj/KaydedilenlerPaneli";
 import BeyazTahta, { gecerliCizimOlayiMi } from "./ses/BeyazTahta";
 import SesSahnesi from "./ses/SesSahnesi";
 import { gecerliSesModuMu, SES_MODLARI } from "./ses/sesDegistirici";
+import { seviyeIcinGerekenXp, xpToSeviye, xpKaydet, liderlikTablosuGetir } from "./gamification/seviye";
+import { cekilisCoz, cekilisKodla, yeniCekilisOlustur, CekilisKart } from "./mesaj/Cekilis";
+import { HAZIR_RADYOLAR } from "./ses/MuzikCalar";
 import Gate from "./Gate";
 
 describe("1. Birlikte İzle (Watch Party)", () => {
@@ -254,5 +257,49 @@ describe("9. Mesaj Kaydetme (Yer İmleri) & Kod Bloğu Kopyalama/Renklendirme", 
     );
 
     expect(screen.getAllByText("Sohbeti Gizle").length).toBeGreaterThan(0);
+  });
+
+  it("14. XP ve Seviye sistemi doğru seviye, unvan ve liderlik tablosu üretir", () => {
+    localStorage.clear();
+    expect(seviyeIcinGerekenXp(1)).toBe(0);
+    expect(seviyeIcinGerekenXp(2)).toBe(100);
+
+    const b1 = xpToSeviye(0);
+    expect(b1.seviye).toBe(1);
+    expect(b1.unvan).toBe("Çırak");
+
+    const b2 = xpKaydet("u-test-1", "Ahmet", 150);
+    expect(b2.seviye).toBe(2);
+    expect(b2.xp).toBe(150);
+
+    xpKaydet("u-test-2", "Mehmet", 350);
+    const liderler = liderlikTablosuGetir();
+    expect(liderler.length).toBe(2);
+    expect(liderler[0].ad).toBe("Mehmet");
+    expect(liderler[1].ad).toBe("Ahmet");
+  });
+
+  it("15. Çekiliş kartı doğru kodlanır, çözülür ve katılımı günceller", () => {
+    const c = yeniCekilisOlustur("Discord Nitro", 10, "u1", "Aras");
+    const kod = cekilisKodla(c);
+    const cozulmus = cekilisCoz(kod);
+    expect(cozulmus).not.toBeNull();
+    expect(cozulmus?.odul).toBe("Discord Nitro");
+
+    const onGuncelle = vi.fn();
+    render(<CekilisKart durum={c} benId="u2" benAd="Can" onGuncelle={onGuncelle} uyeAdGetir={() => "Can"} />);
+    expect(screen.getByText("Discord Nitro")).toBeTruthy();
+    fireEvent.click(screen.getByText("🎉 Çekilişe Katıl"));
+    expect(onGuncelle).toHaveBeenCalledWith(expect.objectContaining({
+      katilimcilar: expect.arrayContaining(["u1", "u2"]),
+    }));
+  });
+
+  it("16. Hazır radyo ve müzik istasyonlarını tanımlar", () => {
+    expect(HAZIR_RADYOLAR.length).toBeGreaterThanOrEqual(4);
+    for (const r of HAZIR_RADYOLAR) {
+      expect(r.url).toMatch(/^https?:\/\//);
+      expect(r.baslik.length).toBeGreaterThan(3);
+    }
   });
 });

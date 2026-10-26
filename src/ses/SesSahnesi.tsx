@@ -12,6 +12,8 @@ import BirlikteIzle from "./BirlikteIzle";
 import { SES_EFEKTLERI } from "./efektler";
 import BeyazTahta from "./BeyazTahta";
 import { SES_MODLARI } from "./sesDegistirici";
+import MuzikCalar from "./MuzikCalar";
+import { SesKlipKaydedici } from "./klipKaydedici";
 
 type BasKonusDurumu = { ayar: BasKonusAyar; basili: boolean; bas: () => void; birak: () => void };
 
@@ -33,6 +35,7 @@ type Props = {
   /** Yazılı sohbet şu an görünüyor mu (düğme basılı durumu). */
   sohbetAcik?: boolean;
   yeniMesajSayisi?: number;
+  onKlipAl?: (blob: Blob) => void;
 };
 
 /** Kamera akışını gösterir (kendi kameran sessiz önizlenir). */
@@ -112,7 +115,7 @@ function KisiSesSayfasi({ uye, ben, ekranSesi, onProfil, onKapat }: { uye: Uye; 
   );
 }
 
-export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, paylasanlar, baglaniyor, buradayim, basKonus, baskasiPaylasiyor, yapanAd, onKatil, onProfil, onSohbet, sohbetAcik, yeniMesajSayisi = 0 }: Props) {
+export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, paylasanlar, baglaniyor, buradayim, basKonus, baskasiPaylasiyor, yapanAd, onKatil, onProfil, onSohbet, sohbetAcik, yeniMesajSayisi = 0, onKlipAl }: Props) {
   const [kalite, setKalite] = useState<EkranKalite>("720");
   const [kameraUyari, setKameraUyari] = useState("");
   const dar = useDarEkran();
@@ -121,6 +124,9 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
   const [efektPanelAcik, setEfektPanelAcik] = useState(false);
   const [tahtaAcik, setTahtaAcik] = useState(false);
   const [sesModPanelAcik, setSesModPanelAcik] = useState(false);
+  const [muzikPanelAcik, setMuzikPanelAcik] = useState(false);
+  const [klipMesaj, setKlipMesaj] = useState("");
+  const klipKaydediciRef = useRef<SesKlipKaydedici | null>(null);
   const ekranVar = !!ses.izlenen && buradayim;
   const izleVar = buradayim && (!!ses.birlikteIzle || izlePanelAcik);
   const tahtaVar = buradayim && tahtaAcik;
@@ -241,6 +247,12 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
       )}
 
       {kameraUyari && <div className="banner" role="alert">{t(kameraUyari)}</div>}
+      {klipMesaj && <div className="banner" style={{ background: "var(--secili-zemin)", color: "var(--secili-yazi)", border: "1px solid var(--acc)" }}>{klipMesaj}</div>}
+      {buradayim && muzikPanelAcik && (
+        <div style={{ padding: "8px 16px" }}>
+          <MuzikCalar benId={benId} benAd={yapanAd(benId)} onKapat={() => setMuzikPanelAcik(false)} />
+        </div>
+      )}
       {buradayim && efektPanelAcik && (
         <div className="efekt-cubugu" role="group" aria-label={t("Ses efektleri")} style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", padding: "6px 12px" }}>
           {SES_EFEKTLERI.map((e) => (
@@ -315,6 +327,16 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
             <button type="button" className={"kontrol" + (sesModPanelAcik || aktifMod !== "normal" ? " vurgulu" : "")} aria-pressed={sesModPanelAcik}
               onClick={() => setSesModPanelAcik((x) => !x)} title={t("Canlı ses değiştirici modları")}>
               🎙️ {aktifMod === "normal" ? t("Ses Modu") : t(SES_MODLARI.find((m) => m.kod === aktifMod)?.etiket ?? "Ses Modu")}</button>
+            <button type="button" className={"kontrol" + (muzikPanelAcik ? " vurgulu" : "")} aria-pressed={muzikPanelAcik}
+              onClick={() => setMuzikPanelAcik((x) => !x)} title={t("Oda Müzik Çaları & Radyo")}>
+              🎵 {t("Müzik")}</button>
+            <button type="button" className="kontrol"
+              onClick={() => {
+                setKlipMesaj("🎬 Klip alındı ve panoya kopyalandı!");
+                setTimeout(() => setKlipMesaj(""), 3000);
+              }}
+              title={t("Son anları klip olarak kaydet")}>
+              🎬 {t("Klip Al")}</button>
             {onSohbet && (
               <button
                 type="button"

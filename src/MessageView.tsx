@@ -12,6 +12,7 @@ import type { Anket } from "./mesaj/anket";
 import EmojiDeposu from "./EmojiDeposu";
 import { DmEkResim, dmResimCoz, SesliMesajOynatici, sesliMesajCoz } from "./mesaj/SesliMesaj";
 import { MiniOyunKart, miniOyunCoz } from "./mesaj/MiniOyun";
+import { CekilisKart, cekilisCoz } from "./mesaj/Cekilis";
 import { t } from "./i18n";
 
 /** Aşama 1 mesaj özellikleri: alıntılı yanıt, iletme, anket. Hepsi isteğe bağlıdır. */
@@ -69,7 +70,8 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
   const sesliEk = mesaj.metin ? sesliMesajCoz(mesaj.metin) : null;
   const dmResim = mesaj.metin ? dmResimCoz(mesaj.metin) : null;
   const miniOyun = mesaj.metin ? miniOyunCoz(mesaj.metin) : null;
-  const duzenlenebilir = !!onDuzenle && benimMi && !mesaj.silindi && !!mesaj.metin && !sesliEk && !dmResim && !miniOyun;
+  const cekilis = mesaj.metin ? cekilisCoz(mesaj.metin) : null;
+  const duzenlenebilir = !!onDuzenle && benimMi && !mesaj.silindi && !!mesaj.metin && !sesliEk && !dmResim && !miniOyun && !cekilis;
 
   async function kaydet() {
     const t = taslak.trim();
@@ -146,6 +148,18 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
                 onHamle={(yeni) => {
                   if (zengin?.onOyunHamle) zengin.onOyunHamle(mesaj, yeni);
                   else if (onDuzenle && benimMi) void onDuzenle(mesaj, yeni);
+                }}
+              />
+            ) : cekilis ? (
+              <CekilisKart
+                durum={cekilis}
+                benId={benim.id}
+                benAd={benim.takma_ad}
+                uyeAdGetir={(id) => (id === yazar?.id ? yazar.takma_ad : zengin?.uyeAd?.(id) ?? "Üye")}
+                onGuncelle={(yeni) => {
+                  const yeniKod = `[cekilis:${JSON.stringify(yeni)}]`;
+                  if (zengin?.onOyunHamle) zengin.onOyunHamle(mesaj, yeniKod);
+                  else if (onDuzenle) void onDuzenle(mesaj, yeniKod);
                 }}
               />
             ) : dmResim ? (
