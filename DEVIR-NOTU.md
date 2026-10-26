@@ -1,4 +1,4 @@
-# Çember — Devir Notu (7 Ekim 2026, güncel)
+# Çember — Devir Notu (26 Ekim 2026, güncel)
 
 Arkadaşlar için Discord benzeri sohbet + sesli oda uygulaması. Yönetici: Aras (bronzaras@gmail.com). Kullanıcı kısa Türkçe yanıt istiyor.
 
@@ -6,7 +6,7 @@ Arkadaşlar için Discord benzeri sohbet + sesli oda uygulaması. Yönetici: Ara
 - **Kod:** GitHub `arasenes/cember` (main). Vite + React 19 + TypeScript, supabase-js, livekit-client, vitest. Bu oturumdaki tüm `src/` ve `android-ayar/` değişiklikleri GitHub'a yüklendi (güncel kaynak = GitHub main). `git clone https://github.com/arasenes/cember` ile başla.
 - **Yayın:** Render statik site `srv-db1223ugekts73bqrbgg` → https://cember.onrender.com (main'e her commit ~20 sn'de yayına girer).
 - **Backend:** Supabase proje `ehjslrbgazmakeucvquk` (veritabanı, auth, edge function'lar: `katil`, `ses-token`, `bildir`).
-- **Sesli oda / ekran paylaşımı:** LiveKit (`ses-token` token üretir). LiveKit olmazsa `p2p.ts` ile doğrudan (ücretsiz) moda düşer; bu modda mikrofon zorunlu.
+- **Sesli oda / ekran paylaşımı:** Doğrudan kendi WebRTC P2P ses motorumuz (`src/p2p.ts`, 12 kişiye kadar, ücretsiz ve süre kotasız; mikrofonsuz salt dinleyici `recvonly` destekli). Sesli odada YouTube **Birlikte İzle** (`src/ses/BirlikteIzle.tsx`) ve **Ses Efekt Paneli / Soundboard** (`src/ses/efektler.ts`) mevcut.
 - **Android APK:** Capacitor sarmalayıcı, `https://cember.onrender.com` adresini yükler (appId `com.cember.chat`). GitHub Actions `.github/workflows/apk.yml` derler (tetikleyici: `capacitor.config.json`, `android-ayar/**`, workflow dosyası). Her derlemede `npx cap add android` sıfırdan çalışır, ardından `android-ayar/uygula.py` manifest/Gradle/Kotlin ayarlarını uygular. Sürüm = Actions çalıştırma numarası. İndirme: https://github.com/arasenes/cember/releases/download/apk-son/cember.apk
 - **Son APK:** #8 (1.0.8) başarılı. (#7 21 sn'de başarısız oldu, #8 aynı değişiklikleri içeriyor.)
 
@@ -33,7 +33,7 @@ Arkadaşlar için Discord benzeri sohbet + sesli oda uygulaması. Yönetici: Ara
 3. **APK bildirimleri (Firebase/FCM):** Firebase projesi açılıp `google-services.json` dosyası `android-ayar/google-services.json` olarak commit edilmeli; Supabase gizli anahtarı `FCM_SERVICE_ACCOUNT` eklenmeli. **GitHub'a yüklenmemiş yerel değişiklik:** `.github/workflows/apk.yml` içindeki npm kurulum satırına `@capacitor/push-notifications@^8.1.3` eklenecek (yerel kopya buluttaki oturumda kaldı; elle ekle). `uygula.py` zaten `google-services.json` varsa kopyalıyor. APK için push kaydı istemci kodu (`push.ts` içinde `yerelPush`) hazır ama Firebase olmadan çalışmaz.
 4. **Genel odada duyuru:** yeni özellikleri `genel` kanalına Aras olarak yaz (Google giriş, misafir hesap, APK güncelleme uyarısı, bildirimler, animasyonlu giriş, ekran/ses iyileştirmeleri). Kanal kimliği (`ff861bc3-4f6b-4e24-aca4-7d46c1bb6a5a`) silme sonrası değişmiş olabilir; kontrol et.
 5. Uçtan uca bildirim testi (ikinci hesapla mesaj gönderip).
-6. P2P modu yalnızca dinleyici olarak girmeyi desteklemiyor (mikrofon şart).
+6. ~~P2P modu yalnızca dinleyici olarak girmeyi desteklemiyor~~ → **Tamamlandı (26 Ekim 2026):** `src/p2p.ts` içinde `recvonly` ile mikrofonsuz dinleyici desteği eklendi.
 7. Repoda olmayanlar: `supabase/migrations/008–014` (yerelde vardı, bulut oturumunda kaldı; Supabase'de uygulanmış durumda) ve README güncellemesi. `yonetici_kodlari` tablosunda kullanılmayan bir satır duruyor (silme sorgusu zaman aşımına uğradı).
 8. Eski "Enes-BRONZ" hesabı `sahip` rolünde (aynı kişi/hesap olabilir); ikinci yönetici istenmiyorsa `uyeler.rol` düşürülmeli.
 9. Marka adı: global yayın için `cember.com` alınmış; adaylar Kinnect, Kulisly, Ahbaply, Cirkl, Huddlo (alan adı/marka kontrolü kullanıcıda).
@@ -160,8 +160,12 @@ Yeni kod `src/mesaj/` altında; `Chat.tsx` yalnızca bağlar. Her özelliğin bi
 - **Dosya yükleme XSS:** incelendi, düzeltme gerekmedi. Kovalar özel, yalnızca webp/jpeg/png/gif (SVG/HTML yok), 1-5 MB, üyelik politikaları, imzalı adres ve ayrı alan adı (supabase.co); mesaj/markdown/önizleme React ile kaçışlanıyor, yalnızca http/https, `dangerouslySetInnerHTML` yok. Not: Storage içerik yerine bildirilen MIME türünü doğrular; zararsız çünkü resim olarak sunulur.
 - Canlıda kalan sahte test satırı: `giris_denemeleri` içinde `ip='test-ip-039'` (2 satır), zararsız, silinebilir.
 
-### Doğrudan kendi ses motorumuza geçiş ve P2P dinleyici desteği (26 Ekim 2026)
+### Doğrudan kendi ses motorumuza geçiş ve 5 yeni özellik (26 Ekim 2026)
 - **LiveKit ve dakika kotası kaldırıldı, kendi P2P ses motorumuz (`src/p2p.ts`) ana motor yapıldı (`src/sesMotoru.ts`):** Tüm kullanıcılar artık doğrudan kendi WebRTC ses motorumuzda buluşur; LiveKit/P2P bölünmesi ve 5.000 dk aylık kota tamamen kalktı. Üretim paketinden 517 KB'lık `livekit-client` yükü de çıktı.
 - **P2P dinleyici modu ve iyileştirmeler (`src/p2p.ts`, `src/ses/SesSahnesi.tsx`):** Mikrofon bulunamadığında (`NotFoundError`) veya izin verilmediğinde (`NotAllowedError`) P2P modunda da odaya salt dinleyici (`recvonly` transceiver, `sessiz=true`) olarak katılınabilir. Oda kapasitesi (`P2P_MAX_KISI`) 12 kişiye çıkarıldı; `SesSahnesi.tsx` kamera ikonu düzeltildi ve ekran sesi kişi başı ses düzeyi P2P modunda da etkinleştirildi.
-- **Testler:** `src/sesMotoru.test.tsx` ve `src/yeniOzellikler.test.tsx` eklendi (202 test geçiyor, `npm run build` temiz).
-- **Yeni 5 özellik (26 Ekim 2026):** (1) Sesli odada **Birlikte İzle** (`src/ses/BirlikteIzle.tsx`: YouTube senkron oynatma/duraklatma/sarma), (2) Sesli oda **Efekt Paneli / Soundboard** (`src/ses/efektler.ts`: 6 Web Audio ses efekti, odadaki herkese yayın), (3) Kanallarda ve DM'de **Sesli Mesaj** (`src/mesaj/SesliMesaj.tsx`: 60 sn ses kaydı ve oynatıcı), (4) **DM'de resim yükleme/yapıştırma ve GIF seçici** (`src/dm/DmSohbet.tsx`), (5) Giriş ekranında **Davet Karşılama Kartı** (`src/Gate.tsx`).
+- **1. Sesli Odada Birlikte İzle (`src/ses/BirlikteIzle.tsx`):** Sesli odada YouTube bağlantısı yapıştırıp odadaki herkesle senkronize oynatma/duraklatma ve `-15s`/`+15s` sarma (`ses:${kanal_id}` broadcast + presence senkronu).
+- **2. Sesli Oda Efekt Paneli / Soundboard (`src/ses/efektler.ts`):** Web Audio ile sentezlenen 6 ses efekti (Alkış, Espri/Ba-dum-tss, Korna, Zafer, Gong, Trombon); odadaki herkese yayınlanır ve çalan kişinin avatarında rozeti görünür.
+- **3. Kanallarda ve DM'de Sesli Mesaj (`src/mesaj/SesliMesaj.tsx`, `src/Chat.tsx`, `src/dm/DmSohbet.tsx`):** Yazı alanının yanındaki `🎤` düğmesiyle 60 sn'ye kadar ses kaydı (`[sesli:<yol>|<sureSn>]`) ve sohbet içi oynatıcı (`SesliMesajOynatici`).
+- **4. DM'de Resim ve GIF Desteği (`src/dm/DmSohbet.tsx`, `src/MessageView.tsx`):** Özel mesajlarda resim seçme/panodan yapıştırma (`[dmresim:<yol>|<g>x<y>]`, `DmEkResim` lightbox) ve `GifSecici` eklendi.
+- **5. Giriş Ekranında Davet Karşılama Kartı (`src/Gate.tsx`):** `/?davet=KOD` ile gelen kullanıcılara `Gate` ekranında davet bilgi kartı gösterilir.
+- **Testler ve Yayın:** `src/sesMotoru.test.tsx` ve `src/yeniOzellikler.test.tsx` eklendi (31 test dosyası, 202 test geçiyor, `npm run build` temiz). Tüm değişiklikler `origin/main`'e push'landı ve Render'da yayında.
