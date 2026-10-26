@@ -12,7 +12,7 @@ import { ekranHatasi, ekranIstegi, KALITE, type EkranKalite, type EkranSonuc, ty
  * yalnızca odanın üyeleri o kanala girebilir (bkz. 004 migration).
  * Aşağıdaki sınır, mesh'in 5-6 kişiye kadar rahat çalışması içindir.
  */
-export const P2P_MAX_KISI = Number(import.meta.env.VITE_SES_MAX_KISI ?? 6);
+export const P2P_MAX_KISI = Number(import.meta.env.VITE_SES_MAX_KISI ?? 12);
 const VARSAYILAN_ICE: RTCIceServer[] = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"] }];
 
 // Ekran paylaşımı için ayrı "ekran-*" sinyalleri kullanılır: ses bağlantılarına dokunmaz ve ekran paylaşımını bilmeyen eski sürümler bunları yok sayar.
@@ -350,7 +350,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             for (const id of Object.keys(kanal?.presenceState() ?? {})) {
               if (id !== uyeId && !ekranGiden.has(id)) kuyruk = kuyruk.then(() => ekranTeklif(id)).catch(() => {});
             }
-            return { ok: true };
+            const sesVar = yakalanan.getAudioTracks().length > 0;
+            return sesVar ? { ok: true } : { ok: true, mesaj: "Ekran paylaşılıyor ama SES gitmiyor. Ses için paylaşırken 'Sistem sesini / Sekme sesini paylaş' kutusunu işaretle (Chrome'da sekme ya da tüm ekran seç)." };
           } catch (e) {
             return ekranHatasi(e);
           }

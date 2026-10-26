@@ -1309,7 +1309,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <EkranPaneli
             izlenen={ses.izlenen}
             yapanAd={uyeHaritasi.get(ses.izlenen.uyeId)?.takma_ad ?? "Biri"}
-            sesAnahtari={ses.motor === "livekit" ? `${ses.izlenen.uyeId}~ekran` : undefined}
+            sesAnahtari={`${ses.izlenen.uyeId}~ekran`}
           />
         )}
         <GuncellemeBandi />

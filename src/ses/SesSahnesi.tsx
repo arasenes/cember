@@ -172,7 +172,7 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
           <EkranPaneli
             izlenen={ses.izlenen}
             yapanAd={yapanAd(ses.izlenen.uyeId)}
-            sesAnahtari={ses.motor === "livekit" ? `${ses.izlenen.uyeId}~ekran` : undefined}
+            sesAnahtari={`${ses.izlenen.uyeId}~ekran`}
           />
         )}
         {kendiEkranVar && ses.kendiEkran && <KendiEkranOnizleme akis={ses.kendiEkran} />}
@@ -212,7 +212,7 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
               <Ikon ad={ses.sagir ? "kulaklikKapali" : "kulaklik"} />{" "}{t("Sağırlaştır")}</button>
             <button type="button" className="kontrol" aria-pressed={ses.kameraAcik} onClick={() => void kameraTikla()}
               title={ses.motor === "p2p" ? t("Doğrudan modda en çok 640×360 çözünürlükte") : undefined}>
-              <Ikon ad={ses.kameraAcik ? "kamerat(" : ")kameraKapali"} />{" "}{t("Kamera")}</button>
+              <Ikon ad={ses.kameraAcik ? "kamera" : "kameraKapali"} />{" "}{t("Kamera")}</button>
             {ses.ekranDestegi && (
               ses.paylasiyorum
                 ? <button type="button" className="kontrol vurgulu" aria-pressed={true} onClick={() => void ses.ekranDurdur()}><Ikon ad="ekran" />{" "}{t("Paylaşımı durdur")}</button>
