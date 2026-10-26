@@ -303,7 +303,7 @@ export default function BeyazTahta({
   void yapanAd;
 
   return (
-    <section className="ekran-panel beyaz-tahta" aria-label={t("Ortak Beyaz Tahta")} style={{ width: "100%", maxWidth: 760, margin: "0 auto" }}>
+    <section className="ekran-panel beyaz-tahta" aria-label={t("Ortak Beyaz Tahta")} style={{ flex: 1, minHeight: 0, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
       <div className="ekran-ust" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
         <span className="ekran-ust-ad">🎨 <b>{t("Ortak Beyaz Tahta")}</b></span>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -335,7 +335,7 @@ export default function BeyazTahta({
           </button>
         </div>
       </div>
-      <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", background: "#14171f", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
+      <div style={{ position: "relative", flex: "1 1 0", minHeight: 220, width: "100%", height: "100%", background: "#14171f", overflow: "hidden" }}>
         <canvas
           ref={canvasRef}
           width={960}

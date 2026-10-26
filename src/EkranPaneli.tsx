@@ -65,7 +65,7 @@ export default function EkranPaneli({ izlenen, yapanAd, sesAnahtari, benId, kisi
           <button className="linkbtn" onClick={tamEkran}>{t("Tam ekran")}</button>
         </span>
       </div>
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", flex: "1 1 0", minHeight: 0, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
         <video ref={ref} controls={!lazerAcik} autoPlay playsInline disablePictureInPicture={false} aria-label={t(`${yapanAd} ekran yayını`)} />
         {benId && (
           <EkranCizimKatmani

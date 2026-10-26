@@ -50,6 +50,8 @@ type Props = {
 export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onKapatPanel }: Props) {
   const [girdi, setGirdi] = useState("");
   const [hata, setHata] = useState("");
+  const [buyuk, setBuyuk] = useState(false);
+  const kutuRef = useRef<HTMLElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const ilkSnRef = useRef<number>(0);
   const sonVideoRef = useRef<string>("");
@@ -73,6 +75,13 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
     ytKomut("seekTo", [hedefSn, true]);
     ytKomut(durum.oynuyor ? "playVideo" : "pauseVideo");
   }, [durum]);
+
+  useEffect(() => {
+    if (!buyuk) return;
+    const tus = (e: KeyboardEvent) => { if (e.key === "Escape") setBuyuk(false); };
+    window.addEventListener("keydown", tus);
+    return () => window.removeEventListener("keydown", tus);
+  }, [buyuk]);
 
   function baslat(e: React.FormEvent) {
     e.preventDefault();
@@ -98,9 +107,25 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
     onDegistir({ ...durum, baslangicSn: simdiSn, oynuyor: !durum.oynuyor, guncelleme: Date.now() });
   }
 
+  function tamEkran() {
+    const el = iframeRef.current ?? kutuRef.current;
+    if (!el) return;
+    try {
+      if (el.requestFullscreen) void el.requestFullscreen().catch(() => setBuyuk((x) => !x));
+      else setBuyuk((x) => !x);
+    } catch {
+      setBuyuk((x) => !x);
+    }
+  }
+
   return (
-    <section className="ekran-panel birlikte-izle-panel" aria-label={t("Birlikte İzle")}>
-      <div className="ekran-ust">
+    <section
+      ref={kutuRef}
+      className={"ekran-panel birlikte-izle-panel" + (buyuk ? " buyuk" : "")}
+      aria-label={t("Birlikte İzle")}
+      style={buyuk ? { position: "fixed", inset: 0, zIndex: 80, borderRadius: 0 } : { flex: 1, minHeight: 0, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
+    >
+      <div className="ekran-ust" style={{ flex: "none" }}>
         <span className="ekran-ust-ad">
           🎬 <b>{t("Birlikte İzle")}</b>
           {durum && <span className="hint"> · {baslatanAd}</span>}
@@ -111,7 +136,9 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
               <button type="button" className="linkbtn" onClick={() => sar(-15)} title={t("15 saniye geri")}>⏪ -15s</button>
               <button type="button" className="linkbtn" onClick={oynatDuraklat}>{durum.oynuyor ? "⏸ Duraklat" : "▶️ Oynat"}</button>
               <button type="button" className="linkbtn" onClick={() => sar(15)} title={t("15 saniye ileri")}>+15s ⏩</button>
-              <button type="button" className="linkbtn" onClick={() => onDegistir(null)}>{t("Videoyu kapat")}</button>
+              <button type="button" className="linkbtn" onClick={() => setBuyuk((b) => !b)} aria-pressed={buyuk}>{buyuk ? t("Küçült") : t("Büyüt")}</button>
+              <button type="button" className="linkbtn" onClick={tamEkran}>{t("Tam ekran")}</button>
+              <button type="button" className="linkbtn" onClick={() => { setBuyuk(false); onDegistir(null); }}>{t("Videoyu kapat")}</button>
             </>
           )}
           {!durum && onKapatPanel && (
@@ -120,7 +147,7 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
         </span>
       </div>
 
-      <form className="birlikte-izle-form" onSubmit={baslat} style={{ display: "flex", gap: 8, padding: "8px 12px", alignItems: "center" }}>
+      <form className="birlikte-izle-form" onSubmit={baslat} style={{ display: "flex", gap: 8, padding: "6px 12px", alignItems: "center", flex: "none" }}>
         <input
           type="url"
           value={girdi}
@@ -131,18 +158,22 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
         />
         <button type="submit" className="pk-btn" disabled={!girdi.trim()}>{t("Başlat")}</button>
       </form>
-      {hata && <div className="err" role="alert" style={{ padding: "0 12px 8px" }}>{t(hata)}</div>}
+      {hata && <div className="err" role="alert" style={{ padding: "0 12px 8px", flex: "none" }}>{t(hata)}</div>}
 
-      {durum && (
-        <div className="birlikte-izle-video" style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", maxHeight: 340, background: "#000" }}>
+      {durum ? (
+        <div className="birlikte-izle-video" style={{ position: "relative", flex: "1 1 0", minHeight: 220, width: "100%", height: "100%", background: "#000", display: "flex" }}>
           <iframe
             ref={iframeRef}
             title={t("Birlikte İzle YouTube oynatıcısı")}
             src={`https://www.youtube-nocookie.com/embed/${durum.videoId}?autoplay=1&enablejsapi=1&rel=0&start=${ilkSnRef.current}`}
-            style={{ width: "100%", height: "100%", border: 0 }}
+            style={{ flex: 1, width: "100%", height: "100%", border: 0, display: "block" }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
+        </div>
+      ) : (
+        <div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", padding: 24, textAlign: "center" }}>
+          🎬 {t("Yukarıya bir YouTube bağlantısı yapıştırıp Başlat'a bas; odadaki herkes aynı anda izler.")}
         </div>
       )}
     </section>
