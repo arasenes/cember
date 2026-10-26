@@ -137,10 +137,16 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       if (!navigator.mediaDevices?.getUserMedia) return await basarisiz("izin", "Sesli odalar yalnızca güvenli (https) bağlantıda çalışır.");
       const { iceServers, turn } = await iceSunuculariniAl();
       setTurnVar(turn);
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: gurultuTercihi(), autoGainControl: gurultuTercihi() },
-      });
-      if (islem !== islemRef.current) { stream.getTracks().forEach((t) => t.stop()); return { ok: false, neden: "iptal" }; }
+      let mikYok = false;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: gurultuTercihi(), autoGainControl: gurultuTercihi() } });
+      } catch (e) {
+        const ad = (e as { name?: string })?.name ?? "";
+        const mesaj = String((e as { message?: string })?.message ?? "");
+        if (ad === "NotFoundError" || ad === "NotAllowedError" || /requested device not found|permission|denied/i.test(mesaj)) { mikYok = true; stream = null; }
+        else throw e;
+      }
+      if (islem !== islemRef.current) { stream?.getTracks().forEach((t) => t.stop()); return { ok: false, neden: "iptal" }; }
       yerelRef.current = stream;
 
       // Konuşma algılama (yeşil halka)
@@ -154,7 +160,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         ctx.createMediaStreamSource(ms).connect(an);
         olcumNoktalari.set(id, an);
       };
-      analizEkle(uyeId, stream);
+      if (stream) analizEkle(uyeId, stream);
       let sonKonusan = "";
       const sonSesli = new Map<string, number>();
       olcum = setInterval(() => {
@@ -191,7 +197,11 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         const pc = new RTCPeerConnection({ iceServers });
         const es: Es = { pc, bekleyenIce: bekleyenIcePeer.get(peerId) ?? [], uzakVar: false, baslatan, sonlandir: () => {}, sorunZamani: Date.now() };
         bekleyenIcePeer.delete(peerId);
-        stream!.getTracks().forEach((t) => pc.addTrack(t, stream!));
+        if (stream) {
+          stream.getTracks().forEach((t) => pc.addTrack(t, stream!));
+        } else if (baslatan) {
+          try { pc.addTransceiver("audio", { direction: "recvonly" }); } catch { /* yoksay */ }
+        }
         pc.onicecandidate = (e) => { if (e.candidate) gonder(peerId, "ice", e.candidate.toJSON()); };
         pc.ontrack = (e) => {
           const uzak = e.streams[0] ?? new MediaStream([e.track]);
@@ -554,8 +564,9 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       if (doluHatasi) return { ok: false, neden: "dolu", mesaj: `Sesli oda dolu (en fazla ${P2P_MAX_KISI} kişi).` };
       if (islem !== islemRef.current) { await kapat(); return { ok: false, neden: "iptal" }; }
       setDurum("bagli");
+      if (mikYok) setSessiz(true);
       onKanal(hedef);
-      return { ok: true };
+      return { ok: true, mikYok };
     } catch (e) {
       const ad = (e as { name?: string }).name;
       const izin = ad === "NotAllowedError" || ad === "NotFoundError";
@@ -568,7 +579,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
 
   /** Mikrofonu açar/kapatır (sessiz=true: kapalı). Bas-konuş ve sağırlaştırma da bunu kullanır. */
   const sessizAyarla = useCallback(async (yeni: boolean) => {
-    yerelRef.current?.getAudioTracks().forEach((t) => { t.enabled = !yeni; });
+    if (!yerelRef.current) { setSessiz(true); return; }
+    yerelRef.current.getAudioTracks().forEach((t) => { t.enabled = !yeni; });
     setSessiz(yeni);
   }, []);
   const sessizDegistir = useCallback(async () => { await sessizAyarla(!sessiz); }, [sessiz, sessizAyarla]);

@@ -14,7 +14,7 @@ const BOS_KAMERALAR: Map<string, MediaStream> = new Map();
  * İki sesli motoru birleştirir:
  *  - Önce LiveKit denenir (daha sağlam; ücretsiz planda aylık 5.000 dakika sınırı var).
  *  - LiveKit kurulu değilse, kotası dolduysa ya da bağlanamazsa otomatik olarak doğrudan (P2P, ücretsiz, kotasız) moda geçilir.
- *  - Bağlantı sırasında LiveKit koparsa (kota dolması dahil) yine P2P'ye geçilir.
+ *  - Bağlantı sırasında LiveKit koparsa önce yeniden bağlanmayı dener; kota dolması veya odada kimsenin LiveKit'te kalmaması durumunda P2P'ye geçilir.
  * Aynı kanaldaki herkesin aynı motorda olması gerekir: odada zaten biri varsa onun motoru kullanılır.
  *
  * onKanal: (kanal, motor) presence ile odadaki herkese duyurulur.
@@ -32,22 +32,60 @@ export function useSesMotoru(
   const [sunucuSustur, setSunucuSusturState] = useState(false);
   const sagirOncesiSessiz = useRef(false);
   const baglanRef = useRef<(k: string) => Promise<void>>(async () => {});
+  const kopmaIslemRef = useRef(0);
 
   const lk = useSes(uyeId, (k) => onKanal(k, k ? "livekit" : null), (k, neden) => {
-    // LiveKit beklenmedik şekilde koptu: ücretsiz moda geç
-    setBilgi(`LiveKit bağlantısı koptu (${neden}), ücretsiz doğrudan moda geçiliyor.`);
-    sesCal("hata");
-    void p2pBaglan(k);
+    void (async () => {
+      if (neden === "PARTICIPANT_REMOVED") { setBilgi("Bir yönetici seni sesli odadan çıkardı."); sesCal("ayril"); return; }
+      if (neden === "DUPLICATE_IDENTITY") { setBilgi("Başka bir cihazdan veya sekmeden sesli odaya bağlandığın için buradaki bağlantı kapatıldı."); sesCal("ayril"); return; }
+      if (neden === "ROOM_DELETED" || neden === "ROOM_CLOSED") { setBilgi("Sesli oda kapatıldı."); sesCal("ayril"); return; }
+      const islem = ++kopmaIslemRef.current;
+      let sonSonuc: Awaited<ReturnType<typeof lk.baglan>> | null = null;
+      if (motorSor(k) !== "p2p") {
+        setBilgi(`LiveKit bağlantısı koptu (${neden}), yeniden bağlanılıyor...`);
+        for (const bekle of [1200, 2500]) {
+          await new Promise((r) => setTimeout(r, bekle));
+          if (islem !== kopmaIslemRef.current) return;
+          if (motorSor(k) === "p2p") break;
+          const r = await lk.baglan(k);
+          if (islem !== kopmaIslemRef.current || r.neden === "iptal") return;
+          if (r.ok) {
+            if (r.izinYok) setBilgi("Bu sunucuda sesli odada konuşma iznin yok; yalnızca dinleyici olarak katıldın.");
+            else if (r.mikYok) setBilgi("Mikrofon bulunamadı; odaya yalnızca dinleyici olarak katıldın.");
+            else setBilgi("");
+            return;
+          }
+          sonSonuc = r;
+          if (r.neden === "limit" || r.neden === "kurulmadi" || r.neden === "izin" || r.neden === "dolu") break;
+        }
+      }
+      if (islem !== kopmaIslemRef.current) return;
+      if (sonSonuc?.neden === "izin" || sonSonuc?.neden === "dolu") {
+        setBilgi(""); setHata(sonSonuc.mesaj ?? "Sese bağlanılamadı."); sesCal("hata"); return;
+      }
+      if (motorSor(k) === "livekit" && sonSonuc?.neden !== "limit" && sonSonuc?.neden !== "kurulmadi") {
+        setBilgi("");
+        setHata(`LiveKit bağlantısı koptu (${neden}) ve yeniden bağlanılamadı. İnternetini kontrol edip tekrar katıl.`);
+        sesCal("hata");
+        return;
+      }
+      setBilgi(`LiveKit bağlantısı koptu (${neden}), ücretsiz doğrudan moda geçiliyor.`);
+      sesCal("hata");
+      await p2pBaglan(k);
+    })();
   });
   const p2p = useSesP2P(uyeId, (k) => onKanal(k, k ? "p2p" : null));
 
   async function p2pBaglan(k: string) {
     const r = await p2p.baglan(k);
-    if (r.ok) sesCal("katil");
-    else if (r.neden !== "iptal") setHata(r.mesaj ?? "Sese bağlanılamadı.");
+    if (r.ok) {
+      sesCal("katil");
+      if (r.mikYok) setBilgi((onceki) => onceki ? `${onceki} (Mikrofon yok: yalnızca dinleyici)` : "Mikrofon bulunamadı; odaya yalnızca dinleyici olarak katıldın.");
+    } else if (r.neden !== "iptal") setHata(r.mesaj ?? "Sese bağlanılamadı.");
   }
 
   const baglan = useCallback(async (hedef: string) => {
+    kopmaIslemRef.current++;
     setHata(""); setBilgi("");
     sesYoneticisi.sagirlastir(false); setSagir(false); setSunucuSusturState(false);
     await Promise.all([lk.ayril(), p2p.ayril()]);
@@ -86,7 +124,7 @@ export function useSesMotoru(
     bilgi,
     kabiRefleri: [lk.sesKabi, p2p.sesKabi],
     baglan,
-    ayril: async () => { const baglantiVardi = aktif.durum !== "kapali"; await Promise.all([lk.ayril(), p2p.ayril()]); sagirSifirla(); if (baglantiVardi) sesCal("ayril"); },
+    ayril: async () => { kopmaIslemRef.current++; const baglantiVardi = aktif.durum !== "kapali"; await Promise.all([lk.ayril(), p2p.ayril()]); sagirSifirla(); if (baglantiVardi) sesCal("ayril"); },
     sessizDegistir: async () => {
       if (sunucuSustur) { setBilgi("Bir yönetici seni sustur; sesin yönetici kaldırınca açılır."); return; }
       if (sagir) { setBilgi("Sağırlaştırma açıkken mikrofon da kapalıdır. Önce sağırlaştırmayı kapat."); return; }
