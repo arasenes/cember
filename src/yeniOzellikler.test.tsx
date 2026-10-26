@@ -8,6 +8,7 @@ import { MiniOyunKart, miniOyunCoz, miniOyunKodla, tkmKazanan, xoxBotHamlesi, xo
 import { kaydedilenleriOku, mesajKaydetDegistir } from "./mesaj/kaydedilenler";
 import KaydedilenlerPaneli from "./mesaj/KaydedilenlerPaneli";
 import BeyazTahta, { gecerliCizimOlayiMi } from "./ses/BeyazTahta";
+import SesSahnesi from "./ses/SesSahnesi";
 import { gecerliSesModuMu, SES_MODLARI } from "./ses/sesDegistirici";
 import Gate from "./Gate";
 
@@ -163,5 +164,74 @@ describe("9. Mesaj Kaydetme (Yer İmleri) & Kod Bloğu Kopyalama/Renklendirme", 
     expect(container.querySelector(".md-kopyala")).toBeTruthy();
     expect(container.querySelector(".kod-anahtar")?.textContent).toBe("const");
     expect(container.querySelector(".kod-sayi")?.textContent).toBe("42");
+  });
+
+  it("sesli odada yazılı sohbet açılır/kapanır düğmesini ve yeni mesaj rozetini gösterir", () => {
+    const onSohbet = vi.fn();
+    const sahteSes: any = {
+      motor: "p2p",
+      durum: "bagli",
+      kanalId: "k-ses",
+      konusanlar: new Set(),
+      sorunlu: new Set(),
+      kameralar: new Map(),
+      sessiz: false,
+      sagir: false,
+      kameraAcik: false,
+      paylasiyorum: false,
+      ekranDestegi: true,
+      izlenen: null,
+    };
+    const sahteKanal: any = { id: "k-ses", ad: "Sohbet Odası", tur: "sesli" };
+
+    const { rerender } = render(
+      <SesSahnesi
+        ses={sahteSes}
+        kanal={sahteKanal}
+        katilimcilar={[]}
+        benId="u1"
+        sagirlar={new Set()}
+        paylasanlar={new Set()}
+        baglaniyor={false}
+        buradayim={true}
+        basKonus={{ ayar: { acik: false, tus: "Space" }, basili: false, bas: vi.fn(), birak: vi.fn() }}
+        baskasiPaylasiyor={null}
+        yapanAd={() => "Biri"}
+        onKatil={vi.fn()}
+        onProfil={vi.fn()}
+        onSohbet={onSohbet}
+        sohbetAcik={false}
+        yeniMesajSayisi={3}
+      />
+    );
+
+    const butonlar = screen.getAllByTitle("Yazılı sohbeti aç");
+    expect(butonlar.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("3").length).toBeGreaterThan(0);
+    fireEvent.click(butonlar[0]);
+    expect(onSohbet).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <SesSahnesi
+        ses={sahteSes}
+        kanal={sahteKanal}
+        katilimcilar={[]}
+        benId="u1"
+        sagirlar={new Set()}
+        paylasanlar={new Set()}
+        baglaniyor={false}
+        buradayim={true}
+        basKonus={{ ayar: { acik: false, tus: "Space" }, basili: false, bas: vi.fn(), birak: vi.fn() }}
+        baskasiPaylasiyor={null}
+        yapanAd={() => "Biri"}
+        onKatil={vi.fn()}
+        onProfil={vi.fn()}
+        onSohbet={onSohbet}
+        sohbetAcik={true}
+        yeniMesajSayisi={0}
+      />
+    );
+
+    expect(screen.getAllByText("Sohbeti Gizle").length).toBeGreaterThan(0);
   });
 });

@@ -196,7 +196,9 @@
 .ses-sahne{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--panel)}
 .sahne-ust{background:var(--bg);gap:12px;justify-content:flex-start}
 .sahne-bilgi{flex:1;min-width:0;color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sahne-sohbet{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.sahne-sohbet{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;margin-left:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0}
+.sahne-sohbet.acik{background:var(--secili-zemin);color:var(--secili-yazi);border-color:var(--acc)}
+.sahne-sohbet .rozet{margin-left:4px;padding:2px 6px;border-radius:8px;background:var(--acc);color:var(--onacc);font-size:11px;font-weight:700}
 .sahne-sohbet:hover{background:var(--card);color:var(--fg)}
 .sahne-alan{flex:1;min-height:0;padding:16px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
 .sahne-alan .ekran-panel{flex:1;min-height:0;margin:0;border-radius:14px;background:var(--serit);border:2px solid var(--acc);display:flex;flex-direction:column;overflow:hidden}
@@ -353,6 +355,7 @@
 #app.ses-modu.ses-sohbetli main.chat{flex-direction:row}
 #app.ses-modu.ses-sohbetli .ses-sohbet-kolon{display:flex;flex-direction:column;flex:0 0 360px;width:360px;min-width:0;min-height:0;border-left:1px solid var(--line);background:var(--bg)}
 #app.ses-modu.ses-sohbetli .ses-sohbet-kolon .msgs{min-height:0}
+@media (min-width:821px){#app.ses-modu.ses-sohbet-kapali .ses-sohbet-kolon{display:none!important}}
 .ses-yani-ac{flex:none;border-bottom:1px solid var(--line);padding:0 12px}
 .ses-yani-ac summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--muted)}
 .ses-yani-ac[open]{max-height:45%;overflow-y:auto}

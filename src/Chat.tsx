@@ -1117,7 +1117,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
                 </button>
                 <button className="ch-sohbet" aria-current={k.id === aktif} title={t("Bu odanın yazılı sohbetini aç")}
                   aria-label={t(`${k.ad} sesli odasının yazılı sohbetini aç`)}
-                  onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); })}><Ikon ad="sohbet" boyut={16} /></button>
+                  onClick={() => kanalaGir(k, () => { setAktif(k.id); setPane("chat"); setSesSohbetKapali(false); })}><Ikon ad="sohbet" boyut={16} /></button>
                 {kanalArac(k)}
                 </div>
                 {icindekiler.length > 0 && (
@@ -1293,7 +1293,13 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             baglaniyor={ses.durum === "baglaniyor"} buradayim={ses.kanalId === aktifKanal.id && ses.durum !== "kapali"}
             basKonus={{ ayar: basKonusAyar, basili: basKonus.basili, bas: basKonus.bas, birak: basKonus.birak }}
             baskasiPaylasiyor={paylasanAd} yapanAd={(id) => uyeHaritasi.get(id)?.takma_ad ?? "Biri"}
-            onKatil={() => kanalaGir(aktifKanal, () => { void ses.baglan(aktifKanal.id); })} onProfil={setProfilId} />
+            onKatil={() => kanalaGir(aktifKanal, () => { void ses.baglan(aktifKanal.id); })} onProfil={setProfilId}
+            sohbetAcik={!sesSohbetKapali}
+            yeniMesajSayisi={sesSohbetKapali ? Math.max(0, mesajlar.length - kapanisSayisi.current) : 0}
+            onSohbet={() => {
+              if (!sesSohbetKapali) kapanisSayisi.current = mesajlar.length;
+              setSesSohbetKapali((k) => !k);
+            }} />
         )}
         {sesSohbetGoster && <div className="ses-sohbet-kolon">
         {sesliOda && (
@@ -1338,6 +1344,9 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             )}
             <button className="cb-ibtn ust-sabit" onClick={() => setKayitlarAcik(true)} aria-label={t(`Kaydedilen mesajlar (${kaydedilenler.liste.length})`)} title={t("Kaydedilen mesajlar")}>🔖{kaydedilenler.liste.length > 0 && <span className="ust-sayi" aria-hidden="true">{kaydedilenler.liste.length}</span>}</button>
             <button className="ust-ara" onClick={() => setAramaAcik(true)} aria-label={t("Mesajlarda ara")} aria-expanded={aramaAcik}><Ikon ad="ara" boyut={16} /><span>{t("Mesajlarda ara")}</span></button>
+            {sesliOda && (
+              <button className="cb-ibtn ust-kapat" onClick={() => { kapanisSayisi.current = mesajlar.length; setSesSohbetKapali(true); }} aria-label={t("Sohbeti gizle")} title={t("Sohbeti gizle")}><Ikon ad="kapat" /></button>
+            )}
           </div>
         </div>
         {ses.izlenen && !sesliOda && (

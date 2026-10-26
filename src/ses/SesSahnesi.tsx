@@ -32,6 +32,7 @@ type Props = {
   onSohbet?: () => void;
   /** Yazılı sohbet şu an görünüyor mu (düğme basılı durumu). */
   sohbetAcik?: boolean;
+  yeniMesajSayisi?: number;
 };
 
 /** Kamera akışını gösterir (kendi kameran sessiz önizlenir). */
@@ -111,7 +112,7 @@ function KisiSesSayfasi({ uye, ben, ekranSesi, onProfil, onKapat }: { uye: Uye; 
   );
 }
 
-export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, paylasanlar, baglaniyor, buradayim, basKonus, baskasiPaylasiyor, yapanAd, onKatil, onProfil }: Props) {
+export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, paylasanlar, baglaniyor, buradayim, basKonus, baskasiPaylasiyor, yapanAd, onKatil, onProfil, onSohbet, sohbetAcik, yeniMesajSayisi = 0 }: Props) {
   const [kalite, setKalite] = useState<EkranKalite>("720");
   const [kameraUyari, setKameraUyari] = useState("");
   const dar = useDarEkran();
@@ -179,6 +180,21 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
           {katilimcilar.length} kişi{paylasanSayisi > 0 ? ` · ${[...paylasanlar].map(yapanAd).join(", ")} ekranını paylaşıyor` : ""}
           {buradayim && ses.motor === "p2p" && " · doğrudan mod"}
         </span>
+        {onSohbet && (
+          <button
+            type="button"
+            className={"sahne-sohbet" + (sohbetAcik ? " acik" : "")}
+            onClick={onSohbet}
+            aria-pressed={sohbetAcik}
+            title={sohbetAcik ? t("Yazılı sohbeti gizle") : t("Yazılı sohbeti aç")}
+          >
+            <Ikon ad="sohbet" boyut={18} />
+            <span>{sohbetAcik ? t("Sohbeti Gizle") : t("Sohbet")}</span>
+            {!sohbetAcik && yeniMesajSayisi > 0 && (
+              <span className="rozet" aria-label={t(`${yeniMesajSayisi} yeni mesaj`)}>{yeniMesajSayisi}</span>
+            )}
+          </button>
+        )}
       </div>
 
       <div className="sahne-alan">
@@ -299,6 +315,18 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
             <button type="button" className={"kontrol" + (sesModPanelAcik || aktifMod !== "normal" ? " vurgulu" : "")} aria-pressed={sesModPanelAcik}
               onClick={() => setSesModPanelAcik((x) => !x)} title={t("Canlı ses değiştirici modları")}>
               🎙️ {aktifMod === "normal" ? t("Ses Modu") : t(SES_MODLARI.find((m) => m.kod === aktifMod)?.etiket ?? "Ses Modu")}</button>
+            {onSohbet && (
+              <button
+                type="button"
+                className={"kontrol" + (sohbetAcik ? " vurgulu" : "")}
+                aria-pressed={sohbetAcik}
+                onClick={onSohbet}
+                title={sohbetAcik ? t("Yazılı sohbeti gizle") : t("Yazılı sohbeti aç")}
+              >
+                <Ikon ad="sohbet" /> {sohbetAcik ? t("Sohbeti Gizle") : t("Sohbet")}
+                {!sohbetAcik && yeniMesajSayisi > 0 && <span className="rozet" aria-hidden="true">{yeniMesajSayisi}</span>}
+              </button>
+            )}
             <button type="button" className="kontrol tehlike" onClick={() => void ses.ayril()} aria-label={t("Sesli odadan ayrıl")}><Ikon ad="cikis" />{" "}{t("Ayrıl")}</button>
           </>
         )}
