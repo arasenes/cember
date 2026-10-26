@@ -39,6 +39,27 @@ describe("1. Birlikte İzle (Watch Party)", () => {
       oynuyor: true,
     }));
   });
+
+  it("bilgisayar/USB sekmesine geçip yerel video dosyasını senkronize başlatabilir", () => {
+    const onDegistir = vi.fn();
+    const { container } = render(<BirlikteIzle durum={null} baslatanAd="" benId="u1" onDegistir={onDegistir} />);
+    fireEvent.click(screen.getByText("📁 Bilgisayar / USB Dosyası"));
+    expect(screen.getByText("📂 Bilgisayardan veya USB'den Video Seç")).toBeTruthy();
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).toBeTruthy();
+
+    const sahteDosya = new File(["video-verisi"], "film.mp4", { type: "video/mp4" });
+    fireEvent.change(input, { target: { files: [sahteDosya] } });
+
+    expect(onDegistir).toHaveBeenCalledWith(expect.objectContaining({
+      tur: "dosya",
+      videoId: "film.mp4",
+      baslatanId: "u1",
+      baslangicSn: 0,
+      oynuyor: true,
+    }));
+  });
 });
 
 describe("2. Sesli Oda Efekt Paneli (Soundboard)", () => {
