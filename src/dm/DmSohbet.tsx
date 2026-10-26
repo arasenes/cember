@@ -10,6 +10,9 @@ import type { DmDurumu } from "./useDm";
 import { durumMetni } from "./ProfilKarti";
 import { t, onayla } from "../i18n";
 import { sesCal } from "../sesler";
+import { boyutMetni, ekHazirla, EkHatasi, type HazirEk } from "../ekler";
+import GifSecici from "../mesaj/GifSecici";
+import { SesKayitDugmesi } from "../mesaj/SesliMesaj";
 
 const SAYFA = 50;
 
@@ -30,13 +33,16 @@ function birlestir(eski: DmMesaj[], yeni: DmMesaj[]): DmMesaj[] {
   return [...m.values()].sort((a, b) => a.olusturma.localeCompare(b.olusturma));
 }
 
-/** Bir DM'in mesaj akışı: yükleme, canlı güncelleme, yazma, düzenleme, silme. Grup DM'de üye ekleme/ayrılma. */
+/** Bir DM'in mesaj akışı: yükleme, canlı güncelleme, yazma, resim/GIF/sesli mesaj gönderme, düzenleme, silme. */
 export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, onGeri, onHata }: Props) {
   const [mesajlar, setMesajlar] = useState<DmMesaj[]>([]);
   const [dahaVar, setDahaVar] = useState(false);
   const [metin, setMetin] = useState("");
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [eklenecek, setEklenecek] = useState("");
+  const [ek, setEk] = useState<HazirEk | null>(null);
+  const [gifAcik, setGifAcik] = useState(false);
+  const dosyaRef = useRef<HTMLInputElement>(null);
   const akisRef = useRef<HTMLDivElement>(null);
   // "Yeni mesaj" çizgisi: sohbet açılırken kayıtlı son okuma zamanı (açılınca okundu sayıldığı için bir kez alınır)
   const okumaRef = useRef<{ dm: string; zaman: string | null } | null>(null);
@@ -99,17 +105,55 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
     setDahaVar((data ?? []).length === SAYFA);
   }, [dmId, mesajlar]);
 
-  async function gonder() {
-    const t = metin.trim();
-    if (!t || gonderiliyor) return;
-    setGonderiliyor(true);
-    const { data, error } = await supabase.from("dm_mesajlari").insert({ dm_id: dmId, uye_id: me.id, metin: t }).select().single();
-    setGonderiliyor(false);
-    if (error) return onHata(iliski === "engelli" || /row-level/i.test(error.message) ? "Bu kişiyle şu an mesajlaşamazsın." : "Mesaj gönderilemedi.");
-    setMetin("");
+  async function dmMesajGonder(icerik: string): Promise<boolean> {
+    const { data, error } = await supabase.from("dm_mesajlari").insert({ dm_id: dmId, uye_id: me.id, metin: icerik }).select().single();
+    if (error) {
+      onHata(iliski === "engelli" || /row-level/i.test(error.message) ? "Bu kişiyle şu an mesajlaşamazsın." : "Mesaj gönderilemedi.");
+      return false;
+    }
     sesCal("gonder");
     altaKaydir.current = true;
     setMesajlar((x) => birlestir(x, [data as DmMesaj]));
+    return true;
+  }
+
+  async function ekSec(dosya: File | Blob, varsayilanAd?: string) {
+    try {
+      const hazir = await ekHazirla(dosya, varsayilanAd ?? ((dosya as File).name || "resim"));
+      if (hazir.boyut > 1024 * 1024) {
+        URL.revokeObjectURL(hazir.onizleme);
+        onHata("Özel mesajda resim en fazla 1 MB olabilir.");
+        return;
+      }
+      if (ek) URL.revokeObjectURL(ek.onizleme);
+      setEk(hazir);
+    } catch (e) {
+      onHata(e instanceof EkHatasi ? e.message : "Resim hazırlanamadı.");
+    }
+  }
+
+  async function gonder() {
+    const yazi = metin.trim();
+    if ((!yazi && !ek) || gonderiliyor) return;
+    setGonderiliyor(true);
+    let gonderilecek = yazi;
+    let yuklenenYol: string | null = null;
+    if (ek) {
+      const uz = ek.uzanti === "jpg" ? "jpg" : "webp";
+      const yol = `${me.oda_id}/${me.id}/${crypto.randomUUID()}.${uz}`;
+      const { error: yErr } = await supabase.storage.from("avatarlar").upload(yol, ek.blob, { contentType: uz === "jpg" ? "image/jpeg" : "image/webp", upsert: false });
+      if (yErr) { setGonderiliyor(false); return onHata("Resim yüklenemedi."); }
+      yuklenenYol = yol;
+      gonderilecek = `[dmresim:${yol}|${ek.genislik}x${ek.yukseklik}]` + (yazi ? `\n${yazi}` : "");
+    }
+    const ok = await dmMesajGonder(gonderilecek);
+    setGonderiliyor(false);
+    if (!ok) {
+      if (yuklenenYol) void supabase.storage.from("avatarlar").remove([yuklenenYol]);
+      return;
+    }
+    if (ek) { URL.revokeObjectURL(ek.onizleme); setEk(null); }
+    setMetin("");
     girdiRef.current?.focus();
   }
 
@@ -213,11 +257,36 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
           {karsi && <button type="button" className="pk-btn" onClick={() => void dm.engelKaldir(karsi)}>{t("Engeli kaldır")}</button>}
         </div>
       ) : (
-        <div className="composer">
-          <textarea ref={girdiRef} rows={1} value={metin} maxLength={4000} aria-label={t("Mesaj yaz")} placeholder={t(`${baslik} kişisine mesaj yaz`)}
-            onChange={(e) => setMetin(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void gonder(); } }} />
-          <button className="sq send" onClick={() => void gonder()} aria-label={t("Gönder")} disabled={!metin.trim() || gonderiliyor}><Ikon ad="gonder" /></button>
+        <div className="composer-wrap" style={{ position: "relative" }}>
+          {gifAcik && (
+            <GifSecici
+              onSec={(url) => { setGifAcik(false); void dmMesajGonder(url); }}
+              onKapat={() => setGifAcik(false)}
+            />
+          )}
+          {ek && (
+            <div className="ek-onizleme" role="region" aria-label={t("Seçilen resim önizlemesi")}>
+              <img src={ek.onizleme} alt={ek.ad} />
+              <div className="ek-bilgi"><b>{ek.ad}</b><span className="hint">{ek.genislik}×{ek.yukseklik} · {boyutMetni(ek.boyut)}</span></div>
+              <button type="button" className="ib" onClick={() => { URL.revokeObjectURL(ek.onizleme); setEk(null); }}>{t("Kaldır")}</button>
+            </div>
+          )}
+          <div className="composer">
+            <input ref={dosyaRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden
+              onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void ekSec(f); }} />
+            <button type="button" className="sq ek-sec" onClick={() => dosyaRef.current?.click()} disabled={gonderiliyor} aria-label={t("Resim ekle")} title={t("Resim ekle")}>
+              <Ikon ad="arti" />
+            </button>
+            <button type="button" className="sq ek-sec" onClick={() => setGifAcik((x) => !x)} disabled={gonderiliyor} aria-label={t("GIF seç")} title="GIF">
+              GIF
+            </button>
+            <SesKayitDugmesi odaId={me.oda_id} uyeId={me.id} disabled={gonderiliyor} onGonder={async (m) => { await dmMesajGonder(m); }} onHata={onHata} />
+            <textarea ref={girdiRef} rows={1} value={metin} maxLength={4000} aria-label={t("Mesaj yaz")} placeholder={t(`${baslik} kişisine mesaj yaz`)}
+              onChange={(e) => setMetin(e.target.value)}
+              onPaste={(e) => { const f = Array.from(e.clipboardData.files).find((x) => x.type.startsWith("image/")); if (f) { e.preventDefault(); void ekSec(f, "Ekran görüntüsü"); } }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void gonder(); } }} />
+            <button className="sq send" onClick={() => void gonder()} aria-label={t("Gönder")} disabled={(!metin.trim() && !ek) || gonderiliyor}><Ikon ad="gonder" /></button>
+          </div>
         </div>
       )}
     </main>

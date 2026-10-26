@@ -130,6 +130,10 @@ export function useSesMotoru(
       return r;
     },
     ekranDurdur: p2p.ekranDurdur,
+    sonEfekt: p2p.sonEfekt,
+    efektGonder: p2p.efektGonder,
+    birlikteIzle: p2p.birlikteIzle,
+    birlikteIzleAyarla: p2p.birlikteIzleAyarla,
     hataTemizle: () => { setHata(""); setBilgi(""); },
   };
 }

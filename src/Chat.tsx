@@ -38,6 +38,7 @@ import { useAnketler } from "./mesaj/anket";
 import AnketOlustur, { type AnketTaslak } from "./mesaj/AnketOlustur";
 import AramaPaneli from "./mesaj/AramaPaneli";
 import GifSecici from "./mesaj/GifSecici";
+import { SesKayitDugmesi } from "./mesaj/SesliMesaj";
 import IletDialog from "./mesaj/IletDialog";
 import Ikon from "./mesaj/Ikon";
 import SesSahnesi from "./ses/SesSahnesi";
@@ -1366,6 +1367,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <button className="sq ek-dugme" onClick={() => dosyaRef.current?.click()} aria-label={t("Resim ekle")} disabled={gonderiliyor || yazamaz || !kanalDosyaEkleyebilir}><Ikon ad="ek" /></button>
           <button className="sq ek-dugme" onClick={() => setAnketAcik(true)} aria-label={t("Anket oluştur")} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
           <button className="sq ek-dugme" onClick={() => setGifAcik((x) => !x)} aria-label={t("GIF seç")} aria-expanded={gifAcik} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
+          <SesKayitDugmesi odaId={me.oda_id} uyeId={me.id} disabled={gonderiliyor || yazamaz} onGonder={(m) => void gifGonder(m)} onHata={setHata} />
           {gifAcik && <GifSecici onSec={(u) => void gifGonder(u)} onKapat={() => setGifAcik(false)} />}
           <input ref={dosyaRef} type="file" accept={IZINLI_TURLER.join(",")} hidden
             onChange={(e) => { void ekSec(e.target.files?.[0]); e.target.value = ""; }} />

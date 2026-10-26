@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase, SUPABASE_KEY, SUPABASE_URL } from "./supabase";
 import { googleAcikMi, googleIleGir } from "./google";
+import { adrestenDavetAl, davetiUnut } from "./sunucu/sunucular";
 import { t } from "./i18n";
 import { Logo } from "./Logo";
 
@@ -20,6 +21,7 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
   const [hata, setHata] = useState("");
   const [bekle, setBekle] = useState(false);
   const [google, setGoogle] = useState(false);
+  const [davetKodu, setDavetKodu] = useState<string | null>(() => adrestenDavetAl());
 
   useEffect(() => { let iptal = false; googleAcikMi().then((a) => { if (!iptal) setGoogle(a); }); return () => { iptal = true; }; }, []);
 
@@ -78,6 +80,14 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
           <b>{t("Çember")}</b>
         </div>
         <DonenSoz />
+        {davetKodu && (
+          <div className="gate-davet-karti" role="status" style={{ padding: "10px 12px", borderRadius: 12, background: "rgba(88,101,242,0.16)", border: "1px solid rgba(88,101,242,0.38)", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, textAlign: "left" }}>
+            <span style={{ fontSize: 13 }}>
+              🎟️ <b>{t("Bir sunucuya davet edildin")}</b> <span className="hint">({davetKodu})</span>
+            </span>
+            <button type="button" className="linkbtn" onClick={() => { davetiUnut(); setDavetKodu(null); }} aria-label={t("Daveti kaldır")}>✕</button>
+          </div>
+        )}
         <p>{google ? "Arkadaşlarla yazış ve konuş. Google ile gir ya da misafir olarak katıl." : "Arkadaşlarla yazış ve konuş. Bir takma ad yazıp misafir olarak katıl."}</p>
         {google && (
           <>

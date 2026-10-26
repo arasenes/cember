@@ -10,6 +10,7 @@ import OnizlemeKarti from "./mesaj/OnizlemeKarti";
 import { gifUrlMi } from "./mesaj/gif";
 import type { Anket } from "./mesaj/anket";
 import EmojiDeposu from "./EmojiDeposu";
+import { DmEkResim, dmResimCoz, SesliMesajOynatici, sesliMesajCoz } from "./mesaj/SesliMesaj";
 import { t } from "./i18n";
 
 /** Aşama 1 mesaj özellikleri: alıntılı yanıt, iletme, anket. Hepsi isteğe bağlıdır. */
@@ -60,7 +61,9 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
 
   const pinGoster = !!onSabitle && benim.rol !== "uye" && !mesaj.silindi;
   const aracVar = !mesaj.silindi;
-  const duzenlenebilir = !!onDuzenle && benimMi && !mesaj.silindi && !!mesaj.metin;
+  const sesliEk = mesaj.metin ? sesliMesajCoz(mesaj.metin) : null;
+  const dmResim = mesaj.metin ? dmResimCoz(mesaj.metin) : null;
+  const duzenlenebilir = !!onDuzenle && benimMi && !mesaj.silindi && !!mesaj.metin && !sesliEk && !dmResim;
 
   async function kaydet() {
     const t = taslak.trim();
@@ -125,7 +128,15 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
                   <span className="hint">{t("Enter kaydeder, Esc iptal eder")}</span>
                 </div>
               </div>
-            ) : zengin?.anket ? null : mesaj.metin && gifUrlMi(mesaj.metin) ? (
+            ) : zengin?.anket ? null : sesliEk ? (
+              <SesliMesajOynatici yol={sesliEk.yol} sureSn={sesliEk.sureSn} />
+            ) : dmResim ? (
+              <>
+                {dmResim.yazi && <div className="txt">{metinOge(dmResim.yazi, benim.takma_ad)}</div>}
+                <DmEkResim yol={dmResim.yol} genislik={dmResim.genislik} yukseklik={dmResim.yukseklik}
+                  alt={t(`${yazar?.takma_ad ?? "Eski üye"} tarafından gönderilen resim`)} />
+              </>
+            ) : mesaj.metin && gifUrlMi(mesaj.metin) ? (
               <img className="gif-mesaj" src={mesaj.metin.trim()} alt="GIF" loading="lazy" referrerPolicy="no-referrer" />
             ) : mesaj.metin && <div className="txt">{metinOge(mesaj.metin, benim.takma_ad)}</div>}
             {zengin?.anket && zengin.onOyla && (
