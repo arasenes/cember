@@ -22,6 +22,30 @@ export const BANNER_RENKLERI = [
   "linear-gradient(135deg, #1e293b, #0f172a)",
 ];
 
+export const DURUM_SABLONLARI = [
+  { metin: "🎮 Oyundayım", kisa: "Oyun" },
+  { metin: "🎧 Müzik dinliyorum", kisa: "Müzik" },
+  { metin: "📚 Ders çalışıyorum", kisa: "Ders" },
+  { metin: "💻 Kod yazıyorum", kisa: "Kod" },
+  { metin: "☕ Mola / Kahve", kisa: "Kahve" },
+  { metin: "💤 AFK / Yemekte", kisa: "AFK" },
+];
+
+export type BasarimRozeti = {
+  id: string;
+  simge: string;
+  baslik: string;
+  aciklama: string;
+};
+
+export const BASARIM_ROZETLERI: BasarimRozeti[] = [
+  { id: "oncu", simge: "🌟", baslik: "Çember Öncüsü", aciklama: "Topluluğun ilk üyelerinden biri" },
+  { id: "seviye-5", simge: "⚡", baslik: "Yükselen Yıldız", aciklama: "Seviye 5 veya üzerine ulaştı" },
+  { id: "ses-ustasi", simge: "🎙️", baslik: "Ses Şövalyesi", aciklama: "Sesli odalarda aktif sohbetçi" },
+  { id: "gamer", simge: "🎮", baslik: "Oyun Şampiyonu", aciklama: "Mini oyunlarda düellolara katıldı" },
+  { id: "muziksever", simge: "🎵", baslik: "Müzik Tutkunu", aciklama: "Oda radyosunu ve müzik çalarını kullandı" },
+];
+
 export function profilAyarGetir(uyeId: string): ProfilAyar {
   try {
     const raw = localStorage.getItem(`${PROFIL_EK_ANAHTAR}_${uyeId}`);

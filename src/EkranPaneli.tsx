@@ -51,6 +51,22 @@ export default function EkranPaneli({ izlenen, yapanAd, sesAnahtari, benId, kisi
     } catch { setBuyuk(true); }
   }
 
+  async function pipYap() {
+    const v = ref.current;
+    if (!v) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (v.requestPictureInPicture) {
+        await v.requestPictureInPicture();
+      }
+    } catch (e) {
+      console.warn("PiP hatası:", e);
+    }
+  }
+
+  const pipDestekli = typeof document !== "undefined" && "pictureInPictureEnabled" in document && document.pictureInPictureEnabled;
+
   return (
     <section className={"ekran-panel" + (buyuk ? " buyuk" : "")} aria-label={t(`${yapanAd} ekranını paylaşıyor`)}>
       <div className="ekran-ust">
@@ -59,6 +75,11 @@ export default function EkranPaneli({ izlenen, yapanAd, sesAnahtari, benId, kisi
           {benId && (
             <button type="button" className="linkbtn" onClick={() => setLazerAcik((x) => !x)} aria-pressed={lazerAcik} title={t("Ekran üzerinde lazer işaretçi tut")}>
               🎯 {lazerAcik ? t("İşaretlemeyi kapat") : t("İşaretle")}
+            </button>
+          )}
+          {pipDestekli && (
+            <button type="button" className="linkbtn" onClick={() => void pipYap()} title={t("Yüzen pencere (Resim-içinde-resim)")}>
+              🪟 {t("PiP")}
             </button>
           )}
           <button className="linkbtn" onClick={() => setBuyuk((b) => !b)} aria-pressed={buyuk}>{buyuk ? "Küçült" : "Büyüt"}</button>

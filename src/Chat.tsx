@@ -38,6 +38,7 @@ import { useAnketler } from "./mesaj/anket";
 import AnketOlustur, { type AnketTaslak } from "./mesaj/AnketOlustur";
 import AramaPaneli from "./mesaj/AramaPaneli";
 import GifSecici from "./mesaj/GifSecici";
+import CikartmaSecici from "./mesaj/CikartmaSecici";
 import { SesKayitDugmesi } from "./mesaj/SesliMesaj";
 import { OyunBaslatMenusu, miniOyunCoz } from "./mesaj/MiniOyun";
 import { useKaydedilenler } from "./mesaj/kaydedilenler";
@@ -119,6 +120,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [aramaAcik, setAramaAcik] = useState(false);
   const [anketAcik, setAnketAcik] = useState(false);
   const [gifAcik, setGifAcik] = useState(false);
+  const [cikartmaAcik, setCikartmaAcik] = useState(false);
   const [oyunMenuAcik, setOyunMenuAcik] = useState(false);
   const [kayitlarAcik, setKayitlarAcik] = useState(false);
   const kaydedilenler = useKaydedilenler(me.id);
@@ -1419,6 +1421,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <button className="sq ek-dugme" onClick={() => dosyaRef.current?.click()} aria-label={t("Resim ekle")} disabled={gonderiliyor || yazamaz || !kanalDosyaEkleyebilir}><Ikon ad="ek" /></button>
           <button className="sq ek-dugme" onClick={() => setAnketAcik(true)} aria-label={t("Anket oluştur")} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="anket" /></button>
           <button className="sq ek-dugme" onClick={() => setGifAcik((x) => !x)} aria-label={t("GIF seç")} aria-expanded={gifAcik} disabled={yazamaz || aktifKanal?.tur !== "yazili"}><Ikon ad="gif" /></button>
+          <button className="sq ek-dugme" onClick={() => setCikartmaAcik((x) => !x)} aria-label={t("Çıkartma gönder")} aria-expanded={cikartmaAcik} disabled={yazamaz} title={t("Çıkartma gönder")}>🏷️</button>
           <button className="sq ek-dugme" onClick={() => setOyunMenuAcik((x) => !x)} aria-label={t("Mini oyun başlat")} aria-expanded={oyunMenuAcik} disabled={yazamaz} title={t("Mini oyun başlat")}>🎮</button>
           <button className="sq ek-dugme" onClick={() => {
             const odul = window.prompt("Çekiliş ödülü nedir? (örn. Steam Kodu, Rol, Nitro):");
@@ -1430,6 +1433,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <SesKayitDugmesi odaId={me.oda_id} uyeId={me.id} disabled={gonderiliyor || yazamaz} onGonder={(m) => void gifGonder(m)} onHata={setHata} />
           {oyunMenuAcik && <OyunBaslatMenusu benId={me.id} onBaslat={(kod) => void gifGonder(kod)} onKapat={() => setOyunMenuAcik(false)} />}
           {gifAcik && <GifSecici onSec={(u) => void gifGonder(u)} onKapat={() => setGifAcik(false)} />}
+          {cikartmaAcik && <CikartmaSecici onSec={(kod) => { setCikartmaAcik(false); void gifGonder(kod); }} onKapat={() => setCikartmaAcik(false)} />}
           <input ref={dosyaRef} type="file" accept={IZINLI_TURLER.join(",")} hidden
             onChange={(e) => { void ekSec(e.target.files?.[0]); e.target.value = ""; }} />
           <textarea ref={metinRef} rows={1} value={metin} maxLength={4000} aria-label={t("Mesaj yaz")} disabled={yazamaz}

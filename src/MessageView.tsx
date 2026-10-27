@@ -13,6 +13,8 @@ import EmojiDeposu from "./EmojiDeposu";
 import { DmEkResim, dmResimCoz, SesliMesajOynatici, sesliMesajCoz } from "./mesaj/SesliMesaj";
 import { MiniOyunKart, miniOyunCoz } from "./mesaj/MiniOyun";
 import { CekilisKart, cekilisCoz } from "./mesaj/Cekilis";
+import { cikartmaCoz } from "./mesaj/cikartmalar";
+import CikartmaGoruntule from "./mesaj/CikartmaGoruntule";
 import { t } from "./i18n";
 
 /** Aşama 1 mesaj özellikleri: alıntılı yanıt, iletme, anket. Hepsi isteğe bağlıdır. */
@@ -71,7 +73,8 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
   const dmResim = mesaj.metin ? dmResimCoz(mesaj.metin) : null;
   const miniOyun = mesaj.metin ? miniOyunCoz(mesaj.metin) : null;
   const cekilis = mesaj.metin ? cekilisCoz(mesaj.metin) : null;
-  const duzenlenebilir = !!onDuzenle && benimMi && !mesaj.silindi && !!mesaj.metin && !sesliEk && !dmResim && !miniOyun && !cekilis;
+  const cikartma = mesaj.metin ? cikartmaCoz(mesaj.metin) : null;
+  const duzenlenebilir = !!onDuzenle && benimMi && !mesaj.silindi && !!mesaj.metin && !sesliEk && !dmResim && !miniOyun && !cekilis && !cikartma;
 
   async function kaydet() {
     const t = taslak.trim();
@@ -162,6 +165,8 @@ export default function MessageView({ mesaj, yazar, benim, tepkiler, onTepki, on
                   else if (onDuzenle) void onDuzenle(mesaj, yeniKod);
                 }}
               />
+            ) : cikartma ? (
+              <CikartmaGoruntule url={cikartma.url} ad={cikartma.ad} />
             ) : dmResim ? (
               <>
                 {dmResim.yazi && <div className="txt">{metinOge(dmResim.yazi, benim.takma_ad)}</div>}

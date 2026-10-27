@@ -141,6 +141,7 @@ function metinBolumu(icerik: string, benAd: string, anahtar: string): ReactNode[
 /** Biçimlendirme işaretlerini atar (alıntı satırı, bildirim gibi tek satırlık özetler için). */
 export function duzMetin(metin: string): string {
   if (/^\[sesli:[^\]]+\]$/.test(metin.trim())) return "🎤 Sesli mesaj";
+  if (/^\[cikartma:[^\]]+\]$/.test(metin.trim())) return "🏷️ Çıkartma";
   if (/^\[oyun:[^\]]+\]$/.test(metin.trim())) return "🎮 Mini oyun";
   if (/^\[dmresim:[^\]]+\]/.test(metin.trim())) {
     const kalan = metin.trim().split("\n").slice(1).join(" ").trim();

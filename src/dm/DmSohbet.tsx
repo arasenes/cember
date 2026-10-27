@@ -13,6 +13,7 @@ import { t, onayla } from "../i18n";
 import { sesCal } from "../sesler";
 import { boyutMetni, ekHazirla, EkHatasi, type HazirEk } from "../ekler";
 import GifSecici from "../mesaj/GifSecici";
+import CikartmaSecici from "../mesaj/CikartmaSecici";
 import { SesKayitDugmesi } from "../mesaj/SesliMesaj";
 import { OyunBaslatMenusu, miniOyunCoz } from "../mesaj/MiniOyun";
 import { useKaydedilenler } from "../mesaj/kaydedilenler";
@@ -50,6 +51,7 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
   const [eklenecek, setEklenecek] = useState("");
   const [ek, setEk] = useState<HazirEk | null>(null);
   const [gifAcik, setGifAcik] = useState(false);
+  const [cikartmaAcik, setCikartmaAcik] = useState(false);
   const [oyunMenuAcik, setOyunMenuAcik] = useState(false);
   const dosyaRef = useRef<HTMLInputElement>(null);
   const akisRef = useRef<HTMLDivElement>(null);
@@ -382,6 +384,12 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
               onKapat={() => setGifAcik(false)}
             />
           )}
+          {cikartmaAcik && (
+            <CikartmaSecici
+              onSec={(kod) => { setCikartmaAcik(false); void dmMesajGonder(kod); }}
+              onKapat={() => setCikartmaAcik(false)}
+            />
+          )}
           {oyunMenuAcik && (
             <OyunBaslatMenusu
               benId={me.id}
@@ -404,6 +412,9 @@ export default function DmSohbet({ dmId, dm, me, uyeler, cevrimici, onProfil, on
             </button>
             <button type="button" className="sq ek-sec" onClick={() => setGifAcik((x) => !x)} disabled={gonderiliyor} aria-label={t("GIF seç")} title="GIF">
               GIF
+            </button>
+            <button type="button" className="sq ek-sec" onClick={() => setCikartmaAcik((x) => !x)} disabled={gonderiliyor} aria-label={t("Çıkartma seç")} title="Çıkartma">
+              🏷️
             </button>
             <button type="button" className="sq ek-sec" onClick={() => setOyunMenuAcik((x) => !x)} disabled={gonderiliyor} aria-label={t("Mini oyun başlat")} title={t("Mini oyun başlat")}>
               🎮

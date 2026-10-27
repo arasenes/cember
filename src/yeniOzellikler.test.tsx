@@ -13,6 +13,9 @@ import { gecerliSesModuMu, SES_MODLARI } from "./ses/sesDegistirici";
 import { seviyeIcinGerekenXp, xpToSeviye, xpKaydet, liderlikTablosuGetir } from "./gamification/seviye";
 import { cekilisCoz, cekilisKodla, yeniCekilisOlustur, CekilisKart } from "./mesaj/Cekilis";
 import { HAZIR_RADYOLAR } from "./ses/MuzikCalar";
+import { cikartmaCoz, cikartmaMetni, cikartmalariGetir, ozelCikartmaEkle } from "./mesaj/cikartmalar";
+import { yeniKelimeOyunu } from "./mesaj/MiniOyun";
+import { BASARIM_ROZETLERI, DURUM_SABLONLARI } from "./profilOzellestirme";
 import Gate from "./Gate";
 
 describe("1. Birlikte İzle (Watch Party)", () => {
@@ -300,6 +303,51 @@ describe("9. Mesaj Kaydetme (Yer İmleri) & Kod Bloğu Kopyalama/Renklendirme", 
     for (const r of HAZIR_RADYOLAR) {
       expect(r.url).toMatch(/^https?:\/\//);
       expect(r.baslik.length).toBeGreaterThan(3);
+    }
+  });
+
+  it("17. Çıkartma (Sticker) metni doğru kodlanır, çözülür ve listelenir", () => {
+    const kod = cikartmaMetni("https://ornek.com/kedi.gif", "Tatlı Kedi");
+    expect(kod).toBe("[cikartma:https://ornek.com/kedi.gif|Tatlı Kedi]");
+    const cozulmus = cikartmaCoz(kod);
+    expect(cozulmus?.url).toBe("https://ornek.com/kedi.gif");
+    expect(cozulmus?.ad).toBe("Tatlı Kedi");
+
+    const tumu = cikartmalariGetir();
+    expect(tumu.length).toBeGreaterThanOrEqual(15);
+
+    const ozel = ozelCikartmaEkle("https://ornek.com/ozel.gif", "Benim Çıkartmam");
+    expect(ozel.kategori).toBe("ozel");
+    expect(cikartmalariGetir().some((c) => c.id === ozel.id)).toBe(true);
+  });
+
+  it("18. Kelime Tahmini mini oyunu oluşturulur, çözülür ve render edilir", () => {
+    const oyunKodu = yeniKelimeOyunu("u1");
+    const cozulmus = miniOyunCoz(oyunKodu);
+    expect(cozulmus).not.toBeNull();
+    if (cozulmus?.tur === "kelime") {
+      expect(cozulmus.kalanHak).toBe(6);
+      expect(cozulmus.kelime.length).toBeGreaterThanOrEqual(3);
+      expect(cozulmus.ipucu.length).toBeGreaterThan(0);
+    }
+
+    const onHamle = vi.fn();
+    render(<MiniOyunKart metin={oyunKodu} benId="u1" onHamle={onHamle} />);
+    expect(screen.getByTestId("mini-oyun-kelime")).toBeTruthy();
+    expect(screen.getByText("🔤 Kelime Tahmini")).toBeTruthy();
+  });
+
+  it("19. Profil durum şablonları ve başarı rozetleri tanımlıdır", () => {
+    expect(DURUM_SABLONLARI.length).toBeGreaterThanOrEqual(5);
+    for (const d of DURUM_SABLONLARI) {
+      expect(d.metin).toMatch(/[\p{Emoji}]/u);
+      expect(d.kisa.length).toBeGreaterThan(0);
+    }
+
+    expect(BASARIM_ROZETLERI.length).toBeGreaterThanOrEqual(4);
+    for (const b of BASARIM_ROZETLERI) {
+      expect(b.simge).toBeTruthy();
+      expect(b.baslik.length).toBeGreaterThan(0);
     }
   });
 });

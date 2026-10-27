@@ -5,7 +5,7 @@ import type { Durum, Uye } from "./types";
 import { DURUM_BILGI, rolEtiketi } from "./util";
 import { t } from "./i18n";
 import { uyeXpGetir } from "./gamification/seviye";
-import { BANNER_RENKLERI, CERCEVELER, profilAyarGetir, profilAyarKaydet } from "./profilOzellestirme";
+import { BANNER_RENKLERI, CERCEVELER, DURUM_SABLONLARI, BASARIM_ROZETLERI, profilAyarGetir, profilAyarKaydet } from "./profilOzellestirme";
 
 // Seçici renkleri, üzerindeki baş harfin kontrastı en az 4.5 olacak şekilde seçildi (profil.test.tsx denetler).
 export const PROFIL_RENKLERI = ["#E8A33D", "#1F7A4D", "#0B7A91", "#B3261E", "#6B4FA0", "#B04680", "#3C6FB5", "#8A6D3B", "#287878", "#68761F", "#B5563C", "#4F5BA0"];
@@ -168,6 +168,19 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
 
             <label htmlFor="pf-dm">{t("Durum metni")}</label>
             <input id="pf-dm" type="text" value={durumMetin} maxLength={DURUM_METNI_MAX} onChange={(e) => setDurumMetin(e.target.value)} placeholder={t("Ne yapıyorsun? (örn. Oyundayım)")} autoComplete="off" />
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
+              {DURUM_SABLONLARI.map((s) => (
+                <button
+                  key={s.kisa}
+                  type="button"
+                  className="linkbtn"
+                  style={{ fontSize: 11, padding: "2px 6px", background: "var(--card)", borderRadius: 6, border: "1px solid var(--line)" }}
+                  onClick={() => setDurumMetin(s.metin)}
+                >
+                  {s.metin}
+                </button>
+              ))}
+            </div>
 
             <label>{t("Avatar Çerçevesi")}</label>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
@@ -187,6 +200,34 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
               ))}
             </div>
 
+            <div style={{ margin: "8px 0 12px", padding: "8px 10px", borderRadius: 12, background: "var(--bg)", border: "1px solid var(--line)" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                🏅 {t("Başarı Rozetlerin")}
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {BASARIM_ROZETLERI.map((b) => (
+                  <div
+                    key={b.id}
+                    title={`${b.baslik}: ${b.aciklama}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "3px 8px",
+                      borderRadius: 999,
+                      background: "var(--card)",
+                      border: "1px solid var(--line)",
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>{b.simge}</span>
+                    <span>{b.baslik}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="err" role="alert">{t(hata)}</div>
             <div className="modal-alt">
               <button type="button" className="ib" onClick={onKapat} disabled={kaydediliyor}>{t("Vazgeç")}</button>
@@ -197,6 +238,33 @@ export default function ProfilDialog({ uye, benim, cevrimici, onKapat, onKaydet,
           <div className="profil-hk">
             {uye.durum_metin && <p className="profil-durum-metin">“{uye.durum_metin}”</p>}
             {uye.hakkinda ? <p>{uye.hakkinda}</p> : <p className="hint">{t("Henüz bir şey yazmamış.")}</p>}
+            <div style={{ marginTop: 12, padding: "8px 10px", borderRadius: 12, background: "var(--card)", border: "1px solid var(--line)" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                🏅 {t("Başarı Rozetleri")}
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {BASARIM_ROZETLERI.map((b) => (
+                  <div
+                    key={b.id}
+                    title={`${b.baslik}: ${b.aciklama}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "3px 8px",
+                      borderRadius: 999,
+                      background: "var(--bg)",
+                      border: "1px solid var(--line)",
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>{b.simge}</span>
+                    <span>{b.baslik}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             {eylemler && <div className="pk-eylemler">{eylemler}</div>}
           </div>
         )}
