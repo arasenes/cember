@@ -1582,7 +1582,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             if (!grup.length) return null;
             return (
               <div key={rol}>
-                <div className="sec">{rol === "sahip" ? t("Admin") : rol === "moderator" ? t("Moderatör") : t("Üye")} — {grup.length}</div>
+                <div className="sec">{rol === "sahip" ? t("Admin") : rol === "moderator" ? t("Moderatör") : t("Çevrimiçi")} — {grup.length}</div>
                 {grup.map((u) => uyeSatiri(u, true))}
               </div>
             );
