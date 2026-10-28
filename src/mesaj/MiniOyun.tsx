@@ -334,7 +334,7 @@ function XoxKart({
     let oId = oyun.oId;
     if (sembol === "O" && oId === "*") oId = benId;
     let yeniTahta = oyun.tahta.slice(0, i) + sembol + oyun.tahta.slice(i + 1);
-    let yeniSira = sembol === "X" ? "O" : "X";
+    let yeniSira: "X" | "O" = sembol === "X" ? "O" : "X";
 
     if (oyun.oId === "bot" && sembol === "X" && !xoxKazanan(yeniTahta)) {
       const botKare = xoxBotHamlesi(yeniTahta);

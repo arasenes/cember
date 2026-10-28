@@ -159,10 +159,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: gurultuTercihi(), autoGainControl: gurultuTercihi() } });
       } catch (e) {
-        const ad = (e as { name?: string })?.name ?? "";
-        const mesaj = String((e as { message?: string })?.message ?? "");
-        if (ad === "NotFoundError" || ad === "NotAllowedError" || /requested device not found|permission|denied/i.test(mesaj)) { mikYok = true; stream = null; }
-        else throw e;
+        mikYok = true;
+        stream = null;
       }
       if (islem !== islemRef.current) { stream?.getTracks().forEach((t) => t.stop()); return { ok: false, neden: "iptal" }; }
       yerelRef.current = stream;
