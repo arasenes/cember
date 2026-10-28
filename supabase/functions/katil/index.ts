@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // Yalnızca kendi sitemizden gelen tarayıcı isteklerine izin ver (Android uygulaması da bu siteyi açar)
-const IZINLI_KAYNAKLAR = ["https://cember.onrender.com", "http://localhost:5173"];
+const IZINLI_KAYNAKLAR = ["https://cember.pages.dev", "https://cember-api.bronzaras.workers.dev", "https://cember.onrender.com", "http://localhost:5173"];
 function corsHazirla(req: Request): Record<string, string> {
   const k = req.headers.get("origin") ?? "";
   return {
