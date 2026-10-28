@@ -4,10 +4,10 @@ Arkadaşlar için Discord benzeri sohbet + sesli oda uygulaması. Yönetici: Ara
 
 ## Altyapı
 - **Kod:** GitHub `arasenes/cember` (main). Vite + React 19 + TypeScript, supabase-js, livekit-client, vitest. Bu oturumdaki tüm `src/` ve `android-ayar/` değişiklikleri GitHub'a yüklendi (güncel kaynak = GitHub main). `git clone https://github.com/arasenes/cember` ile başla.
-- **Yayın:** Render statik site `srv-db1223ugekts73bqrbgg` → https://cember.onrender.com (main'e her commit ~20 sn'de yayına girer).
-- **Backend:** Supabase proje `ehjslrbgazmakeucvquk` (veritabanı, auth, edge function'lar: `katil`, `ses-token`, `bildir`).
-- **Sesli oda / ekran paylaşımı:** Doğrudan kendi WebRTC P2P ses motorumuz (`src/p2p.ts`, 12 kişiye kadar, ücretsiz ve süre kotasız; mikrofonsuz salt dinleyici `recvonly` destekli). Sesli odada YouTube **Birlikte İzle** (`src/ses/BirlikteIzle.tsx`) ve **Ses Efekt Paneli / Soundboard** (`src/ses/efektler.ts`) mevcut.
-- **Android APK:** Capacitor sarmalayıcı, `https://cember.onrender.com` adresini yükler (appId `com.cember.chat`). GitHub Actions `.github/workflows/apk.yml` derler (tetikleyici: `capacitor.config.json`, `android-ayar/**`, workflow dosyası). Her derlemede `npx cap add android` sıfırdan çalışır, ardından `android-ayar/uygula.py` manifest/Gradle/Kotlin ayarlarını uygular. Sürüm = Actions çalıştırma numarası. İndirme: https://github.com/arasenes/cember/releases/download/apk-son/cember.apk
+- **Yayın:** Cloudflare Pages (https://cember.pages.dev) ve Cloudflare Edge Worker (https://cember-api.bronzaras.workers.dev). Render ile olan tüm bağlar kesildi (sıfır cold-start, sınırsız trafik, Türkiye edge lokasyonları).
+- **Backend:** Supabase proje `ehjslrbgazmakeucvquk` + Cloudflare Ekosistemi (Calls WebRTC SFU, R2 Medya Depolama, Workers AI Whisper & Llama 3.2, Turnstile Bot Koruması).
+- **Sesli oda / ekran paylaşımı:** Cloudflare Calls Anycast SFU mimarisi + P2P fallback (`src/p2p.ts`, `src/ses/cloudflareCalls.ts`). Sessiz ICE restart ve arka plan audio keep-alive bekçisi ile kopma korumalı.
+- **Android APK:** Capacitor sarmalayıcı, `https://cember-api.bronzaras.workers.dev` adresini yükler (appId `com.cember.chat`). GitHub Actions `.github/workflows/apk.yml` derler (tetikleyici: `capacitor.config.json`, `android-ayar/**`, workflow dosyası). Her derlemede `npx cap add android` sıfırdan çalışır, ardından `android-ayar/uygula.py` manifest/Gradle/Kotlin ayarlarını uygular. Sürüm = Actions çalıştırma numarası. İndirme: https://github.com/arasenes/cember/releases/download/apk-son/cember.apk
 - **Son APK:** #8 (1.0.8) başarılı. (#7 21 sn'de başarısız oldu, #8 aynı değişiklikleri içeriyor.)
 
 ## Giriş sistemi

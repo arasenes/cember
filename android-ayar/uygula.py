@@ -78,7 +78,7 @@ import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
-    private static final String SITE = "https://cember.onrender.com/";
+    private static final String SITE = "https://cember-api.bronzaras.workers.dev/";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

@@ -171,7 +171,7 @@ describe("9. Mesaj Kaydetme (Yer İmleri) & Kod Bloğu Kopyalama/Renklendirme", 
       kanalId: "k-1",
       kanalAdi: "genel",
       yazarAd: "Aras",
-      metin: "Önemli bağlantı https://cember.onrender.com",
+      metin: "Önemli bağlantı https://cember-api.bronzaras.workers.dev",
       olusturma: "2026-10-26T10:00:00Z",
     });
     expect(eklendi).toBe(true);

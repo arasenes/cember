@@ -1,6 +1,7 @@
 export interface Env {
   CEMBER_MEDYA: any; // R2Bucket
   AI: any;
+  ASSETS?: any; // Static Assets
   TURNSTILE_SECRET: string;
   R2_PUBLIC_URL: string;
 }
@@ -33,7 +34,7 @@ export default {
 
     try {
       // 1. Healthcheck
-      if (path === "/" || path === "/api/ping") {
+      if (path === "/api/ping") {
         return json({ ok: true, app: "cember-api", version: "1.0.0" });
       }
 
@@ -80,12 +81,10 @@ export default {
         if (contentType.includes("application/json")) {
           const bodyJson: any = await request.json();
           if (bodyJson.url) {
-            // URL'den indir
             const res = await fetch(bodyJson.url);
             const buf = await res.arrayBuffer();
             audioBytes = [...new Uint8Array(buf)];
           } else if (bodyJson.audio) {
-            // Base64
             const binStr = atob(bodyJson.audio);
             const len = binStr.length;
             const bytes = new Uint8Array(len);
@@ -93,7 +92,6 @@ export default {
             audioBytes = [...bytes];
           }
         } else {
-          // Doğrudan binary ses akışı
           const buf = await request.arrayBuffer();
           audioBytes = [...new Uint8Array(buf)];
         }
@@ -149,6 +147,11 @@ export default {
 
         const outcome: any = await verifyRes.json();
         return json({ ok: outcome.success, details: outcome });
+      }
+
+      // 7. Statik Ön Yüz (Static Assets)
+      if (env.ASSETS) {
+        return await env.ASSETS.fetch(request);
       }
 
       return json({ error: "Bilinmeyen istek" }, 404);

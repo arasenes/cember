@@ -50,7 +50,7 @@ export default function SunucuDialog({ onTamam, onKapat, misafir = false }: Prop
         <h2 id="sunucu-baslik">{t("Davetle sunucuya katıl")}</h2>
         <div className="field">
           <label htmlFor="sunucu-davet">{t("Davet bağlantısı ya da kodu")}</label>
-          <input ref={ilkRef} id="sunucu-davet" type="text" value={davet} onChange={(e) => setDavet(e.target.value)} placeholder={t("https://cember.onrender.com/?davet=X7KP2Q9A")} autoComplete="off" />
+          <input ref={ilkRef} id="sunucu-davet" type="text" value={davet} onChange={(e) => setDavet(e.target.value)} placeholder={t("https://cember-api.bronzaras.workers.dev/?davet=X7KP2Q9A")} autoComplete="off" />
         </div>
         {adIste && (
           <div className="field">

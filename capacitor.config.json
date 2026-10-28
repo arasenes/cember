@@ -2,6 +2,6 @@
   "appId": "com.cember.chat",
   "appName": "Çember",
   "webDir": "dist",
-  "server": { "url": "https://cember.onrender.com", "cleartext": false, "androidScheme": "https" },
+  "server": { "url": "https://cember-api.bronzaras.workers.dev", "cleartext": false, "androidScheme": "https" },
   "android": { "allowMixedContent": false, "backgroundColor": "#0E1730" }
 }
