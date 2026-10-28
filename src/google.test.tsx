@@ -38,15 +38,16 @@ describe("google", () => {
     await waitFor(() => expect(screen.queryByText("Google ile devam et")).toBeNull());
     expect(screen.queryByLabelText("Davet kodu")).toBeNull();
   });
+  it("Gate: misafir girişi sunulmaz", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ external: { google: true } }) }));
+    render(<Gate onJoined={() => {}} />);
+    await screen.findByText("Google ile devam et");
+    expect(screen.queryByText("Misafir olarak gir")).toBeNull();
+    expect(screen.queryByLabelText("Takma ad")).toBeNull();
+  });
   it("KayitAdi: kısa takma adı reddeder", async () => {
     render(<KayitAdi onBitti={() => {}} />);
     (screen.getByText("Kayıt ol ve gir") as HTMLButtonElement).click();
-    expect(await screen.findByText("Takma ad en az 2 harf olmalı.")).toBeTruthy();
-  });
-  it("Gate: misafir düğmesi kısa takma adı reddeder", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ external: { google: false } }) }));
-    render(<Gate onJoined={() => {}} />);
-    (screen.getByText("Misafir olarak gir") as HTMLButtonElement).click();
     expect(await screen.findByText("Takma ad en az 2 harf olmalı.")).toBeTruthy();
   });
 });

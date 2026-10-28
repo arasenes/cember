@@ -16,9 +16,6 @@ const MAX_UYE = 50;
 const YONETICI_EPOSTA = "bronzaras@gmail.com";
 const DENEME_LIMIT = 10; // 10 dakikada IP başına en fazla 10 yanlış deneme
 
-const MAX_MISAFIR = 15;
-const BAYAT_SAAT = 3;
-
 // Misafiri siler: mesajları kalır (ad gizlenir), hesabı ve kişisel kayıtları silinir
 // deno-lint-ignore no-explicit-any
 async function misafirSil(admin: any, uye: { id: string; user_id: string | null }) {
@@ -52,6 +49,8 @@ Deno.serve(async (req) => {
 
   let govde: { takma_ad?: string; google?: boolean; misafir?: boolean; misafir_sil?: boolean };
   try { govde = await req.json(); } catch { return json({ hata: "Geçersiz istek" }, 400); }
+  // Misafir girişi kapatıldı (misafir_sil ile mevcut misafirler hâlâ çıkış yapabilir)
+  if (govde.misafir) return json({ hata: "Misafir girişi kapatıldı. Google ile giriş yap." }, 403);
   const takmaAd = String(govde.takma_ad ?? "").trim().replace(/\s+/g, " ");
   if (!govde.misafir_sil && (takmaAd.length < 2 || takmaAd.length > 24)) return json({ hata: "Takma ad 2-24 karakter olmalı." }, 400);
 
@@ -73,49 +72,6 @@ Deno.serve(async (req) => {
     if (!m) return json({ hata: "Misafir hesabı bulunamadı." }, 404);
     await misafirSil(admin, m);
     return json({ ok: true });
-  }
-
-  // Misafir girişi: kodsuz, geçici hesap
-  if (govde.misafir) {
-    const bayat = new Date(Date.now() - BAYAT_SAAT * 3600 * 1000).toISOString();
-    const { data: eskiler } = await admin.from("uyeler").select("id, user_id").eq("misafir", true).eq("silindi", false).lt("son_gorulme", bayat).limit(20);
-    for (const e of eskiler ?? []) await misafirSil(admin, e);
-
-    const { data: oda } = await admin.from("odalar").select("id, ad").order("olusturma").limit(1).maybeSingle();
-    if (!oda) return json({ hata: "Oda bulunamadı." }, 500);
-    const esc = (v: string) => v.replace(/[%_\\]/g, (m) => "\\" + m);
-    const { data: adYasagi } = await admin.from("yasaklar").select("id").eq("oda_id", oda.id).ilike("takma_ad", esc(takmaAd)).maybeSingle();
-    const { data: ipYasagi } = ip === "bilinmiyor" ? { data: null } : await admin.from("yasaklar").select("id").eq("oda_id", oda.id).eq("ip", ip).maybeSingle();
-    if (adYasagi || ipYasagi) return json({ hata: "Bu odaya girişin engellendi." }, 403);
-
-    // Sayma ve kaydetme tek işlemde (039): paralel isteklerle limit aşılamaz
-    const { data: izinli, error: dErr } = await admin.rpc("deneme_kaydet", { p_ip: ip, p_limit: DENEME_LIMIT * 2 });
-    if (dErr) { console.error("deneme_kaydet hatası", dErr.message); return json({ hata: "Şu an kayıt yapılamıyor, biraz sonra tekrar dene." }, 503); }
-    if (izinli === false) return json({ hata: "Çok fazla deneme. Birkaç dakika sonra tekrar dene." }, 429);
-
-    const { count: misafirSayisi } = await admin.from("uyeler").select("id", { count: "exact", head: true }).eq("oda_id", oda.id).eq("misafir", true).eq("silindi", false);
-    if ((misafirSayisi ?? 0) >= MAX_MISAFIR) return json({ hata: "Şu an çok fazla misafir var, biraz sonra tekrar dene." }, 409);
-    const { count: uyeSayisi } = await admin.from("uyeler").select("id", { count: "exact", head: true }).eq("oda_id", oda.id).eq("silindi", false);
-    if ((uyeSayisi ?? 0) >= MAX_UYE) return json({ hata: "Oda dolu." }, 409);
-    const { data: ayniAd } = await admin.from("uyeler").select("id").eq("oda_id", oda.id).ilike("takma_ad", esc(takmaAd)).maybeSingle();
-    if (ayniAd) return json({ hata: "Bu takma ad odada kullanılıyor, başka bir tane seç." }, 409);
-
-    const eposta = `${crypto.randomUUID()}@cember.invalid`;
-    const parola = crypto.randomUUID() + crypto.randomUUID();
-    const { data: kullanici, error: kErr } = await admin.auth.admin.createUser({ email: eposta, password: parola, email_confirm: true });
-    if (kErr || !kullanici.user) return json({ hata: "Hesap oluşturulamadı." }, 500);
-    const renk = RENKLER[(uyeSayisi ?? 0) % RENKLER.length];
-    const { data: yeniUye, error: uErr } = await admin.from("uyeler").insert({ oda_id: oda.id, user_id: kullanici.user.id, takma_ad: takmaAd, renk, rol: "uye", misafir: true }).select("id").single();
-    if (uErr) {
-      await admin.auth.admin.deleteUser(kullanici.user.id);
-      const ad = uErr.code === "23505";
-      return json({ hata: ad ? "Bu takma ad odada kullanılıyor, başka bir tane seç." : "Odaya katılınamadı." }, ad ? 409 : 500);
-    }
-    if (yeniUye && ip !== "bilinmiyor") await admin.from("uye_ip").insert({ uye_id: yeniUye.id, ip });
-    const anon = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { auth: { persistSession: false } });
-    const { data: oturum, error: oErr } = await anon.auth.signInWithPassword({ email: eposta, password: parola });
-    if (oErr || !oturum.session) return json({ hata: "Oturum açılamadı." }, 500);
-    return json({ access_token: oturum.session.access_token, refresh_token: oturum.session.refresh_token, oda_adi: oda.ad, rol: "uye" });
   }
 
   // Google ile kayıt: oturum Google kimliğiyle açılmıştır, burada yalnızca odaya üye kaydı yapılır
@@ -155,5 +111,5 @@ Deno.serve(async (req) => {
     return json({ ok: true, rol, oda_adi: oda.ad });
   }
 
-  return json({ hata: "Geçersiz istek. Google ile ya da misafir olarak gir." }, 400);
+  return json({ hata: "Geçersiz istek. Google ile gir." }, 400);
 });
