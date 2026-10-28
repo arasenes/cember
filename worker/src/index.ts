@@ -149,7 +149,37 @@ export default {
         return json({ ok: outcome.success, details: outcome });
       }
 
-      // 7. Statik Ön Yüz (Static Assets)
+      // 7. Supabase Katil Edge Function Proxy (CORS Bypass)
+      if (path === "/api/katil" && request.method === "POST") {
+        const reqBody = await request.text();
+        const clientIp = request.headers.get("CF-Connecting-IP") || request.headers.get("x-forwarded-for") || "";
+        const authHeader = request.headers.get("Authorization") || request.headers.get("authorization") || "";
+
+        const supabaseHeaders: Record<string, string> = {
+          "Content-Type": "application/json",
+          "apikey": "sb_publishable_UvoyTwS7YV7Mk80Ilymvug_-lrhZwRi",
+          "Origin": "https://cember.onrender.com",
+        };
+        if (clientIp) supabaseHeaders["CF-Connecting-IP"] = clientIp;
+        if (authHeader) supabaseHeaders["Authorization"] = authHeader;
+
+        const res = await fetch("https://ehjslrbgazmakeucvquk.supabase.co/functions/v1/katil", {
+          method: "POST",
+          headers: supabaseHeaders,
+          body: reqBody,
+        });
+
+        const data = await res.text();
+        return new Response(data, {
+          status: res.status,
+          headers: {
+            "Content-Type": "application/json",
+            ...CORS_HEADERS,
+          },
+        });
+      }
+
+      // 8. Statik Ön Yüz (Static Assets)
       if (env.ASSETS) {
         return await env.ASSETS.fetch(request);
       }

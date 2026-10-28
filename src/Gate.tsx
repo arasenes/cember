@@ -5,7 +5,7 @@ import { adrestenDavetAl, davetiUnut } from "./sunucu/sunucular";
 import { t } from "./i18n";
 import { Logo } from "./Logo";
 import { TurnstileWidget } from "./Turnstile";
-import { cloudflareTurnstileDogrula } from "./cloudflareApi";
+import { cloudflareTurnstileDogrula, katilIstegi } from "./cloudflareApi";
 
 const SOZLER = ["Arkadaşlarınla yaz", "Sesli odada sohbet et", "Ekranını paylaş", "Birlikte film izle", "Çemberine katıl"];
 
@@ -48,16 +48,12 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
           return;
         }
       }
-      const r = await fetch(`${SUPABASE_URL}/functions/v1/katil`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY },
-        body: JSON.stringify({ misafir: true, takma_ad: ad }),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setHata(j.hata ?? "Katılınamadı, tekrar dene.");
+      const resp = await katilIstegi({ misafir: true, takma_ad: ad });
+      if (!resp.ok) {
+        setHata(resp.data?.hata ?? "Katılınamadı, tekrar dene.");
         return;
       }
+      const j = resp.data;
       const { error } = await supabase.auth.setSession({ access_token: j.access_token, refresh_token: j.refresh_token });
       if (error) {
         setHata("Oturum açılamadı, tekrar dene.");

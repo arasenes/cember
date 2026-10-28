@@ -40,7 +40,7 @@ import AramaPaneli from "./mesaj/AramaPaneli";
 import GifSecici from "./mesaj/GifSecici";
 import CikartmaSecici from "./mesaj/CikartmaSecici";
 import { SesKayitDugmesi } from "./mesaj/SesliMesaj";
-import { cloudflareYukle, cloudflareAiSohbet } from "./cloudflareApi";
+import { cloudflareYukle, cloudflareAiSohbet, katilIstegi } from "./cloudflareApi";
 import { OyunBaslatMenusu, miniOyunCoz } from "./mesaj/MiniOyun";
 import { useKaydedilenler } from "./mesaj/kaydedilenler";
 import KaydedilenlerPaneli from "./mesaj/KaydedilenlerPaneli";
@@ -1157,11 +1157,10 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       if (!onayla("Misafir hesabın silinecek ve bir daha girilemeyecek. Mesajların odada \"Silinmiş üye\" adıyla kalır. Çıkılsın mı?")) return;
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        await fetch(`${SUPABASE_URL}/functions/v1/katil`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ""}` },
-          body: JSON.stringify({ misafir_sil: true }),
-        });
+        await katilIstegi(
+          { misafir_sil: true },
+          session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined
+        );
       } catch { /* ağ yoksa yine de çık; bayat misafirler sonradan temizlenir */ }
       await pushKapat();
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});

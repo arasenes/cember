@@ -112,3 +112,31 @@ export async function cloudflareTurnstileDogrula(token: string): Promise<boolean
     return false;
   }
 }
+
+/**
+ * Katıl / Misafir / Kayıt isteğini Cloudflare Worker proxy'si üzerinden iletir (CORS engellerini aşar).
+ */
+export async function katilIstegi(
+  body: Record<string, unknown>,
+  ekstraBasliklar?: Record<string, string>
+): Promise<{ ok: boolean; status: number; data: any }> {
+  try {
+    const res = await fetch(`${CLOUDFLARE_API_URL}/api/katil`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(ekstraBasliklar || {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  } catch (err) {
+    console.warn("katilIstegi proxy hatasi:", err);
+    return {
+      ok: false,
+      status: 0,
+      data: { hata: "Sunucuya ulaşılamadı. İnternetini kontrol et." },
+    };
+  }
+}

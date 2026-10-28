@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { supabase, SUPABASE_KEY, SUPABASE_URL } from "./supabase";
+import { supabase } from "./supabase";
+import { katilIstegi } from "./cloudflareApi";
 import { t } from "./i18n";
 import { Logo } from "./Logo";
 
@@ -17,13 +18,11 @@ export default function KayitAdi({ onBitti, varsayilan }: { onBitti: () => void;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return setHata("Oturum bulunamadı, tekrar giriş yap.");
-      const r = await fetch(`${SUPABASE_URL}/functions/v1/katil`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ google: true, takma_ad: ad }),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) return setHata(j.hata ?? "Kayıt olunamadı, tekrar dene.");
+      const resp = await katilIstegi(
+        { google: true, takma_ad: ad },
+        { Authorization: `Bearer ${session.access_token}` }
+      );
+      if (!resp.ok) return setHata(resp.data?.hata ?? "Kayıt olunamadı, tekrar dene.");
       onBitti();
     } catch {
       setHata("Sunucuya ulaşılamadı. İnternetini kontrol et.");
