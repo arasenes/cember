@@ -20,9 +20,20 @@ export function yaziRengi(hex: string): string {
   return beyazKontrast > laciKontrast ? "#FFFFFF" : "#14213D";
 }
 
-/** Botlar için kendi renginde, yerelde çizilen robot yüzü (dış servis ve depolama gerektirmez). */
-export function botAvatarAdresi(renk: string): string {
+const BOT_HAYVAN: Record<string, string> = {
+  pamuk: "🐰", zeytin: "🦉", boncuk: "🐱", fıstık: "🐿️", karamel: "🦊", mısır: "🐥", tarçın: "🐻", limon: "🐸",
+};
+
+/** Botlar için kendi renginde, yerelde çizilen avatar: adı tanınan botlara hayvan, diğerlerine robot yüzü (dış servis gerektirmez). */
+export function botAvatarAdresi(renk: string, ad = ""): string {
   const r = /^#[0-9a-f]{6}$/i.test(renk) ? renk : "#6B7280";
+  const hayvan = BOT_HAYVAN[ad.trim().toLocaleLowerCase("tr")];
+  if (hayvan) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${r}"/>`
+      + `<circle cx="32" cy="32" r="25" fill="#fff" fill-opacity=".28"/>`
+      + `<text x="32" y="33" font-size="34" text-anchor="middle" dominant-baseline="central">${hayvan}</text></svg>`;
+    return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+  }
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${r}"/>`
     + `<line x1="32" y1="10" x2="32" y2="17" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="9" r="3" fill="#fff"/>`
     + `<rect x="13" y="17" width="38" height="31" rx="9" fill="#fff"/>`
@@ -59,7 +70,7 @@ export default function Avatar({ uye, onizleme, className = "", children }: Prop
   }, [yol]);
 
   const renk = uye?.renk ?? "#999999";
-  const adres = onizleme ?? (bozuk ? null : url) ?? (uye?.bot ? botAvatarAdresi(renk) : null);
+  const adres = onizleme ?? (bozuk ? null : url) ?? (uye?.bot ? botAvatarAdresi(renk, uye.takma_ad) : null);
   return (
     <div className={("dot " + className).trim()} style={{ background: renk, color: yaziRengi(renk) }} aria-hidden="true">
       {adres ? (
