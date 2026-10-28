@@ -27,6 +27,7 @@
   "vars": {
     "SUPABASE_URL": "https://ehjslrbgazmakeucvquk.supabase.co",
     "SUPABASE_KEY": "sb_publishable_UvoyTwS7YV7Mk80Ilymvug_-lrhZwRi",
-    "R2_PUBLIC_URL": "https://pub-3c82f225f65443d584ddb3e5cfc68b45.r2.dev"
+    "R2_PUBLIC_URL": "https://pub-3c82f225f65443d584ddb3e5cfc68b45.r2.dev",
+    "CF_TURN_KEY_ID": "fed6143d99cada081659c16ec0756e17"
   }
 }
