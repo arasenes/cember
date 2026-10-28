@@ -21,10 +21,10 @@ export function yaziRengi(hex: string): string {
 }
 
 const BOT_HAYVAN: Record<string, string> = {
-  pamuk: "🐰", zeytin: "🦉", boncuk: "🐱", fıstık: "🐿️", karamel: "🦊", mısır: "🐥", tarçın: "🐻", limon: "🐸",
+  pamuk: "🧙", zeytin: "🥷", boncuk: "🧚", fıstık: "👾", karamel: "🦸", mısır: "🧝", tarçın: "🐉", limon: "🧟",
 };
 
-/** Botlar için kendi renginde, yerelde çizilen avatar: adı tanınan botlara hayvan, diğerlerine robot yüzü (dış servis gerektirmez). */
+/** Botlar için kendi renginde, yerelde çizilen avatar: adı tanınan botlara oyun karakteri (büyücü, ninja vb.), diğerlerine robot yüzü (dış servis gerektirmez). */
 export function botAvatarAdresi(renk: string, ad = ""): string {
   const r = /^#[0-9a-f]{6}$/i.test(renk) ? renk : "#6B7280";
   const hayvan = BOT_HAYVAN[ad.trim().toLocaleLowerCase("tr")];
