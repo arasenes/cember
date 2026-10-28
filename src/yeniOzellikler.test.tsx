@@ -36,7 +36,7 @@ describe("1. Birlikte İzle (Watch Party)", () => {
   it("YouTube bağlantısı girilip başlatıldığında durumu günceller", () => {
     const onDegistir = vi.fn();
     render(<BirlikteIzle durum={null} baslatanAd="" benId="u1" onDegistir={onDegistir} />);
-    fireEvent.change(screen.getByLabelText("YouTube bağlantısı"), { target: { value: "https://youtu.be/dQw4w9WgXcQ" } });
+    fireEvent.change(screen.getByLabelText("Video sitesi bağlantısı"), { target: { value: "https://youtu.be/dQw4w9WgXcQ" } });
     fireEvent.click(screen.getByText("Başlat"));
     expect(onDegistir).toHaveBeenCalledWith(expect.objectContaining({
       videoId: "dQw4w9WgXcQ",

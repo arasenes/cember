@@ -20,8 +20,21 @@ export function yaziRengi(hex: string): string {
   return beyazKontrast > laciKontrast ? "#FFFFFF" : "#14213D";
 }
 
+/** Botlar için kendi renginde, yerelde çizilen robot yüzü (dış servis ve depolama gerektirmez). */
+export function botAvatarAdresi(renk: string): string {
+  const r = /^#[0-9a-f]{6}$/i.test(renk) ? renk : "#6B7280";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${r}"/>`
+    + `<line x1="32" y1="10" x2="32" y2="17" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="9" r="3" fill="#fff"/>`
+    + `<rect x="13" y="17" width="38" height="31" rx="9" fill="#fff"/>`
+    + `<circle cx="24" cy="31" r="5" fill="${r}"/><circle cx="40" cy="31" r="5" fill="${r}"/>`
+    + `<circle cx="25.5" cy="29.5" r="1.7" fill="#fff"/><circle cx="41.5" cy="29.5" r="1.7" fill="#fff"/>`
+    + `<rect x="22" y="40" width="20" height="3.5" rx="1.75" fill="${r}"/>`
+    + `<rect x="8" y="27" width="4" height="9" rx="2" fill="#fff"/><rect x="52" y="27" width="4" height="9" rx="2" fill="#fff"/></svg>`;
+  return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+}
+
 type Props = {
-  uye?: Pick<Uye, "takma_ad" | "renk" | "avatar_yol">;
+  uye?: Pick<Uye, "takma_ad" | "renk" | "avatar_yol"> & { bot?: boolean };
   /** Kaydedilmeden önce gösterilecek yerel önizleme (blob adresi). */
   onizleme?: string | null;
   className?: string;
@@ -45,8 +58,8 @@ export default function Avatar({ uye, onizleme, className = "", children }: Prop
     return () => { iptal = true; };
   }, [yol]);
 
-  const adres = onizleme ?? (bozuk ? null : url);
   const renk = uye?.renk ?? "#999999";
+  const adres = onizleme ?? (bozuk ? null : url) ?? (uye?.bot ? botAvatarAdresi(renk) : null);
   return (
     <div className={("dot " + className).trim()} style={{ background: renk, color: yaziRengi(renk) }} aria-hidden="true">
       {adres ? (

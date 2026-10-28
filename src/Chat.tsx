@@ -77,7 +77,13 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const [odaAdi, setOdaAdi] = useState("Çember");
   const [kanallar, setKanallar] = useState<Kanal[]>([]);
   const [uyeler, setUyeler] = useState<Uye[]>([]);
-  const [cevrimici, setCevrimici] = useState<Set<string>>(new Set());
+  const [gercekCevrimici, setCevrimici] = useState<Set<string>>(new Set());
+  // Botların bağlantısı olmadığı için her zaman çevrimiçi sayılır
+  const cevrimici = useMemo(() => {
+    const s = new Set(gercekCevrimici);
+    for (const u of uyeler) if (u.bot && !u.silindi) s.add(u.id);
+    return s;
+  }, [gercekCevrimici, uyeler]);
   const [aktif, setAktif] = useState<string | null>(null);
   const [mesajlar, setMesajlar] = useState<Mesaj[]>([]);
   const [tepkiler, setTepkiler] = useState<Tepki[]>([]);
