@@ -3,13 +3,14 @@ import { gurultuTercihi, gurultuUygula } from "./gurultu";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { SUPABASE_KEY, SUPABASE_URL, supabase } from "./supabase";
+import { CLOUDFLARE_API_URL } from "./cloudflareApi";
 import { sesHatasiMetni, type BaglanSonuc, type SesDurumu } from "./voice";
 import { ekranHatasi, ekranIstegi, KALITE, type EkranKalite, type EkranSonuc, type Izlenen } from "./ekranOrtak";
 import { efektCal, gecerliEfektMi, type EfektKodu } from "./ses/efektler";
 import type { IzlemeDurumu } from "./ses/BirlikteIzle";
 import { gecerliCizimOlayiMi, type CizimOlayi } from "./ses/BeyazTahta";
 import { gecerliSesModuMu, sesFiltresiKur, type SesEfektModu } from "./ses/sesDegistirici";
-import { cfCallsAyarAl, olusturCallsOturum, yayinlaCallsIzi, dinleCallsIzi, cevaplaCallsIzi, kapatCallsOturum } from "./ses/cloudflareCalls";
+import { cfCallsAktifMi, cfCallsAyarAl, olusturCallsOturum, yayinlaCallsIzi, dinleCallsIzi, cevaplaCallsIzi, kapatCallsOturum } from "./ses/cloudflareCalls";
 
 /**
  * Doğrudan (P2P) motor: konuşanlar tarayıcıdan tarayıcıya bağlanır (mesh).
@@ -27,19 +28,30 @@ type EkranEs = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzak
 type Es = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean; baslatan: boolean; el?: HTMLAudioElement; analiz?: AnalyserNode; sonlandir: () => void; sorunZamani?: number };
 
 async function iceSunuculariniAl(): Promise<{ iceServers: RTCIceServer[]; turn: boolean }> {
-  try {
+  const bilgiAl = async (url: string, ekstra: Record<string, string>) => {
     const { data: { session } } = await supabase.auth.getSession();
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/turn-bilgi`, {
+    const r = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY, Authorization: `Bearer ${session?.access_token ?? ""}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}`, ...ekstra },
       body: "{}",
     });
-    if (!r.ok) return { iceServers: VARSAYILAN_ICE, turn: false };
+    if (!r.ok) return null;
     const j = await r.json();
-    return Array.isArray(j.iceServers) && j.iceServers.length ? { iceServers: j.iceServers, turn: j.turn === true } : { iceServers: VARSAYILAN_ICE, turn: false };
-  } catch {
-    return { iceServers: VARSAYILAN_ICE, turn: false };
-  }
+    return Array.isArray(j.iceServers) && j.iceServers.length ? { iceServers: j.iceServers as RTCIceServer[], turn: j.turn === true, neden: j.neden as string | undefined } : null;
+  };
+  // Önce Worker (TURN sırrı orada), TURN dönmezse eski Supabase fonksiyonu; hiçbiri olmazsa yalnızca STUN
+  let sonuc: { iceServers: RTCIceServer[]; turn: boolean } | null = null;
+  try {
+    const w = await bilgiAl(`${CLOUDFLARE_API_URL}/api/turn`, {});
+    if (w?.turn) return w;
+    if (w?.neden) console.warn("Worker TURN vermedi:", w.neden);
+    sonuc = w;
+  } catch { /* sıradakini dene */ }
+  try {
+    const s = await bilgiAl(`${SUPABASE_URL}/functions/v1/turn-bilgi`, { apikey: SUPABASE_KEY });
+    if (s) return s;
+  } catch { /* yoksay */ }
+  return sonuc ?? { iceServers: VARSAYILAN_ICE, turn: false };
 }
 
 /** Mobil ve arka plan sekmelerinde sesin uyutulmasını engelleyen bekçi (Audio Keep-Alive & WakeLock) */
@@ -251,7 +263,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       document.addEventListener("keydown", sesAc, true);
 
       const cfAyar = cfCallsAyarAl();
-      if (stream) {
+      if (stream && cfCallsAktifMi()) {
         try {
           cfSessionId = await olusturCallsOturum(cfAyar.appId, cfAyar.appToken);
           cfGonderPc = new RTCPeerConnection({ iceServers });

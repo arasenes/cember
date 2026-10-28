@@ -6,6 +6,8 @@ export interface Env {
   R2_PUBLIC_URL: string;
   SUPABASE_URL: string;
   SUPABASE_KEY: string; // publishable (istemci) anahtar
+  CF_TURN_KEY_ID: string;
+  CF_TURN_API_TOKEN: string; // `wrangler secret put CF_TURN_API_TOKEN`
 }
 
 const YUKLEME_MAX_BAYT = 25 * 1024 * 1024;
@@ -226,6 +228,28 @@ export default {
 
         const reply = aiRes?.response || aiRes?.choices?.[0]?.text || "";
         return json(request, { ok: true, reply: reply.trim() });
+      }
+
+      // 5b. TURN kimlik bilgileri (POST /api/turn): oturumlu kullanıcıya kısa ömürlü Cloudflare TURN bilgisi
+      if (path === "/api/turn" && request.method === "POST") {
+        if (!(await oturumGecerliMi(request, env))) {
+          return json(request, { error: "Giriş gerekli." }, 401);
+        }
+        const stun = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"] }];
+        if (!env.CF_TURN_KEY_ID || !env.CF_TURN_API_TOKEN) {
+          return json(request, { iceServers: stun, turn: false, neden: "turn-yapilandirilmamis" });
+        }
+        const res = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${env.CF_TURN_KEY_ID}/credentials/generate-ice-servers`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${env.CF_TURN_API_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ ttl: 86400 }),
+        });
+        if (!res.ok) {
+          console.error("TURN anahtarı reddedildi:", res.status);
+          return json(request, { iceServers: stun, turn: false, neden: `cloudflare-${res.status}` });
+        }
+        const j: any = await res.json();
+        return json(request, { iceServers: j.iceServers ?? stun, turn: Array.isArray(j.iceServers) && j.iceServers.length > 0 });
       }
 
       // 6. Cloudflare Turnstile Verification (POST /api/turnstile/verify)

@@ -46,9 +46,16 @@ export function cfCallsAyarKaydet(appId: string, appToken: string): void {
   }
 }
 
-/** Cloudflare Calls etkin mi? */
+/**
+ * Cloudflare Calls (SFU) etkin mi? Varsayılan KAPALI: ses doğrudan P2P ile gider.
+ * Denemek için tarayıcı konsolunda: localStorage.setItem("cember:cf_calls", "1") ve sayfayı yenile.
+ */
 export function cfCallsAktifMi(): boolean {
-  return true;
+  try {
+    return localStorage.getItem("cember:cf_calls") === "1";
+  } catch {
+    return false;
+  }
 }
 
 const CF_API_TABAN = "https://rtc.live.cloudflare.com/v1/apps";
@@ -193,15 +200,9 @@ export async function cevaplaCallsIzi(
 }
 
 /**
- * Cloudflare Calls oturumunu kapatır
+ * Cloudflare Calls oturumunu kapatır. Calls API'si oturum silmeyi desteklemez (DELETE 405 döner);
+ * oturumlar bağlantı kapanınca kendiliğinden sona erer, bu yüzden burada ağ isteği yapılmaz.
  */
-export async function kapatCallsOturum(appId: string, appToken: string, sessionId: string): Promise<void> {
-  try {
-    await fetch(`${CF_API_TABAN}/${appId}/sessions/${sessionId}`, {
-      method: "DELETE",
-      headers: {
-        "Authorization": `Bearer ${appToken}`,
-      },
-    });
-  } catch { /* yoksay */ }
+export async function kapatCallsOturum(_appId: string, _appToken: string, _sessionId: string): Promise<void> {
+  /* bilerek boş */
 }

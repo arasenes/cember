@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { t } from "../i18n";
 import Ikon from "../mesaj/Ikon";
 
-export type IzlemeTuru = "youtube" | "dosya";
+export type IzlemeTuru = "youtube" | "dosya" | "link";
 
 export type IzlemeDurumu = {
   tur?: IzlemeTuru;
-  videoId: string; // YouTube videoId ya da dosya için dosya adı
+  videoId: string; // YouTube videoId, dosya için dosya adı, link için video adresi
   baslatanId: string;
   baslangicSn: number;
   oynuyor: boolean;
@@ -36,6 +36,22 @@ export function youtubeIdCikar(metin: string): string | null {
   return null;
 }
 
+/**
+ * İnternetteki doğrudan video adresini doğrular: yalnızca https, kullanıcı bilgisi yok.
+ * Odadaki herkesin tarayıcısı bu adresi açacağı için, karşıdan gelen adresler de aynı kuraldan geçirilir.
+ */
+export function videoLinkiCoz(metin: string): string | null {
+  const s = metin.trim();
+  if (!s || s.length > 2000) return null;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "https:" || u.username || u.password) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 /** O anki senkronize saniyeyi hesaplar. */
 export function hesaplananKonum(d: IzlemeDurumu, simdi = Date.now()): number {
   if (!d.oynuyor) return Math.max(0, Math.floor(d.baslangicSn));
@@ -52,7 +68,8 @@ type Props = {
 };
 
 export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onKapatPanel }: Props) {
-  const [sekme, setSekme] = useState<"youtube" | "dosya">("youtube");
+  const [sekme, setSekme] = useState<"youtube" | "dosya" | "link">("youtube");
+  const [videoHatasi, setVideoHatasi] = useState(false);
   const [girdi, setGirdi] = useState("");
   const [hata, setHata] = useState("");
   const [buyuk, setBuyuk] = useState(false);
@@ -68,6 +85,9 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
 
   const tur: IzlemeTuru = durum?.tur ?? "youtube";
   const baslatanBenim = durum ? durum.baslatanId === benId : false;
+  const videoMu = tur === "dosya" || tur === "link"; // HTML5 <video> ile oynatılanlar
+  const linkKaynak = durum && tur === "link" ? videoLinkiCoz(durum.videoId) : null;
+  const videoKaynak = tur === "link" ? linkKaynak : yerelUrl;
 
   if (durum && sonVideoRef.current !== durum.videoId) {
     sonVideoRef.current = durum.videoId;
@@ -84,7 +104,7 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
 
   // YouTube senkronu
   useEffect(() => {
-    if (!durum || durum.tur === "dosya") return;
+    if (!durum || durum.tur === "dosya" || durum.tur === "link") return;
     const hedefSn = hesaplananKonum(durum);
     ytKomut("seekTo", [hedefSn, true]);
     ytKomut(durum.oynuyor ? "playVideo" : "pauseVideo");
@@ -92,7 +112,7 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
 
   // Yerel HTML5 Video senkronu
   useEffect(() => {
-    if (!durum || durum.tur !== "dosya" || !videoRef.current) return;
+    if (!durum || (durum.tur !== "dosya" && durum.tur !== "link") || !videoRef.current) return;
     const v = videoRef.current;
     const hedefSn = hesaplananKonum(durum);
     if (Math.abs(v.currentTime - hedefSn) > 1.5) {
@@ -104,6 +124,8 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
       v.pause();
     }
   }, [durum]);
+
+  useEffect(() => { setVideoHatasi(false); }, [durum?.videoId]);
 
   useEffect(() => {
     if (!buyuk) return;
@@ -129,6 +151,18 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
     setHata("");
     setGirdi("");
     onDegistir({ tur: "youtube", videoId: id, baslatanId: benId, baslangicSn: 0, oynuyor: true, guncelleme: Date.now() });
+  }
+
+  function linkBaslat(e: React.FormEvent) {
+    e.preventDefault();
+    const adres = videoLinkiCoz(girdi);
+    if (!adres) {
+      setHata("Geçerli bir https video bağlantısı yapıştır (örn. https://.../film.mp4).");
+      return;
+    }
+    setHata("");
+    setGirdi("");
+    onDegistir({ tur: "link", videoId: adres, baslatanId: benId, baslangicSn: 0, oynuyor: true, guncelleme: Date.now() });
   }
 
   function yerelDosyaSec(dosya: File) {
@@ -160,7 +194,7 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
   }
 
   function tamEkran() {
-    const el = (tur === "dosya" ? videoRef.current : iframeRef.current) ?? kutuRef.current;
+    const el = (videoMu ? videoRef.current : iframeRef.current) ?? kutuRef.current;
     if (!el) return;
     try {
       if (el.requestFullscreen) void el.requestFullscreen().catch(() => setBuyuk((x) => !x));
@@ -182,7 +216,7 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
           🎬 <b>{t("Birlikte İzle")}</b>
           {durum && (
             <span className="hint">
-              {" "}· {tur === "dosya" ? `📁 ${durum.videoId}` : "YouTube"} ({baslatanAd})
+              {" "}· {tur === "dosya" ? `📁 ${durum.videoId}` : tur === "link" ? `🔗 ${linkKaynak ? new URL(linkKaynak).hostname : t("geçersiz bağlantı")}` : "YouTube"} ({baslatanAd})
             </span>
           )}
         </span>
@@ -229,6 +263,13 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
           >
             📁 Bilgisayar / USB Dosyası
           </button>
+          <button
+            type="button"
+            className={"ciple" + (sekme === "link" ? " acik" : "")}
+            onClick={() => { setSekme("link"); setHata(""); setGirdi(""); }}
+          >
+            🔗 Video Bağlantısı
+          </button>
         </div>
       )}
 
@@ -243,6 +284,23 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
             style={{ flex: 1, minWidth: 0 }}
           />
           <button type="submit" className="pk-btn" disabled={!girdi.trim()}>{t("Başlat")}</button>
+        </form>
+      )}
+
+      {!durum && sekme === "link" && (
+        <form className="birlikte-izle-form" onSubmit={linkBaslat} style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", alignItems: "center", flex: "none" }}>
+          <input
+            type="url"
+            value={girdi}
+            onChange={(e) => { setGirdi(e.target.value); if (hata) setHata(""); }}
+            placeholder={t("Video bağlantısı yapıştır (örn. https://.../film.mp4)")}
+            aria-label={t("Video bağlantısı")}
+            style={{ flex: 1, minWidth: 0 }}
+          />
+          <button type="submit" className="pk-btn" disabled={!girdi.trim()}>{t("Başlat")}</button>
+          <span style={{ flexBasis: "100%", fontSize: 13, color: "var(--muted)" }}>
+            {t("Doğrudan video dosyası adresi olmalı: MP4, WebM, OGG veya MOV (https). Netflix, Twitch gibi sayfa bağlantıları oynatılamaz.")}
+          </span>
         </form>
       )}
 
@@ -285,10 +343,11 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
               allowFullScreen
             />
           ) : (
-            yerelUrl ? (
+            videoKaynak ? (
               <video
                 ref={videoRef}
-                src={yerelUrl}
+                src={videoKaynak}
+                onError={() => { if (tur === "link") setVideoHatasi(true); }}
                 controls
                 playsInline
                 autoPlay
@@ -312,6 +371,11 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
                   }
                 }}
               />
+            ) : tur === "link" ? (
+              <div style={{ color: "#fff", textAlign: "center", padding: 24, maxWidth: 520 }}>
+                <div style={{ fontSize: 32 }}>⚠️</div>
+                <p>{t("Bu bağlantı geçerli bir https video adresi değil, oynatılamıyor.")}</p>
+              </div>
             ) : (
               <div style={{ color: "#fff", textAlign: "center", padding: 24, maxWidth: 520, display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
                 <div style={{ fontSize: 32 }}>📁</div>
@@ -346,10 +410,15 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
               </div>
             )
           )}
+          {videoHatasi && tur === "link" && (
+            <div role="alert" style={{ position: "absolute", left: 12, right: 12, bottom: 12, background: "rgba(179,38,30,0.92)", color: "#fff", padding: "8px 12px", borderRadius: 8, fontSize: 13 }}>
+              {t("Video yüklenemedi. Bağlantı doğrudan bir video dosyasına (MP4, WebM, OGG, MOV) çıkmıyor ya da site başka sitelerden oynatmayı engelliyor.")}
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", padding: 24, textAlign: "center" }}>
-          🎬 {t("Yukarıdan bir YouTube bağlantısı yapıştırın veya Bilgisayar / USB'den video dosyası seçin; odadaki herkes birlikte izlesin.")}
+          🎬 {t("Yukarıdan bir YouTube ya da video bağlantısı yapıştırın veya Bilgisayar / USB'den video dosyası seçin; odadaki herkes birlikte izlesin.")}
         </div>
       )}
     </section>
