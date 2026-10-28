@@ -11,6 +11,10 @@ declare global {
   }
 }
 
+/**
+ * Cloudflare Turnstile (Görünmez / Invisible Mod)
+ * Kullanıcıya dönen kutu veya bilmece göstermez, arka planda sessizce bot koruması sağlar.
+ */
 export function TurnstileWidget({
   onSuccess,
   onError,
@@ -38,14 +42,13 @@ export function TurnstileWidget({
       try {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
-          theme: "dark",
-          size: "flexible",
+          size: "invisible",
           callback: (token: string) => onSuccess(token),
           "error-callback": () => onError?.(),
           "expired-callback": () => onError?.(),
         });
       } catch (e) {
-        console.warn("Turnstile render error:", e);
+        console.warn("Turnstile render hatası:", e);
       }
     };
 
@@ -58,7 +61,7 @@ export function TurnstileWidget({
           renderWidget();
         }
       }, 100);
-      const timeout = setTimeout(() => clearInterval(interval), 10000);
+      const timeout = setTimeout(() => clearInterval(interval), 5000);
       return () => {
         clearInterval(interval);
         clearTimeout(timeout);
@@ -77,15 +80,6 @@ export function TurnstileWidget({
     };
   }, [onSuccess, onError]);
 
-  return (
-    <div
-      ref={containerRef}
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        margin: "10px 0",
-        minHeight: 65,
-      }}
-    />
-  );
+  // Görünmez mod olduğu için kullanıcı arayüzünde yer kaplamaz
+  return <div ref={containerRef} style={{ display: "none" }} aria-hidden="true" />;
 }
