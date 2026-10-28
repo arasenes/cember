@@ -302,6 +302,71 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   const ayarAc = (b: Bolum) => { setAyarBolum(b); setYonetimAcik(true); };
   const seciliSunucu = sunucular.find((x) => x.oda_id === me.oda_id);
   const benSusturuldu = susturulmus(ben, simdi);
+
+  const eksikUyeSorgulanan = useRef<Set<string>>(new Set());
+  const odaKatilimcilari = useCallback((kId: string): Uye[] => {
+    const idler = new Set<string>();
+    for (const [uid, v] of sesKonum) {
+      if (v.kanal === kId) idler.add(uid);
+    }
+    if (ses.kanalId === kId && ses.durum !== "kapali") {
+      idler.add(me.id);
+    }
+    if (ses.kanalId === kId) {
+      for (const uid of ses.konusanlar) idler.add(uid);
+      for (const uid of ses.kameralar.keys()) idler.add(uid);
+      for (const uid of ses.sorunlu) idler.add(uid);
+    }
+
+    const eksikler: string[] = [];
+    const sonuc = Array.from(idler).map((uid) => {
+      const u = uyeHaritasi.get(uid);
+      if (u) return u;
+      if (uid === me.id) return ben;
+      if (!eksikUyeSorgulanan.current.has(uid)) {
+        eksikUyeSorgulanan.current.add(uid);
+        eksikler.push(uid);
+      }
+      return {
+        id: uid,
+        oda_id: me.oda_id,
+        user_id: uid,
+        takma_ad: "Katılımcı",
+        rol: "uye",
+        renk: "#888888",
+        son_gorulme: new Date().toISOString(),
+      } satisfies Uye;
+    });
+
+    if (eksikler.length > 0) {
+      void supabase.from("uyeler").select("*").in("id", eksikler).then(({ data }) => {
+        if (data && data.length) {
+          setUyeler((x) => {
+            const yeni = [...x];
+            for (const d of data as Uye[]) {
+              const idx = yeni.findIndex((y) => y.id === d.id);
+              if (idx >= 0) yeni[idx] = silinmisGoster(d);
+              else yeni.push(silinmisGoster(d));
+            }
+            return yeni;
+          });
+        }
+      });
+    }
+
+    return sonuc;
+  }, [sesKonum, ses.kanalId, ses.durum, ses.konusanlar, ses.kameralar, ses.sorunlu, me.id, me.oda_id, uyeHaritasi, ben]);
+
+  const odayaGit = useCallback((hedefKanalId: string) => {
+    if (hedefKanalId.startsWith("dm:")) {
+      setGorunum("dm");
+    } else {
+      setGorunum("sunucu");
+      setAktif(hedefKanalId);
+      setPane("chat");
+      setSesSohbetKapali(false);
+    }
+  }, []);
   // Kanal bazlı izin: bu kanalda yazabilir miyim / dosya ekleyebilir miyim (sunucu RLS ile zorlar; burası yalnızca arayüz)
   const [kanalMaske, setKanalMaske] = useState<number | null>(null);
   useEffect(() => {
@@ -400,8 +465,8 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   }, [kanallar, girebilir]);
 
   function kanalaGir(k: Kanal, sonra: () => void) {
-    if (girebilir(k)) sonra();
-    else setSifreKanal({ kanal: k, sonra });
+    if (girebilir(k)) { setSesSohbetKapali(false); kapanisSayisi.current = 0; sonra(); }
+    else setSifreKanal({ kanal: k, sonra: () => { setSesSohbetKapali(false); kapanisSayisi.current = 0; sonra(); } });
   }
 
   // Bildirime dokunulunca (servis işçisi mesajı ya da ?kanal= adresi) ilgili yazılı kanala geç
@@ -1106,7 +1171,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     );
   };
   const sesSatiri = (k: Kanal) => {
-            const icindekiler = uyeler.filter((u) => sesKonum.get(u.id)?.kanal === k.id);
+            const icindekiler = odaKatilimcilari(k.id);
             const buradayim = ses.kanalId === k.id && ses.durum !== "kapali";
             const o = okunmamisBilgi(k.id);
             return (
@@ -1211,7 +1276,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
   }
 
   const sesYaniEl = aktifKanal?.tur === "sesli" ? (
-    <SesYani ben={ben} digerleri={uyeler.filter((u) => u.id !== me.id && sesKonum.get(u.id)?.kanal === aktifKanal.id)}
+    <SesYani ben={ben} digerleri={odaKatilimcilari(aktifKanal.id).filter((u) => u.id !== me.id)}
             paylasanlar={new Set([...sesKonum].filter(([, v]) => v.kanal === aktifKanal.id && v.ekran).map(([id]) => id))}
             uyeHaritasi={uyeHaritasi} yonetici={mesajYonet} islemYapabilir={(u) => islemYapabilir(ben, u)} susturulanlar={susturulanlar}
             onSustur={sesSustur} onAt={sesAt} onHata={(m) => toastAt(m, "hata")} />
@@ -1274,7 +1339,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           {bolumKanallari("sesli", sesKategorisiz).map(sesSatiri)}
           {kategoriGruplari.map((g) => kategoriBolumu(g.kategori!, g.kanallar))}
         </nav>
-        <SesCubugu className="vbar-side" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={ses.kanalId?.startsWith("dm:") ? t("Özel Arama") : (kanallar.find((k) => k.id === ses.kanalId)?.ad ?? "")} />
+        <SesCubugu className="vbar-side" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={ses.kanalId?.startsWith("dm:") ? t("Özel Arama") : (kanallar.find((k) => k.id === ses.kanalId)?.ad ?? "")} onOdayaGit={odayaGit} />
         <div className="me">
           <button className="me-profil" onClick={() => setProfilId(me.id)} title={t("Profilimi aç ve düzenle")}>
             <Avatar uye={ben}><span className="on-dot" style={{ background: DURUM_BILGI[ben.durum ?? "cevrimici"].renk }} /></Avatar>
@@ -1295,7 +1360,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
           <i className="sparcacik q1" /><i className="sparcacik q2" /><i className="sparcacik q3" /><i className="sparcacik q4" />
         </div>
         {aktifKanal?.tur === "sesli" && (
-          <SesSahnesi ses={ses} kanal={aktifKanal} katilimcilar={uyeler.filter((u) => sesKonum.get(u.id)?.kanal === aktifKanal.id)} benId={me.id}
+          <SesSahnesi ses={ses} kanal={aktifKanal} katilimcilar={odaKatilimcilari(aktifKanal.id)} benId={me.id}
             sagirlar={sagirlar} paylasanlar={new Set([...sesKonum].filter(([, v]) => v.kanal === aktifKanal.id && v.ekran).map(([id]) => id))}
             baglaniyor={ses.durum === "baglaniyor"} buradayim={ses.kanalId === aktifKanal.id && ses.durum !== "kapali"}
             basKonus={{ ayar: basKonusAyar, basili: basKonus.basili, bas: basKonus.bas, birak: basKonus.birak }}
@@ -1560,7 +1625,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         {bildirimler.map((b) => <div key={b.id} className={"toast " + b.tur}>{t(b.metin)}</div>)}
       </div>
       {ses.kabiRefleri.map((r, i) => <div key={i} ref={r} className="sr" aria-hidden="true" />)}
-      <SesCubugu className="vbar-dock" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={ses.kanalId?.startsWith("dm:") ? t("Özel Arama") : (kanallar.find((k) => k.id === ses.kanalId)?.ad ?? "")} />
+      <SesCubugu className="vbar-dock" ses={ses} baskasiPaylasiyor={paylasanAd} kanalAdi={ses.kanalId?.startsWith("dm:") ? t("Özel Arama") : (kanallar.find((k) => k.id === ses.kanalId)?.ad ?? "")} onOdayaGit={odayaGit} />
       <nav className="nav" aria-label={t("Ana sekmeler")}>
         <button aria-current={gorunum === "sunucu" && pane !== "mem"} onClick={() => { setGorunum("sunucu"); setPane(gorunum === "sunucu" && pane === "chat" ? "side" : "chat"); }}>
           <Ikon ad="hash" boyut={22} />{cevir("sekme.sunucu")}{gorunum !== "sunucu" && Object.values(okunmamis).some((o) => o.n > 0) && <span className="nokta nav-nokta" aria-hidden="true" />}

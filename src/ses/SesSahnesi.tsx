@@ -127,6 +127,17 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
   const [muzikPanelAcik, setMuzikPanelAcik] = useState(false);
   const [klipMesaj, setKlipMesaj] = useState("");
   const klipKaydediciRef = useRef<SesKlipKaydedici | null>(null);
+
+  useEffect(() => {
+    setSayfaKisi(null);
+    setIzlePanelAcik(false);
+    setEfektPanelAcik(false);
+    setTahtaAcik(false);
+    setSesModPanelAcik(false);
+    setMuzikPanelAcik(false);
+    setKameraUyari("");
+    setKlipMesaj("");
+  }, [kanal.id]);
   const ekranVar = !!ses.izlenen && buradayim;
   const izleVar = buradayim && (!!ses.birlikteIzle || izlePanelAcik);
   const tahtaVar = buradayim && tahtaAcik;

@@ -31,9 +31,9 @@ export function useSesMotoru(
   const p2p = useSesP2P(uyeId, (k) => onKanal(k, k ? "p2p" : null));
 
   const baglan = useCallback(async (hedef: string) => {
+    if (p2p.kanalId === hedef && p2p.durum === "bagli") return;
     setHata(""); setBilgi("");
     sesYoneticisi.sagirlastir(false); setSagir(false); setSunucuSusturState(false);
-    await p2p.ayril();
     const r = await p2p.baglan(hedef);
     if (r.ok) {
       sesCal("katil");
@@ -42,8 +42,7 @@ export function useSesMotoru(
     }
     if (r.neden === "iptal") return;
     setHata(r.mesaj ?? "Sese bağlanılamadı.");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p2p.ayril, p2p.baglan]);
+  }, [p2p.baglan, p2p.kanalId, p2p.durum]);
   baglanRef.current = baglan;
 
   const sagirSifirla = () => { sesYoneticisi.sagirlastir(false); setSagir(false); setSunucuSusturState(false); };

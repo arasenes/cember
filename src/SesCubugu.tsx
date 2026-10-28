@@ -4,9 +4,9 @@ import { ekranPaylasilabilirTarayici, KALITE, yerelEkran, type EkranKalite } fro
 import { t } from "./i18n";
 import Ikon from "./mesaj/Ikon";
 
-type Props = { ses: SesArayuzu; kanalAdi: string; className: string; baskasiPaylasiyor?: string | null };
+type Props = { ses: SesArayuzu; kanalAdi: string; className: string; baskasiPaylasiyor?: string | null; onOdayaGit?: (kanalId: string) => void };
 
-export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor = null }: Props) {
+export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor = null, onOdayaGit }: Props) {
   const [kalite, setKalite] = useState<EkranKalite>("720");
   if (ses.durum === "kapali") return null;
   const baglaniyor = ses.durum === "baglaniyor";
@@ -16,7 +16,7 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
     const engel = !!baskasiPaylasiyor;
     return (
       <div className={`voicebar on ${className} vbar-kompakt`} role="region" aria-label={t("Sesli oda kontrolleri")}>
-        <div className="vk-durum"><i aria-hidden="true" /><span>{baglaniyor ? t("Bağlanılıyor…") : kanalAdi || t("Sesli bağlı")}</span></div>
+        <div className="vk-durum" onClick={() => ses.kanalId && onOdayaGit?.(ses.kanalId)} style={{ cursor: onOdayaGit ? "pointer" : "default" }} title={onOdayaGit ? t("Bu sesli odaya git") : undefined}><i aria-hidden="true" /><span>{baglaniyor ? t("Bağlanılıyor…") : kanalAdi || t("Sesli bağlı")}</span></div>
         <div className="vk-dugmeler">
           <button className="ik mik" aria-pressed={ses.sessiz} onClick={ses.sessizDegistir} disabled={baglaniyor}
             aria-label={ses.sessiz ? t("Mikrofonu aç") : t("Mikrofonu sessize al")} title={ses.sessiz ? t("Mikrofon kapalı") : t("Mikrofon açık")}><Ikon ad={ses.sessiz ? "mikKapali" : "mik"} boyut={20} /></button>
@@ -35,7 +35,7 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
   }
   return (
     <div className={`voicebar on ${className}`} role="region" aria-label={t("Sesli oda kontrolleri")}>
-      <div className="vstat"><i aria-hidden="true" />{baglaniyor ? "Bağlanılıyor…" : "Sesli bağlı"}{!baglaniyor && ses.motor === "p2p" && <span className="hint" title={t("Ücretsiz doğrudan bağlantı modu")}>{" "}{t("(doğrudan)")}</span>}<span className="hint" style={{ marginLeft: "auto" }}>{kanalAdi}</span></div>
+      <div className="vstat" onClick={() => ses.kanalId && onOdayaGit?.(ses.kanalId)} style={{ cursor: onOdayaGit ? "pointer" : "default" }} title={onOdayaGit ? t("Bu sesli odaya git") : undefined}><i aria-hidden="true" />{baglaniyor ? "Bağlanılıyor…" : "Sesli bağlı"}{!baglaniyor && ses.motor === "p2p" && <span className="hint" title={t("Ücretsiz doğrudan bağlantı modu")}>{" "}{t("(doğrudan)")}</span>}<span className="hint" style={{ marginLeft: "auto" }}>{kanalAdi}</span></div>
       <div className="vbtns">
         <button className="ib" aria-pressed={ses.sessiz} onClick={ses.sessizDegistir} disabled={baglaniyor}>
           {ses.sessiz ? "🔇 Sessiz" : "🎙️ Sessize al"}

@@ -207,7 +207,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       const dmMi = hedef.startsWith("dm:");
       const kanalAdi = dmMi ? `dm-ses-${hedef.slice(3)}` : `ses:${hedef}`;
       kanal = supabase.channel(kanalAdi, {
-        config: { ...(dmMi ? {} : { private: true }), broadcast: { self: false }, presence: { key: uyeId } },
+        config: { broadcast: { self: false }, presence: { key: uyeId } },
       });
       const aktifKanal = kanal;
       const gonder = (to: string, tur: Sinyal["tur"], veri: unknown) => {
