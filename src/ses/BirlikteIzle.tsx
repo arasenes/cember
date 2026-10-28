@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { t } from "../i18n";
 import Ikon from "../mesaj/Ikon";
 
-export type IzlemeTuru = "youtube" | "dosya" | "link";
+export type IzlemeTuru = "youtube" | "dosya" | "link" | "vimeo" | "dailymotion";
+
+/** Gömülü (iframe) oynatıcıyla izlenen platformlar */
+const GOMULU: IzlemeTuru[] = ["youtube", "vimeo", "dailymotion"];
 
 export type IzlemeDurumu = {
   tur?: IzlemeTuru;
@@ -36,6 +39,46 @@ export function youtubeIdCikar(metin: string): string | null {
   return null;
 }
 
+const VIMEO_ID = /^\d{1,12}(\/[0-9a-f]{6,20})?$/;
+const DM_ID = /^[A-Za-z0-9]{5,12}$/;
+
+/** Vimeo ya da Dailymotion bağlantısından tür ve video kimliğini çıkarır (Vimeo özel videolarda "id/hash"). */
+export function platformCikar(metin: string): { tur: "vimeo" | "dailymotion"; videoId: string } | null {
+  try {
+    const u = new URL(metin.trim());
+    if (u.protocol !== "https:") return null;
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const p = /(?:^|\/)(\d{1,12})(?:\/([0-9a-f]{6,20}))?(?:\/|$)/.exec(u.pathname);
+      if (!p) return null;
+      const hash = p[2] ?? u.searchParams.get("h") ?? "";
+      const id = hash && /^[0-9a-f]{6,20}$/.test(hash) ? `${p[1]}/${hash}` : p[1];
+      return VIMEO_ID.test(id) ? { tur: "vimeo", videoId: id } : null;
+    }
+    if (host === "dailymotion.com" || host === "dai.ly") {
+      const p = host === "dai.ly" ? /^\/([A-Za-z0-9]+)/.exec(u.pathname) : /\/video\/([A-Za-z0-9]+)/.exec(u.pathname);
+      return p && DM_ID.test(p[1]) ? { tur: "dailymotion", videoId: p[1] } : null;
+    }
+  } catch { /* URL değil */ }
+  return null;
+}
+
+/** Gömülü oynatıcının adresi. Kimlik karşıdan geldiği için burada yeniden doğrulanır; geçersizse null. */
+export function gomuluAdres(tur: IzlemeTuru, videoId: string, ilkSn: number): string | null {
+  if (tur === "youtube") {
+    return YT_ID.test(videoId) ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&start=${ilkSn}` : null;
+  }
+  if (tur === "vimeo") {
+    if (!VIMEO_ID.test(videoId)) return null;
+    const [id, h] = videoId.split("/");
+    return `https://player.vimeo.com/video/${id}?autoplay=1${h ? `&h=${h}` : ""}#t=${ilkSn}s`;
+  }
+  if (tur === "dailymotion") {
+    return DM_ID.test(videoId) ? `https://www.dailymotion.com/embed/video/${videoId}?api=postMessage&autoplay=1&start=${ilkSn}` : null;
+  }
+  return null;
+}
+
 /**
  * İnternetteki doğrudan video adresini doğrular: yalnızca https, kullanıcı bilgisi yok.
  * Odadaki herkesin tarayıcısı bu adresi açacağı için, karşıdan gelen adresler de aynı kuraldan geçirilir.
@@ -65,10 +108,13 @@ type Props = {
   benId: string;
   onDegistir: (yeni: IzlemeDurumu | null) => void;
   onKapatPanel?: () => void;
+  /** Verilirse "Ekran / Site Paylaş" sekmesi görünür; herhangi bir siteyi ekran paylaşımıyla canlı gösterir */
+  onEkranPaylas?: () => void;
+  ekranEngeli?: string;
 };
 
-export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onKapatPanel }: Props) {
-  const [sekme, setSekme] = useState<"youtube" | "dosya" | "link">("youtube");
+export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onKapatPanel, onEkranPaylas, ekranEngeli }: Props) {
+  const [sekme, setSekme] = useState<"youtube" | "dosya" | "link" | "ekran">("youtube");
   const [videoHatasi, setVideoHatasi] = useState(false);
   const [girdi, setGirdi] = useState("");
   const [hata, setHata] = useState("");
@@ -96,18 +142,32 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
     sonVideoRef.current = "";
   }
 
-  function ytKomut(func: string, args: unknown[] = []) {
+  // Gömülü oynatıcıya (YouTube / Vimeo / Dailymotion) konum ve oynat-duraklat komutu gönderir
+  function gomuluSenkron(d: IzlemeDurumu) {
+    const w = iframeRef.current?.contentWindow;
+    if (!w) return;
+    const hedefSn = hesaplananKonum(d);
+    const k = d.tur ?? "youtube";
     try {
-      iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "*");
+      if (k === "youtube") {
+        const yt = (func: string, args: unknown[] = []) => w.postMessage(JSON.stringify({ event: "command", func, args }), "*");
+        yt("seekTo", [hedefSn, true]);
+        yt(d.oynuyor ? "playVideo" : "pauseVideo");
+      } else if (k === "vimeo") {
+        w.postMessage(JSON.stringify({ method: "setCurrentTime", value: hedefSn }), "https://player.vimeo.com");
+        w.postMessage(JSON.stringify({ method: d.oynuyor ? "play" : "pause" }), "https://player.vimeo.com");
+      } else if (k === "dailymotion") {
+        w.postMessage(`seek|${hedefSn}`, "https://www.dailymotion.com");
+        w.postMessage(d.oynuyor ? "play" : "pause", "https://www.dailymotion.com");
+      }
     } catch { /* yoksay */ }
   }
 
-  // YouTube senkronu
+  // Gömülü oynatıcı senkronu
   useEffect(() => {
-    if (!durum || durum.tur === "dosya" || durum.tur === "link") return;
-    const hedefSn = hesaplananKonum(durum);
-    ytKomut("seekTo", [hedefSn, true]);
-    ytKomut(durum.oynuyor ? "playVideo" : "pauseVideo");
+    if (!durum || !GOMULU.includes(durum.tur ?? "youtube")) return;
+    gomuluSenkron(durum);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [durum]);
 
   // Yerel HTML5 Video senkronu
@@ -144,13 +204,14 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
   function baslat(e: React.FormEvent) {
     e.preventDefault();
     const id = youtubeIdCikar(girdi);
-    if (!id) {
-      setHata("Geçerli bir YouTube bağlantısı yapıştır.");
+    const p = id ? null : platformCikar(girdi);
+    if (!id && !p) {
+      setHata("Geçerli bir YouTube, Vimeo veya Dailymotion bağlantısı yapıştır.");
       return;
     }
     setHata("");
     setGirdi("");
-    onDegistir({ tur: "youtube", videoId: id, baslatanId: benId, baslangicSn: 0, oynuyor: true, guncelleme: Date.now() });
+    onDegistir({ tur: id ? "youtube" : p!.tur, videoId: id ?? p!.videoId, baslatanId: benId, baslangicSn: 0, oynuyor: true, guncelleme: Date.now() });
   }
 
   function linkBaslat(e: React.FormEvent) {
@@ -216,7 +277,7 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
           🎬 <b>{t("Birlikte İzle")}</b>
           {durum && (
             <span className="hint">
-              {" "}· {tur === "dosya" ? `📁 ${durum.videoId}` : tur === "link" ? `🔗 ${linkKaynak ? new URL(linkKaynak).hostname : t("geçersiz bağlantı")}` : "YouTube"} ({baslatanAd})
+              {" "}· {tur === "dosya" ? `📁 ${durum.videoId}` : tur === "link" ? `🔗 ${linkKaynak ? new URL(linkKaynak).hostname : t("geçersiz bağlantı")}` : tur === "vimeo" ? "Vimeo" : tur === "dailymotion" ? "Dailymotion" : "YouTube"} ({baslatanAd})
             </span>
           )}
         </span>
@@ -254,7 +315,7 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
             className={"ciple" + (sekme === "youtube" ? " acik" : "")}
             onClick={() => { setSekme("youtube"); setHata(""); }}
           >
-            📺 YouTube
+            📺 YouTube / Vimeo / Dailymotion
           </button>
           <button
             type="button"
@@ -270,6 +331,26 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
           >
             🔗 Video Bağlantısı
           </button>
+          {onEkranPaylas && (
+            <button
+              type="button"
+              className={"ciple" + (sekme === "ekran" ? " acik" : "")}
+              onClick={() => { setSekme("ekran"); setHata(""); }}
+            >
+              🖥️ Site / Ekran Paylaş
+            </button>
+          )}
+        </div>
+      )}
+
+      {!durum && sekme === "ekran" && onEkranPaylas && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "10px 12px", alignItems: "center" }}>
+          <button type="button" className="pk-btn" onClick={onEkranPaylas} disabled={!!ekranEngeli}>
+            🖥️ {t("Paylaşmaya Başla")}
+          </button>
+          <span style={{ flexBasis: "100%", fontSize: 13, color: "var(--muted)" }}>
+            {ekranEngeli ?? t("İzlemek istediğin siteyi başka bir sekmede aç, sonra paylaşırken o sekmeyi seç ve \"Sekme sesini paylaş\"ı işaretle. Odadaki herkes canlı izler. Netflix gibi korumalı içeriklerde görüntü siyah gelebilir.")}
+          </span>
         </div>
       )}
 
@@ -279,8 +360,8 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
             type="url"
             value={girdi}
             onChange={(e) => { setGirdi(e.target.value); if (hata) setHata(""); }}
-            placeholder={t("YouTube bağlantısı yapıştır (örn. https://youtu.be/...)")}
-            aria-label={t("YouTube bağlantısı")}
+            placeholder={t("YouTube, Vimeo veya Dailymotion bağlantısı yapıştır")}
+            aria-label={t("Video sitesi bağlantısı")}
             style={{ flex: 1, minWidth: 0 }}
           />
           <button type="submit" className="pk-btn" disabled={!girdi.trim()}>{t("Başlat")}</button>
@@ -333,15 +414,23 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
 
       {durum ? (
         <div className="birlikte-izle-video" style={{ position: "relative", flex: "1 1 0", minHeight: 220, width: "100%", height: "100%", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {tur === "youtube" ? (
-            <iframe
-              ref={iframeRef}
-              title={t("Birlikte İzle YouTube oynatıcısı")}
-              src={`https://www.youtube-nocookie.com/embed/${durum.videoId}?autoplay=1&enablejsapi=1&rel=0&start=${ilkSnRef.current}`}
-              style={{ flex: 1, width: "100%", height: "100%", border: 0, display: "block" }}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+          {GOMULU.includes(tur) ? (
+            gomuluAdres(tur, durum.videoId, ilkSnRef.current) ? (
+              <iframe
+                ref={iframeRef}
+                title={t("Birlikte İzle oynatıcısı")}
+                src={gomuluAdres(tur, durum.videoId, ilkSnRef.current)!}
+                onLoad={() => gomuluSenkron(durum)}
+                style={{ flex: 1, width: "100%", height: "100%", border: 0, display: "block" }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+              />
+            ) : (
+              <div style={{ color: "#fff", textAlign: "center", padding: 24, maxWidth: 520 }}>
+                <div style={{ fontSize: 32 }}>⚠️</div>
+                <p>{t("Geçersiz video bağlantısı, oynatılamıyor.")}</p>
+              </div>
+            )
           ) : (
             videoKaynak ? (
               <video

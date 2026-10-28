@@ -234,6 +234,8 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
             benId={benId}
             onDegistir={(yeni) => { ses.birlikteIzleAyarla?.(yeni); if (!yeni) setIzlePanelAcik(false); }}
             onKapatPanel={() => setIzlePanelAcik(false)}
+            onEkranPaylas={ses.ekranDestegi && !ses.paylasiyorum ? () => { setIzlePanelAcik(false); void ses.ekranPaylas(kalite); } : undefined}
+            ekranEngeli={baskasiPaylasiyor ? `${baskasiPaylasiyor} ekran paylaşıyor` : baglaniyor ? "Ses bağlantısı kuruluyor..." : undefined}
           />
         )}
         {tahtaVar && (
