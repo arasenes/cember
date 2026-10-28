@@ -73,6 +73,13 @@ vi.mock("./supabase", () => {
   };
 });
 
+vi.mock("./cloudflareApi", () => ({
+  cloudflareYukle: vi.fn(async () => null),
+  cloudflareAiSohbet: vi.fn(async () => null),
+  cloudflareWhisper: vi.fn(async () => null),
+  cloudflareTurnstileDogrula: vi.fn(async () => true),
+}));
+
 vi.mock("./sesMotoru", () => ({
   useSesMotoru: () => ({
     durum: "kapali", kanalId: null, sessiz: false, konusanlar: new Set(), sorunlu: new Set(), turnVar: null, kullanilan: null, motor: null, hata: "", bilgi: "",

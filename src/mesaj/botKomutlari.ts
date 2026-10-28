@@ -1,8 +1,10 @@
-// Çember Bot komutları (sunucuda çalışır: 036_cember_bot.sql). Burada yalnızca yazı alanındaki öneri listesi için tanımlıdır.
+// Çember Bot komutları (sunucuda çalışır: 036_cember_bot.sql ve Cloudflare AI). Burada yalnızca yazı alanındaki öneri listesi için tanımlıdır.
 export type BotKomutu = { ad: string; ornek: string; aciklama: string };
 
 export const BOT_KOMUTLARI: BotKomutu[] = [
   { ad: "/yardim", ornek: "/yardim", aciklama: "Komut listesi" },
+  { ad: "/ai", ornek: "/ai Çember nedir?", aciklama: "Cloudflare Llama 3.2 yapay zekasına soru sor" },
+  { ad: "/ozet", ornek: "/ozet", aciklama: "Kanalda son konuşulanları yapay zekayla özetle" },
   { ad: "/zar", ornek: "/zar 20", aciklama: "Zar at (varsayılan 6 yüzlü)" },
   { ad: "/yazitura", ornek: "/yazitura", aciklama: "Yazı tura at" },
   { ad: "/sec", ornek: "/sec pizza, hamburger", aciklama: "Seçeneklerden birini seç" },

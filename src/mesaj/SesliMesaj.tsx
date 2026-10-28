@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import { gosterimBoyutu } from "../ekler";
 import { t } from "../i18n";
+import { cloudflareWhisper, cloudflareYukle } from "../cloudflareApi";
 
-const SESLI_DESEN = /^\[sesli:([0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:webp|jpg))\|(\d{1,3})\]$/;
-const DM_RESIM_DESEN = /^\[dmresim:([0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:webp|jpg))\|(\d{1,5})x(\d{1,5})\](?:\n([\s\S]*))?$/;
+const SESLI_DESEN = /^\[sesli:(https?:\/\/[^\s|]+|[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:webp|jpg))\|(\d{1,3})\]$/;
+const DM_RESIM_DESEN = /^\[dmresim:(https?:\/\/[^\s|]+|[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:webp|jpg))\|(\d{1,5})x(\d{1,5})\](?:\n([\s\S]*))?$/;
 
 export function sesliMesajCoz(metin: string): { yol: string; sureSn: number } | null {
   const m = SESLI_DESEN.exec(metin.trim());
@@ -33,12 +34,12 @@ function sureBicimle(sn: number): string {
 const urlOnbellek = new Map<string, { url: string; bitis: number }>();
 
 async function imzaliUrlAl(yol: string): Promise<string | null> {
+  if (yol.startsWith("http://") || yol.startsWith("https://")) return yol;
   const simdi = Date.now();
   const varOlan = urlOnbellek.get(yol);
   if (varOlan && varOlan.bitis > simdi) return varOlan.url;
   const { data, error } = await supabase.storage.from("avatarlar").createSignedUrl(yol, 3600);
   if (error || !data?.signedUrl) return null;
-  // Ses verisini Blob olarak çekip yerel nesne URL'sine dönüştürürüz ki tarayıcı <audio> öğesi MIME başlığına takılmasın
   try {
     const r = await fetch(data.signedUrl);
     if (!r.ok) return data.signedUrl;
@@ -58,6 +59,8 @@ export function SesliMesajOynatici({ yol, sureSn }: { yol: string; sureSn: numbe
   const [oynuyor, setOynuyor] = useState(false);
   const [gecen, setGecen] = useState(0);
   const [yukleniyor, setYukleniyor] = useState(false);
+  const [transkript, setTranskript] = useState<string | null>(null);
+  const [transkriptYukleniyor, setTranskriptYukleniyor] = useState(false);
   const sesRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -96,28 +99,106 @@ export function SesliMesajOynatici({ yol, sureSn }: { yol: string; sureSn: numbe
     }
   }
 
+  async function metneDok() {
+    if (transkriptYukleniyor) return;
+    if (transkript) {
+      setTranskript(null);
+      return;
+    }
+    setTranskriptYukleniyor(true);
+    try {
+      let u = url;
+      if (!u) {
+        u = await imzaliUrlAl(yol);
+        if (u) setUrl(u);
+      }
+      if (!u) throw new Error("Ses adresi alınamadı");
+      const metin = await cloudflareWhisper(u);
+      setTranskript(metin?.trim() ? metin.trim() : "Ses anlaşılamadı veya sessiz.");
+    } catch {
+      setTranskript("Metne dökülemedi.");
+    } finally {
+      setTranskriptYukleniyor(false);
+    }
+  }
+
   const oran = Math.min(100, Math.round((gecen / Math.max(1, sureSn)) * 100));
 
   return (
-    <div className="sesli-mesaj-kutu" role="group" aria-label={t("Sesli mesaj")} style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 12, background: "rgba(255,255,255,0.06)", minWidth: 210, maxWidth: 300, marginTop: 4 }}>
-      <button
-        type="button"
-        className="sq"
-        onClick={() => void oynatDuraklat()}
-        disabled={yukleniyor}
-        aria-label={oynuyor ? t("Duraklat") : t("Sesli mesajı oynat")}
-        style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0 }}
+    <div style={{ display: "inline-flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+      <div
+        className="sesli-mesaj-kutu"
+        role="group"
+        aria-label={t("Sesli mesaj")}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "8px 12px",
+          borderRadius: 12,
+          background: "rgba(255,255,255,0.06)",
+          minWidth: 230,
+          maxWidth: 320,
+        }}
       >
-        {yukleniyor ? "…" : oynuyor ? "⏸" : "▶️"}
-      </button>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-        <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.14)", overflow: "hidden" }}>
-          <div style={{ width: `${oran}%`, height: "100%", background: "var(--acc, #5865f2)", transition: "width 0.12s linear" }} />
+        <button
+          type="button"
+          className="sq"
+          onClick={() => void oynatDuraklat()}
+          disabled={yukleniyor}
+          aria-label={oynuyor ? t("Duraklat") : t("Sesli mesajı oynat")}
+          style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0 }}
+        >
+          {yukleniyor ? "…" : oynuyor ? "⏸" : "▶️"}
+        </button>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.14)", overflow: "hidden" }}>
+            <div style={{ width: `${oran}%`, height: "100%", background: "var(--acc, #5865f2)", transition: "width 0.12s linear" }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span className="hint" style={{ fontSize: 11 }}>
+              🎤 {oynuyor ? `${sureBicimle(gecen)} / ${sureBicimle(sureSn)}` : sureBicimle(sureSn)}
+            </span>
+            <button
+              type="button"
+              onClick={() => void metneDok()}
+              disabled={transkriptYukleniyor}
+              title="Cloudflare Whisper AI ile metne dök"
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                color: "#ff9f1c",
+                background: "rgba(255,159,28,0.12)",
+                border: "none",
+                borderRadius: 4,
+                padding: "2px 6px",
+                cursor: "pointer",
+              }}
+            >
+              {transkriptYukleniyor ? "…" : "🎙️ Yazı"}
+            </button>
+          </div>
         </div>
-        <span className="hint" style={{ fontSize: 11 }}>
-          🎤 {oynuyor ? `${sureBicimle(gecen)} / ${sureBicimle(sureSn)}` : sureBicimle(sureSn)}
-        </span>
       </div>
+      {transkript && (
+        <div
+          style={{
+            padding: "6px 10px",
+            borderRadius: 8,
+            background: "rgba(0,0,0,0.3)",
+            borderLeft: "3px solid #ff9f1c",
+            fontSize: 12,
+            color: "rgba(255,255,255,0.9)",
+            lineHeight: 1.4,
+            maxWidth: 320,
+          }}
+        >
+          <span style={{ fontSize: 10, color: "#ff9f1c", fontWeight: 700, display: "block", marginBottom: 2 }}>
+            ✨ Whisper AI:
+          </span>
+          {transkript}
+        </div>
+      )}
     </div>
   );
 }
@@ -130,8 +211,8 @@ export function DmEkResim({ yol, genislik, yukseklik, alt }: { yol: string; geni
 
   useEffect(() => {
     let iptal = false;
-    supabase.storage.from("avatarlar").createSignedUrl(yol, 3600).then(({ data }) => {
-      if (!iptal && data?.signedUrl) setUrl(data.signedUrl);
+    imzaliUrlAl(yol).then((u) => {
+      if (!iptal && u) setUrl(u);
     });
     return () => { iptal = true; };
   }, [yol]);
@@ -237,13 +318,21 @@ export function SesKayitDugmesi({
     }
     const yol = `${odaId}/${uyeId}/${crypto.randomUUID()}.webp`;
     setYukleniyor(true);
-    const { error } = await supabase.storage.from("avatarlar").upload(yol, blob, { contentType: "image/webp", upsert: false });
-    setYukleniyor(false);
-    if (error) {
-      onHata("Sesli mesaj yüklenemedi.");
-      return;
+    // Cloudflare R2'ye yükle
+    const r2 = await cloudflareYukle(blob, `ses-${Date.now()}.webp`);
+    let finalYol = yol;
+    if (r2?.url) {
+      finalYol = r2.url;
+    } else {
+      const { error } = await supabase.storage.from("avatarlar").upload(yol, blob, { contentType: "image/webp", upsert: false });
+      if (error) {
+        setYukleniyor(false);
+        onHata("Sesli mesaj yüklenemedi.");
+        return;
+      }
     }
-    await onGonder(`[sesli:${yol}|${gecenSn}]`);
+    setYukleniyor(false);
+    await onGonder(`[sesli:${finalYol}|${gecenSn}]`);
   }
 
   if (!kayitta) {

@@ -40,6 +40,7 @@ import AramaPaneli from "./mesaj/AramaPaneli";
 import GifSecici from "./mesaj/GifSecici";
 import CikartmaSecici from "./mesaj/CikartmaSecici";
 import { SesKayitDugmesi } from "./mesaj/SesliMesaj";
+import { cloudflareYukle, cloudflareAiSohbet } from "./cloudflareApi";
 import { OyunBaslatMenusu, miniOyunCoz } from "./mesaj/MiniOyun";
 import { useKaydedilenler } from "./mesaj/kaydedilenler";
 import KaydedilenlerPaneli from "./mesaj/KaydedilenlerPaneli";
@@ -927,10 +928,15 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     let yol: string | null = null;
     try {
       if (gonderilenEk) {
-        yol = ekYolu(me.oda_id, aktif, crypto.randomUUID(), gonderilenEk.tur);
-        const { error: yErr } = await supabase.storage.from("ekler")
-          .upload(yol, gonderilenEk.blob, { contentType: gonderilenEk.tur, cacheControl: "3600", upsert: false });
-        if (yErr) { yol = null; return setHata("Resim yüklenemedi. Biraz sonra tekrar dene."); }
+        const r2 = await cloudflareYukle(gonderilenEk.blob, `ek-${Date.now()}.${gonderilenEk.tur.split("/").pop() || "bin"}`);
+        if (r2?.url) {
+          yol = r2.url;
+        } else {
+          yol = ekYolu(me.oda_id, aktif, crypto.randomUUID(), gonderilenEk.tur);
+          const { error: yErr } = await supabase.storage.from("ekler")
+            .upload(yol, gonderilenEk.blob, { contentType: gonderilenEk.tur, cacheControl: "3600", upsert: false });
+          if (yErr) { yol = null; return setHata("Resim yüklenemedi. Biraz sonra tekrar dene."); }
+        }
       }
       const { data, error } = await supabase.from("mesajlar").insert({
         kanal_id: aktif, uye_id: me.id, metin: t, yanit_id: yanitlanan?.id ?? null,
@@ -940,7 +946,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         } : {}),
       }).select().single();
       if (error) {
-        if (yol) void supabase.storage.from("ekler").remove([yol]);
+        if (yol && !yol.startsWith("http")) void supabase.storage.from("ekler").remove([yol]);
         return setHata("Mesaj gönderilemedi.");
       }
       setMetin(""); setEmojiAcik(false); ekTemizle(); setYanitlanan(null);
@@ -949,6 +955,35 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       altaKaydir.current = true;
       setMesajlar((x) => birlestir(x, [data as Mesaj]));
       if (/https?:\/\//i.test(t)) void supabase.functions.invoke("onizleme", { body: { mesaj_id: (data as Mesaj).id } });
+
+      // Cloudflare Workers AI (@CemberAI / /ai / /ozet)
+      if (t.toLowerCase().includes("@cemberai") || t.startsWith("/ai") || t.startsWith("/ozet")) {
+        const hedefKanal = aktif;
+        const ebeveynId = (data as Mesaj).id;
+        void (async () => {
+          let prompt = t.replace(/@cemberai/gi, "").replace(/^\/ai\s*/i, "").trim();
+          if (t.startsWith("/ozet")) {
+            const sonMesajlar = mesajlar.slice(-15).map((m) => {
+              const u = uyeHaritasi.get(m.uye_id);
+              return `${u?.takma_ad || "Biri"}: ${m.metin}`;
+            }).join("\n");
+            prompt = `Aşağıdaki kanal sohbetini maddeler halinde Türkçe ve anlaşılır şekilde özetle:\n\n${sonMesajlar}`;
+          }
+          if (!prompt) prompt = "Selam! Çember AI sana nasıl yardımcı olabilir?";
+          const cevap = await cloudflareAiSohbet(prompt);
+          if (cevap) {
+            void supabase.from("mesajlar").insert({
+              kanal_id: hedefKanal,
+              uye_id: me.id,
+              metin: `🤖 **Çember AI:**\n${cevap}`,
+              yanit_id: ebeveynId,
+            }).select().single().then(({ data: botMsg }) => {
+              if (botMsg) setMesajlar((x) => birlestir(x, [botMsg as Mesaj]));
+            });
+          }
+        })();
+      }
+
       metinRef.current?.focus();
     } finally {
       setGonderiliyor(false);
@@ -994,10 +1029,15 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     if (d.hakkinda !== (guncel.hakkinda ?? "")) alanlar.hakkinda = d.hakkinda === "" ? null : d.hakkinda;
     if (d.durum_metin !== (guncel.durum_metin ?? "")) alanlar.durum_metin = d.durum_metin === "" ? null : d.durum_metin;
     if (d.yeniAvatar) {
-      yeniYol = `${me.oda_id}/${me.id}/${crypto.randomUUID()}.${d.yeniAvatar.uzanti}`;
-      const { error: yErr } = await supabase.storage.from("avatarlar")
-        .upload(yeniYol, d.yeniAvatar.blob, { contentType: d.yeniAvatar.tur, cacheControl: "3600", upsert: false });
-      if (yErr) return "Fotoğraf yüklenemedi. Biraz sonra tekrar dene.";
+      const r2 = await cloudflareYukle(d.yeniAvatar.blob, `avatar-${Date.now()}.${d.yeniAvatar.uzanti}`);
+      if (r2?.url) {
+        yeniYol = r2.url;
+      } else {
+        yeniYol = `${me.oda_id}/${me.id}/${crypto.randomUUID()}.${d.yeniAvatar.uzanti}`;
+        const { error: yErr } = await supabase.storage.from("avatarlar")
+          .upload(yeniYol, d.yeniAvatar.blob, { contentType: d.yeniAvatar.tur, cacheControl: "3600", upsert: false });
+        if (yErr) return "Fotoğraf yüklenemedi. Biraz sonra tekrar dene.";
+      }
       alanlar.avatar_yol = yeniYol;
     } else if (d.avatarKaldir && eskiYol) {
       alanlar.avatar_yol = null;
@@ -1005,10 +1045,10 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     if (!Object.keys(alanlar).length) return null;
     const { data, error } = await supabase.from("uyeler").update(alanlar).eq("id", me.id).select().single();
     if (error || !data) {
-      if (yeniYol) void supabase.storage.from("avatarlar").remove([yeniYol]);
+      if (yeniYol && !yeniYol.startsWith("http")) void supabase.storage.from("avatarlar").remove([yeniYol]);
       return error?.code === "23505" ? "Bu takma ad bu odada kullanılıyor." : "Profil kaydedilemedi. Biraz sonra tekrar dene.";
     }
-    if ("avatar_yol" in alanlar && eskiYol) void supabase.storage.from("avatarlar").remove([eskiYol]);
+    if ("avatar_yol" in alanlar && eskiYol && !eskiYol.startsWith("http")) void supabase.storage.from("avatarlar").remove([eskiYol]);
     setUyeler((x) => x.map((y) => (y.id === me.id ? { ...y, ...(data as Uye) } : y)));
     return null;
   }

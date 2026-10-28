@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 
 // İmzalı bağlantılar bir saat geçerli; 50 dakika önbelleğe alınır, aynı dosya için tek istek atılır.
+// Cloudflare R2 doğrudan URL'leri için Supabase sorgusu atılmaz, anında döner.
 const SURE_SN = 3600;
 const onbellek = new Map<string, { url: string; bitis: number }>();
 const bekleyen = new Map<string, Promise<string | null>>();
@@ -8,11 +9,14 @@ const anahtar = (kova: string, yol: string) => `${kova}/${yol}`;
 
 export function onbellektenAl(kova: string, yol: string | null | undefined): string | null {
   if (!yol) return null;
+  if (yol.startsWith("http://") || yol.startsWith("https://")) return yol;
   const v = onbellek.get(anahtar(kova, yol));
   return v && v.bitis > Date.now() ? v.url : null;
 }
 
 export function imzaliUrlAl(kova: string, yol: string): Promise<string | null> {
+  if (!yol) return Promise.resolve(null);
+  if (yol.startsWith("http://") || yol.startsWith("https://")) return Promise.resolve(yol);
   const a = anahtar(kova, yol);
   const hazir = onbellektenAl(kova, yol);
   if (hazir) return Promise.resolve(hazir);
