@@ -5,7 +5,7 @@ import { adrestenDavetAl, davetiUnut } from "./sunucu/sunucular";
 import { t } from "./i18n";
 import { Logo } from "./Logo";
 import { TurnstileWidget } from "./Turnstile";
-import { cloudflareTurnstileDogrula, katilIstegi } from "./cloudflareApi";
+import { katilIstegi } from "./cloudflareApi";
 
 const SOZLER = ["Arkadaşlarınla yaz", "Sesli odada sohbet et", "Ekranını paylaş", "Birlikte film izle", "Çemberine katıl"];
 
@@ -25,6 +25,7 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
   const [google, setGoogle] = useState(false);
   const [davetKodu, setDavetKodu] = useState<string | null>(() => adrestenDavetAl());
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileAnahtar, setTurnstileAnahtar] = useState(0); // token tek kullanımlık: her denemeden sonra widget yenilenir
 
   useEffect(() => { let iptal = false; googleAcikMi().then((a) => { if (!iptal) setGoogle(a); }); return () => { iptal = true; }; }, []);
 
@@ -41,14 +42,11 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
     if (ad.trim().length < 2) return setHata("Takma ad en az 2 harf olmalı.");
     setBekle(true);
     try {
-      if (turnstileToken) {
-        const dogru = await cloudflareTurnstileDogrula(turnstileToken);
-        if (!dogru) {
-          setHata("Bot doğrulaması geçersiz, lütfen tekrar deneyin.");
-          return;
-        }
+      if (!turnstileToken) {
+        setHata("Bot doğrulaması bekleniyor, birkaç saniye sonra tekrar dene.");
+        return;
       }
-      const resp = await katilIstegi({ misafir: true, takma_ad: ad });
+      const resp = await katilIstegi({ misafir: true, takma_ad: ad, turnstile_token: turnstileToken });
       if (!resp.ok) {
         setHata(resp.data?.hata ?? "Katılınamadı, tekrar dene.");
         return;
@@ -64,6 +62,8 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
       setHata("Sunucuya ulaşılamadı. İnternetini kontrol et.");
     } finally {
       setBekle(false);
+      setTurnstileToken(null);
+      setTurnstileAnahtar((k) => k + 1);
     }
   }
 
@@ -238,7 +238,7 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
           </div>
 
           {/* Cloudflare Turnstile Doğrulama Kutusu */}
-          <TurnstileWidget onSuccess={(tok) => setTurnstileToken(tok)} />
+          <TurnstileWidget key={turnstileAnahtar} onSuccess={(tok) => setTurnstileToken(tok)} />
 
           <div className="err" role="alert">{t(hata)}</div>
           <button className="cta gate-giris-btn" type="submit" disabled={bekle}>{bekle ? t("Giriliyor…") : t("Misafir olarak gir")}</button>

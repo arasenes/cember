@@ -68,6 +68,22 @@ async function oturumGecerliMi(request: Request, env: Env): Promise<boolean> {
   }
 }
 
+/** Turnstile token'ını sunucuda doğrular (token tek kullanımlıktır). */
+async function turnstileGecerliMi(env: Env, token: unknown, ip: string): Promise<boolean> {
+  if (typeof token !== "string" || token.length === 0 || token.length > 2048) return false;
+  const formData = new FormData();
+  formData.append("secret", env.TURNSTILE_SECRET);
+  formData.append("response", token);
+  if (ip) formData.append("remoteip", ip);
+  try {
+    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: formData });
+    const outcome: any = await res.json();
+    return outcome.success === true;
+  } catch {
+    return false;
+  }
+}
+
 function baytDizisi(bytes: Uint8Array): number[] {
   return Array.from(bytes);
 }
@@ -254,10 +270,27 @@ export default {
 
       // 7. Supabase Katil Edge Function Proxy
       if (path === "/api/katil" && request.method === "POST") {
-        const reqBody = await request.text();
+        let reqBody = await request.text();
         // Yalnızca Cloudflare'in doğruladığı istemci IP'si; x-forwarded-for taklit edilebilir.
         const clientIp = request.headers.get("CF-Connecting-IP") || "";
         const authHeader = request.headers.get("Authorization") || "";
+
+        // Misafir girişi bot doğrulaması ister; token Supabase'e iletilmeden gövdeden çıkarılır.
+        let govde: any;
+        try {
+          govde = JSON.parse(reqBody);
+        } catch {
+          return json(request, { hata: "Geçersiz istek" }, 400);
+        }
+        if (govde && govde.misafir === true) {
+          if (!(await turnstileGecerliMi(env, govde.turnstile_token, clientIp))) {
+            return json(request, { hata: "Bot doğrulaması geçersiz, lütfen tekrar deneyin." }, 403);
+          }
+        }
+        if (govde && typeof govde === "object" && "turnstile_token" in govde) {
+          delete govde.turnstile_token;
+          reqBody = JSON.stringify(govde);
+        }
 
         const supabaseHeaders: Record<string, string> = {
           "Content-Type": "application/json",
