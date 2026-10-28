@@ -75,7 +75,7 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
       {/* Üst Bar: Minimalist Marka & Canlı Edge İstatistiği */}
       <header className="gate-header">
         <div className="gate-brand">
-          <div className="gate-brand-logo">Ç</div>
+          <Logo boyut={34} />
           <div className="gate-brand-title">cember<span>.space</span> <span className="gate-sfu-tag" style={{ marginLeft: 6 }}>v2.0</span></div>
         </div>
         <div className="gate-edge-badge">
