@@ -4,7 +4,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { ipOzelMi, onizlemeCikar } from "./saf.ts";
 
-const IZINLI_KAYNAKLAR = ["https://cember.pages.dev", "https://cember-api.bronzaras.workers.dev", "https://cember.onrender.com", "http://localhost:5173"];
+const IZINLI_KAYNAKLAR = ["https://cember.pages.dev", "https://cember-api.bronzaras.workers.dev", "https://cember.space", "https://www.cember.space", "https://cember.onrender.com", "http://localhost:5173"];
 const ZAMAN_ASIMI_MS = 3000;
 const MAX_BAYT = 512 * 1024;
 const MAX_YONLENDIRME = 3;

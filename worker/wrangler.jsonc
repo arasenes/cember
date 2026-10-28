@@ -2,7 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "cember-api",
   "main": "src/index.ts",
-  "compatibility_date": "2024-10-01",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": true,
+  "preview_urls": true,
+  "routes": [
+    { "pattern": "www.cember.space/*", "zone_name": "cember.space" },
+    { "pattern": "cember.space/*", "zone_name": "cember.space" }
+  ],
   "assets": {
     "directory": "../dist",
     "binding": "ASSETS",
@@ -17,8 +23,10 @@
   "ai": {
     "binding": "AI"
   },
+  "observability": { "enabled": true },
   "vars": {
-    "TURNSTILE_SECRET": "0x4AAAAAAFpPMsHnHAxntRJHmEgckgWyOw0",
+    "SUPABASE_URL": "https://ehjslrbgazmakeucvquk.supabase.co",
+    "SUPABASE_KEY": "sb_publishable_UvoyTwS7YV7Mk80Ilymvug_-lrhZwRi",
     "R2_PUBLIC_URL": "https://pub-3c82f225f65443d584ddb3e5cfc68b45.r2.dev"
   }
 }

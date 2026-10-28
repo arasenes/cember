@@ -1,6 +1,6 @@
 // GIF arama (Giphy ya da Tenor). Anahtar yalnızca Supabase sırlarında: GIPHY_API_KEY ya da TENOR_API_KEY.
 // İstemci yalnızca oturumlu kullanıcıdır (verify_jwt açık).
-const IZINLI_KAYNAKLAR = ["https://cember.pages.dev", "https://cember-api.bronzaras.workers.dev", "https://cember.onrender.com", "http://localhost:5173"];
+const IZINLI_KAYNAKLAR = ["https://cember.pages.dev", "https://cember-api.bronzaras.workers.dev", "https://cember.space", "https://www.cember.space", "https://cember.onrender.com", "http://localhost:5173"];
 
 function corsHazirla(req: Request): Record<string, string> {
   const k = req.headers.get("origin") ?? "";

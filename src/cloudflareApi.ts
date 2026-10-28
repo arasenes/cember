@@ -3,8 +3,17 @@
  * Edge Worker: https://cember-api.bronzaras.workers.dev
  */
 
+import { supabase } from "./supabase";
+
 export const CLOUDFLARE_API_URL = "https://cember-api.bronzaras.workers.dev";
 export const TURNSTILE_SITE_KEY = "0x4AAAAAAFpPMpeTelOCEQtr";
+
+/** Worker'ın giriş istediği uçlar için mevcut (misafir dahil) oturum başlığı. */
+async function yetkiBasligi(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 /**
  * Dosyayı Cloudflare R2 Bucket'ına yükler.
@@ -19,6 +28,7 @@ export async function cloudflareYukle(
     const res = await fetch(`${CLOUDFLARE_API_URL}/api/upload?name=${enc}`, {
       method: "PUT",
       headers: {
+        ...(await yetkiBasligi()),
         "Content-Type": blob.type || "application/octet-stream",
       },
       body: blob,
@@ -44,13 +54,13 @@ export async function cloudflareWhisper(ses: Blob | string): Promise<string | nu
     if (typeof ses === "string") {
       res = await fetch(`${CLOUDFLARE_API_URL}/api/ai/whisper`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...(await yetkiBasligi()), "Content-Type": "application/json" },
         body: JSON.stringify({ url: ses }),
       });
     } else {
       res = await fetch(`${CLOUDFLARE_API_URL}/api/ai/whisper`, {
         method: "POST",
-        headers: { "Content-Type": ses.type || "audio/webm" },
+        headers: { ...(await yetkiBasligi()), "Content-Type": ses.type || "audio/webm" },
         body: ses,
       });
     }
@@ -82,7 +92,7 @@ export async function cloudflareAiSohbet(
 
     const res = await fetch(`${CLOUDFLARE_API_URL}/api/ai/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...(await yetkiBasligi()), "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, messages }),
     });
 
