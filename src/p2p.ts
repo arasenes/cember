@@ -9,6 +9,7 @@ import { efektCal, gecerliEfektMi, type EfektKodu } from "./ses/efektler";
 import type { IzlemeDurumu } from "./ses/BirlikteIzle";
 import { gecerliCizimOlayiMi, type CizimOlayi } from "./ses/BeyazTahta";
 import { gecerliSesModuMu, sesFiltresiKur, type SesEfektModu } from "./ses/sesDegistirici";
+import { cfCallsAyarAl, olusturCallsOturum, yayinlaCallsIzi, dinleCallsIzi, cevaplaCallsIzi, kapatCallsOturum } from "./ses/cloudflareCalls";
 
 /**
  * Doğrudan (P2P) motor: konuşanlar tarayıcıdan tarayıcıya bağlanır (mesh).
@@ -149,9 +150,21 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     const kameraIcePeer = new Map<string, RTCIceCandidateInit[]>();
     let arkaPlanKapat: (() => void) | null = null;
     let agDinleyiciKapat: (() => void) | null = null;
+    let cfSessionId: string | null = null;
+    let cfGonderPc: RTCPeerConnection | null = null;
+    const cfAliciPc = new Map<string, RTCPeerConnection>();
 
     const kapat = async () => {
       kapandi = true;
+      if (cfSessionId) {
+        const ayar = cfCallsAyarAl();
+        void kapatCallsOturum(ayar.appId, ayar.appToken, cfSessionId);
+        cfSessionId = null;
+      }
+      try { cfGonderPc?.close(); } catch { /* yoksay */ }
+      cfGonderPc = null;
+      for (const pc of cfAliciPc.values()) { try { pc.close(); } catch { /* yoksay */ } }
+      cfAliciPc.clear();
       arkaPlanKapat?.(); arkaPlanKapat = null;
       agDinleyiciKapat?.(); agDinleyiciKapat = null;
       if (olcum) clearInterval(olcum);
@@ -236,6 +249,22 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       };
       document.addEventListener("pointerdown", sesAc, true);
       document.addEventListener("keydown", sesAc, true);
+
+      const cfAyar = cfCallsAyarAl();
+      if (stream) {
+        try {
+          cfSessionId = await olusturCallsOturum(cfAyar.appId, cfAyar.appToken);
+          cfGonderPc = new RTCPeerConnection({ iceServers });
+          stream.getTracks().forEach((t) => cfGonderPc!.addTrack(t, stream!));
+          const offer = await cfGonderPc.createOffer();
+          await cfGonderPc.setLocalDescription(offer);
+          const { answerSdp } = await yayinlaCallsIzi(cfAyar.appId, cfAyar.appToken, cfSessionId, cfGonderPc.localDescription!.sdp);
+          await cfGonderPc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+        } catch (e) {
+          console.warn("Cloudflare Calls oturumu başlatılamadı, P2P modunda devam ediliyor:", e);
+          cfSessionId = null;
+        }
+      }
 
       const benimT = Date.now();
       const dmMi = hedef.startsWith("dm:");
@@ -686,25 +715,69 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       });
       kanal.on("presence", { event: "sync" }, () => {
         if (kapandi || !kanal) return;
-        const durumlar = kanal.presenceState<{ t: number; ekran?: boolean; kamera?: boolean; izle?: IzlemeDurumu | null }>();
+        const durumlar = kanal.presenceState<{ t: number; ekran?: boolean; kamera?: boolean; izle?: IzlemeDurumu | null; cfSessionId?: string }>();
         let enYeniIzle: IzlemeDurumu | null = null;
         for (const m of Object.values(durumlar)) {
           const iz = m[m.length - 1]?.izle;
           if (iz && typeof iz.videoId === "string" && (!enYeniIzle || iz.guncelleme > enYeniIzle.guncelleme)) enYeniIzle = iz;
         }
         if (enYeniIzle) setBirlikteIzle((onceki) => (onceki ?? enYeniIzle));
-        const kisiler = Object.entries(durumlar).map(([id, m]) => ({ id, t: m[0]?.t ?? 0, ekran: !!m[m.length - 1]?.ekran, kamera: !!m[m.length - 1]?.kamera }));
+        const kisiler = Object.entries(durumlar).map(([id, m]) => ({
+          id,
+          t: m[0]?.t ?? 0,
+          ekran: !!m[m.length - 1]?.ekran,
+          kamera: !!m[m.length - 1]?.kamera,
+          cfSessionId: m[m.length - 1]?.cfSessionId,
+        }));
         kisiler.sort((a, b) => a.t - b.t || a.id.localeCompare(b.id));
         const sira = kisiler.findIndex((k) => k.id === uyeId);
         if (sira >= P2P_MAX_KISI) { doluHatasi = true; void ayril(); return; }
         const varOlanlar = new Set(kisiler.map((k) => k.id));
         for (const k of kisiler) {
-          if (k.id === uyeId || esler.has(k.id)) continue;
+          if (k.id === uyeId) continue;
+          if (cfSessionId && k.cfSessionId && !cfAliciPc.has(k.id) && !esler.has(k.id)) {
+            const remoteSid = k.cfSessionId;
+            kuyruk = kuyruk.then(async () => {
+              if (kapandi || !cfSessionId || cfAliciPc.has(k.id)) return;
+              try {
+                const pcAlici = new RTCPeerConnection({ iceServers });
+                pcAlici.ontrack = (e) => {
+                  const uzak = e.streams[0] ?? new MediaStream([e.track]);
+                  const el = document.createElement("audio");
+                  el.autoplay = true; el.setAttribute("playsinline", "");
+                  el.srcObject = uzak;
+                  sesKabi.current?.appendChild(el);
+                  sesYoneticisi.kaydet(k.id, uzak, el);
+                  void el.play().catch(() => {});
+                  analizEkle(k.id, uzak);
+                };
+                const { offerSdp } = await dinleCallsIzi(cfAyar.appId, cfAyar.appToken, cfSessionId, remoteSid);
+                await pcAlici.setRemoteDescription({ type: "offer", sdp: offerSdp });
+                const answer = await pcAlici.createAnswer();
+                await pcAlici.setLocalDescription(answer);
+                await cevaplaCallsIzi(cfAyar.appId, cfAyar.appToken, cfSessionId, pcAlici.localDescription!.sdp);
+                cfAliciPc.set(k.id, pcAlici);
+              } catch (err) {
+                console.warn("Cloudflare Calls üzerinden iz çekilemedi, doğrudan P2P deneniyor:", err);
+                if (!esler.has(k.id)) void teklifGonder(k.id);
+              }
+            }).catch(() => {});
+            continue;
+          }
+
+          if (esler.has(k.id)) continue;
           const benYeniyim = benimT > k.t || (benimT === k.t && uyeId > k.id);
           if (benYeniyim) kuyruk = kuyruk.then(() => teklifGonder(k.id)).catch(() => {});
         }
         for (const [id, e] of esler) {
           if (!varOlanlar.has(id)) { e.sonlandir(); esler.delete(id); }
+        }
+        for (const [id, pc] of cfAliciPc) {
+          if (!varOlanlar.has(id)) {
+            try { pc.close(); } catch { /* yoksay */ }
+            cfAliciPc.delete(id);
+            sesYoneticisi.kaldir(id);
+          }
         }
         for (const [id, e] of ekranGiden) {
           if (!varOlanlar.has(id)) { try { e.pc.close(); } catch { /* yoksay */ } ekranGiden.delete(id); }
@@ -737,7 +810,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         kanal!.subscribe(async (d) => {
           if (d === "SUBSCRIBED") {
             clearTimeout(zamanasimi);
-            await kanal!.track({ t: benimT });
+            await kanal!.track({ t: benimT, cfSessionId: cfSessionId ?? undefined });
             coz();
           } else if (d === "CHANNEL_ERROR" || d === "TIMED_OUT") {
             clearTimeout(zamanasimi);

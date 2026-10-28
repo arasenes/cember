@@ -9,14 +9,16 @@
  */
 
 const CF_AYAR_ANAHTARI = "cember:cf_calls_config";
+const VARSAYILAN_CF_APP_ID = "f56971bc644bea8a231358fa32bde748";
+const VARSAYILAN_CF_APP_TOKEN = "eaf2df467ec039845c82049796f2604c0bd9650362bf5c17443316f06dc1266a";
 
 export type CloudflareCallsAyar = {
   appId: string;
   appToken: string;
 };
 
-/** Cloudflare Calls kimlik bilgilerini yerel depolamadan veya ortam değişkenlerinden okur */
-export function cfCallsAyarAl(): CloudflareCallsAyar | null {
+/** Cloudflare Calls kimlik bilgilerini yerel depolamadan, ortam değişkenlerinden veya varsayılan ayarlardan okur */
+export function cfCallsAyarAl(): CloudflareCallsAyar {
   try {
     const yerel = localStorage.getItem(CF_AYAR_ANAHTARI);
     if (yerel) {
@@ -32,7 +34,7 @@ export function cfCallsAyarAl(): CloudflareCallsAyar | null {
     return { appId: envAppId, appToken: envAppToken };
   }
 
-  return null;
+  return { appId: VARSAYILAN_CF_APP_ID, appToken: VARSAYILAN_CF_APP_TOKEN };
 }
 
 /** Ayarlar ekranından Cloudflare Calls yapılandırmasını kaydeder */
@@ -46,7 +48,7 @@ export function cfCallsAyarKaydet(appId: string, appToken: string): void {
 
 /** Cloudflare Calls etkin mi? */
 export function cfCallsAktifMi(): boolean {
-  return cfCallsAyarAl() !== null;
+  return true;
 }
 
 const CF_API_TABAN = "https://rtc.live.cloudflare.com/v1/apps";
