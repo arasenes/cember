@@ -238,6 +238,20 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     if (!duyuruRef.current.ses) return;
     void kanalRef.current?.track({ t: Date.now(), ...duyuruRef.current, ekran: ses.paylasiyorum, bosta: bostaRef.current, sagir: sagirRef.current });
   }, [ses.paylasiyorum]);
+  // Sesli odadayken her 25 saniyede bir varlık (presence) kalp atışı gönder (mobil uyku ve kopmaları engeller)
+  useEffect(() => {
+    if (!ses.kanalId || ses.durum === "kapali") return;
+    const kalp = setInterval(() => {
+      void kanalRef.current?.track({
+        t: Date.now(),
+        ...duyuruRef.current,
+        ekran: ses.paylasiyorum,
+        bosta: bostaRef.current,
+        sagir: ses.sagir,
+      });
+    }, 25000);
+    return () => clearInterval(kalp);
+  }, [ses.kanalId, ses.durum, ses.paylasiyorum, ses.sagir]);
   useEffect(() => {
     let sayac: ReturnType<typeof setTimeout>;
     const ayarla = (b: boolean) => {

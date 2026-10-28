@@ -35,7 +35,7 @@ export default function SesCubugu({ ses, kanalAdi, className, baskasiPaylasiyor 
   }
   return (
     <div className={`voicebar on ${className}`} role="region" aria-label={t("Sesli oda kontrolleri")}>
-      <div className="vstat" onClick={() => ses.kanalId && onOdayaGit?.(ses.kanalId)} style={{ cursor: onOdayaGit ? "pointer" : "default" }} title={onOdayaGit ? t("Bu sesli odaya git") : undefined}><i aria-hidden="true" />{baglaniyor ? "Bağlanılıyor…" : "Sesli bağlı"}{!baglaniyor && ses.motor === "p2p" && <span className="hint" title={t("Ücretsiz doğrudan bağlantı modu")}>{" "}{t("(doğrudan)")}</span>}<span className="hint" style={{ marginLeft: "auto" }}>{kanalAdi}</span></div>
+      <div className="vstat" onClick={() => ses.kanalId && onOdayaGit?.(ses.kanalId)} style={{ cursor: onOdayaGit ? "pointer" : "default" }} title={onOdayaGit ? t("Bu sesli odaya git") : undefined}><i aria-hidden="true" />{baglaniyor ? "Bağlanılıyor…" : "Sesli bağlı"}{!baglaniyor && ses.motor === "calls" && <span className="hint" title={t("Cloudflare Calls SFU Discord modu")}>{" "}{t("(SFU)")}</span>}{!baglaniyor && ses.motor === "p2p" && <span className="hint" title={t("Ücretsiz doğrudan bağlantı modu")}>{" "}{t("(doğrudan)")}</span>}<span className="hint" style={{ marginLeft: "auto" }}>{kanalAdi}</span></div>
       <div className="vbtns">
         <button className="ib" aria-pressed={ses.sessiz} onClick={ses.sessizDegistir} disabled={baglaniyor}>
           {ses.sessiz ? "🔇 Sessiz" : "🎙️ Sessize al"}

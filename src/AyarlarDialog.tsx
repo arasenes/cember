@@ -8,6 +8,7 @@ import { tusAdi, tusAtanabilir, type BasKonusAyar } from "./ses/basKonus";
 import { SES_MODLARI, sesFiltresiKur, type SesEfektModu } from "./ses/sesDegistirici";
 import { cevir, dilOku, dilYaz, type Dil, t, DILLER } from "./i18n";
 import { pushAc, pushAcikMi, pushDestekli, pushKapat, pushTani, pushSadeceEtiket, pushTercih, bildirimIzniEngelliMi } from "./push";
+import { cfCallsAyarAl, cfCallsAyarKaydet, cfCallsAktifMi } from "./ses/cloudflareCalls";
 
 type Props = {
   tema: TemaId; onTema: (t: TemaId) => void;
@@ -110,6 +111,68 @@ function MikrofonTestBolumu() {
         ))}
       </div>
       {hata && <p className="err" role="alert">{t(hata)}</p>}
+    </div>
+  );
+}
+
+function CloudflareCallsAyarBolumu() {
+  const [ayar, setAyar] = useState(() => cfCallsAyarAl() ?? { appId: "", appToken: "" });
+  const [acik, setAcik] = useState(false);
+  const [kaydedildi, setKaydedildi] = useState(false);
+
+  const kaydet = (e: React.FormEvent) => {
+    e.preventDefault();
+    cfCallsAyarKaydet(ayar.appId, ayar.appToken);
+    setKaydedildi(true);
+    setTimeout(() => setKaydedildi(false), 2500);
+  };
+
+  const aktif = cfCallsAktifMi();
+
+  return (
+    <div className="ayar-grup">
+      <div className="yon-baslik">⚡ {t("Ses Sunucusu Mimarisi (Discord Modu)")}</div>
+      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+        {aktif ? (
+          <span style={{ color: "var(--on)", fontWeight: 600 }}>🟢 Cloudflare Calls SFU Aktif (Discord Modu: 1 yükleme, merkezi dağıtım)</span>
+        ) : (
+          <span>🔵 Doğrudan WebRTC Aktif (Otomatik ICE Restart, Arka Plan Koruması & Varlık Kalp Atışı ile)</span>
+        )}
+      </div>
+      <button type="button" className="linkbtn" onClick={() => setAcik((x) => !x)} style={{ fontSize: 13 }}>
+        {acik ? t("Yapılandırmayı Gizle") : t("Cloudflare Calls SFU Ayarlarını Yapılandır")}
+      </button>
+      {acik && (
+        <form onSubmit={kaydet} style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+          <p className="hint" style={{ fontSize: 12 }}>
+            Cloudflare Dashboard &gt; Calls menüsünden ücretsiz App oluşturup bilgileri girebilirsiniz. Aylık 1 TB trafik ücretsizdir.
+          </p>
+          <div className="field">
+            <label htmlFor="cf-app-id">Cloudflare Calls App ID</label>
+            <input
+              id="cf-app-id"
+              type="text"
+              value={ayar.appId}
+              onChange={(e) => setAyar((a) => ({ ...a, appId: e.target.value }))}
+              placeholder="örn: 4a2f8b..."
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="cf-app-token">Cloudflare Calls App Token</label>
+            <input
+              id="cf-app-token"
+              type="password"
+              value={ayar.appToken}
+              onChange={(e) => setAyar((a) => ({ ...a, appToken: e.target.value }))}
+              placeholder="Bearer Token..."
+            />
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button type="submit" className="cta">{t("Kaydet")}</button>
+            {kaydedildi && <span style={{ color: "var(--on)", fontSize: 12 }}>{t("Kaydedildi!")}</span>}
+          </div>
+        </form>
+      )}
     </div>
   );
 }
@@ -221,6 +284,8 @@ export default function AyarlarDialog({ tema, onTema, onDil, yazi, onYazi, onSes
         <SeslerAyari onDegisti={onSesAyar} onAcildi={onSeslerAcildi} />
 
         <MikrofonTestBolumu />
+
+        <CloudflareCallsAyarBolumu />
 
         {basKonus && onBasKonus && (
           <div className="ayar-grup">

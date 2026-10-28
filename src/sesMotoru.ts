@@ -4,8 +4,9 @@ import { useSesP2P } from "./p2p";
 import { gurultuTercihi, gurultuTercihiKaydet } from "./gurultu";
 import { IOS_PAYLASIM_MESAJI, ekranPaylasilabilir, ekranPaylasilabilirTarayici, iosMu, type EkranKalite, type EkranSonuc } from "./ekranOrtak";
 import { sesCal } from "./sesler";
+import { cfCallsAktifMi } from "./ses/cloudflareCalls";
 
-export type Motor = "livekit" | "p2p";
+export type Motor = "livekit" | "p2p" | "calls";
 const BOS_KUME: Set<string> = new Set();
 const BOS_KAMERALAR: Map<string, MediaStream> = new Map();
 
@@ -46,7 +47,7 @@ export function useSesMotoru(
   baglanRef.current = baglan;
 
   const sagirSifirla = () => { sesYoneticisi.sagirlastir(false); setSagir(false); setSunucuSusturState(false); };
-  const motor: Motor | null = p2p.durum !== "kapali" ? "p2p" : null;
+  const motor: Motor | null = p2p.durum !== "kapali" ? (cfCallsAktifMi() ? "calls" : "p2p") : null;
 
   return {
     durum: p2p.durum,

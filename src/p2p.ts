@@ -21,7 +21,7 @@ const VARSAYILAN_ICE: RTCIceServer[] = [{ urls: ["stun:stun.cloudflare.com:3478"
 
 // Ekran paylaşımı için ayrı "ekran-*" sinyalleri kullanılır: ses bağlantılarına dokunmaz ve ekran paylaşımını bilmeyen eski sürümler bunları yok sayar.
 // Ekranı paylaşan her izleyiciye ayrı bir bağlantı kurar (teklifi her zaman paylaşan verir).
-type Sinyal = { to: string; from: string; tur: "offer" | "answer" | "ice" | "ekran-offer" | "ekran-answer" | "ekran-ice" | "kamera-offer" | "kamera-answer" | "kamera-ice" | "efekt" | "izle" | "cizim"; veri: unknown };
+type Sinyal = { to: string; from: string; tur: "offer" | "answer" | "ice" | "ekran-offer" | "ekran-answer" | "ekran-ice" | "kamera-offer" | "kamera-answer" | "kamera-ice" | "efekt" | "izle" | "cizim" | "yeniden-baglan"; veri: unknown };
 type EkranEs = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean };
 type Es = { pc: RTCPeerConnection; bekleyenIce: RTCIceCandidateInit[]; uzakVar: boolean; baslatan: boolean; el?: HTMLAudioElement; analiz?: AnalyserNode; sonlandir: () => void; sorunZamani?: number };
 
@@ -39,6 +39,35 @@ async function iceSunuculariniAl(): Promise<{ iceServers: RTCIceServer[]; turn: 
   } catch {
     return { iceServers: VARSAYILAN_ICE, turn: false };
   }
+}
+
+/** Mobil ve arka plan sekmelerinde sesin uyutulmasını engelleyen bekçi (Audio Keep-Alive & WakeLock) */
+function baslatArkaPlanBekcisi(ctx: AudioContext | null): () => void {
+  let osc: OscillatorNode | null = null;
+  let gain: GainNode | null = null;
+  if (ctx && typeof ctx.createOscillator === "function") {
+    try {
+      gain = ctx.createGain();
+      gain.gain.value = 0.00001; // Tamamen sessiz, duyulmaz düzeyde
+      gain.connect(ctx.destination);
+      osc = ctx.createOscillator();
+      osc.frequency.value = 440;
+      osc.connect(gain);
+      osc.start();
+    } catch { /* yoksay */ }
+  }
+
+  let wakeLock: { release: () => Promise<void> } | null = null;
+  if (typeof navigator !== "undefined" && "wakeLock" in navigator && typeof (navigator as unknown as { wakeLock: { request: (type: string) => Promise<{ release: () => Promise<void> }> } }).wakeLock?.request === "function") {
+    (navigator as unknown as { wakeLock: { request: (type: string) => Promise<{ release: () => Promise<void> }> } }).wakeLock.request("screen").then((wl) => {
+      wakeLock = wl;
+    }).catch(() => {});
+  }
+
+  return () => {
+    try { osc?.stop(); osc?.disconnect(); gain?.disconnect(); } catch { /* yoksay */ }
+    try { void wakeLock?.release(); } catch { /* yoksay */ }
+  };
 }
 
 export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => void) {
@@ -118,9 +147,13 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
     const kameraGiden = new Map<string, EkranEs>();
     const kameraGelen = new Map<string, EkranEs>();
     const kameraIcePeer = new Map<string, RTCIceCandidateInit[]>();
+    let arkaPlanKapat: (() => void) | null = null;
+    let agDinleyiciKapat: (() => void) | null = null;
 
     const kapat = async () => {
       kapandi = true;
+      arkaPlanKapat?.(); arkaPlanKapat = null;
+      agDinleyiciKapat?.(); agDinleyiciKapat = null;
       if (olcum) clearInterval(olcum);
       if (bekci) clearInterval(bekci);
       if (sesAc) { document.removeEventListener("pointerdown", sesAc, true); document.removeEventListener("keydown", sesAc, true); sesAc = null; }
@@ -170,6 +203,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
       const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       ctx = new AC();
       void ctx.resume();
+      arkaPlanKapat = baslatArkaPlanBekcisi(ctx);
       const olcumNoktalari = new Map<string, AnalyserNode>();
       const analizEkle = (id: string, ms: MediaStream) => {
         if (!ctx) return;
@@ -238,16 +272,32 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
             analizEkle(peerId, uzak);
           }
         };
+        const baslatYenidenBaglanti = () => {
+          if (kapandi) return;
+          if (es.baslatan) {
+            void yenidenBaglan(peerId);
+          } else {
+            gonder(peerId, "yeniden-baglan", {});
+          }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+          if (kapandi) return;
+          const st = pc.iceConnectionState;
+          if (st === "failed" || st === "disconnected") {
+            baslatYenidenBaglanti();
+          }
+        };
+
         pc.onconnectionstatechange = () => {
           if (kapandi) return;
-          if (pc.connectionState === "failed" && esler.get(peerId) === es) {
-            es.sonlandir(); esler.delete(peerId);
-            if (es.baslatan) setTimeout(() => { if (!kapandi && !esler.has(peerId)) void teklifGonder(peerId); }, 1500);
+          if (pc.connectionState === "failed") {
+            baslatYenidenBaglanti();
           }
         };
         es.sonlandir = () => {
           sesYoneticisi.kaldir(peerId);
-          pc.onicecandidate = null; pc.ontrack = null; pc.onconnectionstatechange = null;
+          pc.onicecandidate = null; pc.ontrack = null; pc.onconnectionstatechange = null; pc.oniceconnectionstatechange = null;
           try { pc.close(); } catch { /* yoksay */ }
           es.el?.remove();
           olcumNoktalari.delete(peerId);
@@ -256,11 +306,61 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
         return es;
       };
 
+      const yenidenBaglan = async (peerId: string) => {
+        if (kapandi) return;
+        const mevcut = esler.get(peerId);
+        if (mevcut && typeof mevcut.pc.restartIce === "function") {
+          try {
+            mevcut.pc.restartIce();
+            const teklif = await mevcut.pc.createOffer({ iceRestart: true });
+            await mevcut.pc.setLocalDescription(teklif);
+            gonder(peerId, "offer", mevcut.pc.localDescription?.toJSON());
+            return;
+          } catch { /* restartIce desteklenmiyorsa sıfırdan kur */ }
+        }
+        mevcut?.sonlandir();
+        esler.delete(peerId);
+        await teklifGonder(peerId);
+      };
+
       const teklifGonder = async (peerId: string) => {
         const es = esKur(peerId, true);
         const teklif = await es.pc.createOffer();
         await es.pc.setLocalDescription(teklif);
         gonder(peerId, "offer", es.pc.localDescription?.toJSON());
+      };
+
+      const agKurtarma = () => {
+        if (kapandi) return;
+        void ctx?.resume();
+        for (const [id, es] of esler) {
+          if (es.baslatan) void yenidenBaglan(id);
+          else gonder(id, "yeniden-baglan", {});
+        }
+        try { void kanal?.track({ t: Date.now() }); } catch { /* yoksay */ }
+      };
+
+      const gorunurlukKurtarma = () => {
+        if (kapandi) return;
+        if (document.visibilityState === "visible") {
+          void ctx?.resume();
+          for (const e of esler.values()) {
+            if (e.el && e.el.paused) void e.el.play().catch(() => {});
+          }
+          for (const [id, es] of esler) {
+            if (es.pc.connectionState === "failed" || es.pc.iceConnectionState === "failed" || es.pc.iceConnectionState === "disconnected") {
+              if (es.baslatan) void yenidenBaglan(id);
+              else gonder(id, "yeniden-baglan", {});
+            }
+          }
+        }
+      };
+
+      window.addEventListener("online", agKurtarma);
+      document.addEventListener("visibilitychange", gorunurlukKurtarma);
+      agDinleyiciKapat = () => {
+        window.removeEventListener("online", agKurtarma);
+        document.removeEventListener("visibilitychange", gorunurlukKurtarma);
       };
 
       // Bağlantı bekçisi: 10 sn içinde kurulamayan / kopan bağlantılar yeniden denenir; takılanlar arayüzde işaretlenir
@@ -481,6 +581,13 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           return;
         }
         if (s.to !== uyeId) return;
+        if (s.tur === "yeniden-baglan") {
+          const es = esler.get(s.from);
+          if (es?.baslatan || uyeId < s.from) {
+            void yenidenBaglan(s.from);
+          }
+          return;
+        }
         if (s.tur === "offer") {
           esler.get(s.from)?.sonlandir(); esler.delete(s.from);
           const es = esKur(s.from, false);

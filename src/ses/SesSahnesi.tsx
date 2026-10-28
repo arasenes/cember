@@ -195,6 +195,7 @@ export default function SesSahnesi({ ses, kanal, katilimcilar, benId, sagirlar, 
         <h2 className="ust-ad">{kanal.ad}</h2>
         <span className="sahne-bilgi">
           {katilimcilar.length} kişi{paylasanSayisi > 0 ? ` · ${[...paylasanlar].map(yapanAd).join(", ")} ekranını paylaşıyor` : ""}
+          {buradayim && ses.motor === "calls" && " · SFU modu"}
           {buradayim && ses.motor === "p2p" && " · doğrudan mod"}
         </span>
         {onSohbet && (
