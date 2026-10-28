@@ -24,6 +24,11 @@ export function TurnstileWidget({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  // Üst bileşen her render'da yeni fonksiyon verir; widget'ı sıfırlamamak için ref'te tutulur.
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
 
   useEffect(() => {
     const scriptId = "cf-turnstile-script";
@@ -45,9 +50,9 @@ export function TurnstileWidget({
           sitekey: TURNSTILE_SITE_KEY,
           theme: "dark",
           size: "normal",
-          callback: (token: string) => onSuccess(token),
-          "error-callback": () => onError?.(),
-          "expired-callback": () => onError?.(),
+          callback: (token: string) => onSuccessRef.current(token),
+          "error-callback": () => onErrorRef.current?.(),
+          "expired-callback": () => onErrorRef.current?.(),
         });
       } catch (e) {
         console.warn("Turnstile render hatası:", e);
@@ -80,7 +85,7 @@ export function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [onSuccess, onError]);
+  }, []);
 
   return (
     <div
