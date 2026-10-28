@@ -12,8 +12,8 @@ declare global {
 }
 
 /**
- * Cloudflare Turnstile (Görünmez / Invisible Mod)
- * Kullanıcıya dönen kutu veya bilmece göstermez, arka planda sessizce bot koruması sağlar.
+ * Cloudflare Turnstile (Görünür / Managed Mod)
+ * Güvenlik onay kutusunu arayüzde gösterir.
  */
 export function TurnstileWidget({
   onSuccess,
@@ -40,9 +40,11 @@ export function TurnstileWidget({
     const renderWidget = () => {
       if (!window.turnstile || !containerRef.current || widgetIdRef.current) return;
       try {
+        containerRef.current.innerHTML = "";
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
-          size: "invisible",
+          theme: "dark",
+          size: "normal",
           callback: (token: string) => onSuccess(token),
           "error-callback": () => onError?.(),
           "expired-callback": () => onError?.(),
@@ -61,7 +63,7 @@ export function TurnstileWidget({
           renderWidget();
         }
       }, 100);
-      const timeout = setTimeout(() => clearInterval(interval), 5000);
+      const timeout = setTimeout(() => clearInterval(interval), 6000);
       return () => {
         clearInterval(interval);
         clearTimeout(timeout);
@@ -80,6 +82,20 @@ export function TurnstileWidget({
     };
   }, [onSuccess, onError]);
 
-  // Görünmez mod olduğu için kullanıcı arayüzünde yer kaplamaz
-  return <div ref={containerRef} style={{ display: "none" }} aria-hidden="true" />;
+  return (
+    <div
+      ref={containerRef}
+      className="turnstile-container"
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        margin: "10px 0",
+        minHeight: 66,
+        width: "100%",
+        overflow: "hidden",
+        borderRadius: "14px",
+      }}
+    />
+  );
 }

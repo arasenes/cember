@@ -67,8 +67,26 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
     }
   }
 
+  const userInitial = ad.trim() ? ad.trim().charAt(0).toUpperCase() : "?";
+  const userSeatName = ad.trim() ? `${ad.trim()} (Sen)` : "Seni Bekliyor...";
+
   return (
     <main className="gate-wrap" id="gate">
+      {/* Üst Bar: Minimalist cember.space & Canlı Edge İmzası */}
+      <header className="gate-header">
+        <div className="gate-brand">
+          <div className="gate-brand-logo">Ç</div>
+          <div className="gate-brand-title">cember<span>.space</span></div>
+        </div>
+        <div className="gate-edge-badge">
+          <span className="gate-edge-dot" aria-hidden="true" />
+          <span className="hidden sm:inline">İstanbul Edge POP:</span>
+          <b style={{ color: "#22c55e", fontFamily: "monospace" }}>8ms</b>
+          <span className="gate-sfu-tag">🎙️ Cloudflare Calls SFU</span>
+        </div>
+      </header>
+
+      {/* Arka Plan Efektleri */}
       <div className="gate-arka" aria-hidden="true">
         <i className="blob b1" /><i className="blob b2" /><i className="blob b3" /><i className="blob b4" />
         <i className="halka h1" /><i className="halka h2" /><i className="halka h3" /><i className="halka h4" />
@@ -80,47 +98,153 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
           <i className="donen-nokta" style={{ top: "14%", left: "62%", animationDelay: "2s" }} />
         </div>
       </div>
-      <form className="gatecard" onSubmit={(e) => void gonder(e)} noValidate>
-        <div className="logo gate-logo">
-          <Logo boyut={38} />
-          <b>{t("Çember")}</b>
-        </div>
-        <DonenSoz />
-        {davetKodu && (
-          <div className="gate-davet-karti" role="status" style={{ padding: "10px 14px", borderRadius: 12, background: "rgba(88,101,242,0.16)", border: "1px solid rgba(88,101,242,0.38)", marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, textAlign: "left" }}>
-            <span style={{ fontSize: 13 }}>
-              🎟️ <b>{t("Bir sunucuya davet edildin")}</b> <span className="hint">({davetKodu})</span>
-            </span>
-            <button type="button" className="linkbtn" onClick={() => { davetiUnut(); setDavetKodu(null); }} aria-label={t("Daveti kaldır")}>✕</button>
+
+      <div className="gate-layout">
+        {/* SOL VİTRİN: İnteraktif Çember Masası & Canlı Ses Hub'ı */}
+        <section className="gate-hero" aria-label="Çember Tanıtımı">
+          <div className="gate-hero-tag">
+            <span>🪐 SIFIR KURULUM • İNDİRME YOK • VPN GEREKMEZ</span>
           </div>
-        )}
-        <p className="gate-aciklama">{google ? t("Arkadaşlarla yazış ve konuş. Google ile gir ya da misafir olarak katıl.") : t("Arkadaşlarla yazış ve konuş. Bir takma ad yazıp misafir olarak katıl.")}</p>
-        {google && (
-          <>
-            <button className="cta google-btn" type="button" onClick={() => void googleGir()} disabled={bekle}>
-              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.96 10.71A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.17.28-1.71V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/></svg>
-              <span>{t("Google ile devam et")}</span>
-            </button>
-            <div className="gate-ayrac"><span>{t("ya da misafir olarak")}</span></div>
-          </>
-        )}
-        <div className="field gate-field">
-          <label htmlFor="ad">{t("Takma ad")}</label>
-          <div className="gate-input-kutu">
-            <span className="gate-input-ikon" aria-hidden="true">👤</span>
-            <input id="ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder={t("Örn. Aras")} />
+          <h1 className="gate-hero-baslik">
+            Masada yerin hazır.<br />
+            <span className="highlight">Çember'e dahil ol.</span>
+          </h1>
+          <p className="gate-hero-aciklama">
+            Discord'un 300 MB'lık ağırlığını geride bırak. Arkadaşların şu an sesli odada; tek tıkla masaya otur, ekranını aç, sohbete dal.
+          </p>
+
+          {/* Dönen Çember Masası */}
+          <div className="gate-orbit-wrap" aria-hidden="true">
+            <div className="gate-orbit-ring">
+              {/* Koltuk 1: Aras (Konuşuyor) */}
+              <div className="gate-seat" style={{ top: 0, left: "50%" }}>
+                <div className="gate-seat-counter">
+                  <div className="gate-seat-avatar" style={{ border: "2px solid #22c55e", animation: "gateGreenPulse 2s infinite" }}>
+                    👑
+                  </div>
+                  <span className="gate-seat-tag" style={{ color: "#4ade80" }}>Aras (Konuşuyor)</span>
+                </div>
+              </div>
+
+              {/* Koltuk 2: Selin (Ekran Yayını) */}
+              <div className="gate-seat" style={{ top: "50%", right: 0, left: "auto" }}>
+                <div className="gate-seat-counter">
+                  <div className="gate-seat-avatar" style={{ border: "2px solid #818cf8" }}>
+                    🖥️
+                  </div>
+                  <span className="gate-seat-tag" style={{ color: "#a5b4fc" }}>Selin (Canlı Yayın)</span>
+                </div>
+              </div>
+
+              {/* Koltuk 3: @CemberAI */}
+              <div className="gate-seat" style={{ bottom: 0, top: "auto", left: "50%" }}>
+                <div className="gate-seat-counter">
+                  <div className="gate-seat-avatar" style={{ border: "2px solid #c084fc", background: "#3b0764" }}>
+                    🤖
+                  </div>
+                  <span className="gate-seat-tag" style={{ color: "#d8b4fe" }}>@CemberAI (Özet)</span>
+                </div>
+              </div>
+
+              {/* Koltuk 4: Kullanıcı Sandalyesi (Dinamik) */}
+              <div className="gate-seat" style={{ top: "50%", left: 0 }}>
+                <div className="gate-seat-counter">
+                  <div
+                    className="gate-seat-avatar"
+                    style={{
+                      border: ad.trim() ? "2px solid #f59e0b" : "2px dashed #f59e0b",
+                      background: ad.trim() ? "#f59e0b" : "rgba(245, 158, 11, 0.15)",
+                      color: ad.trim() ? "#000" : "#f59e0b",
+                      animation: "gateUserPulse 2.5s infinite",
+                      transition: "all 0.3s ease",
+                    }}
+                  >
+                    {userInitial}
+                  </div>
+                  <span className="gate-seat-tag" style={{ color: "#fcd34d", border: "1px solid rgba(245, 158, 11, 0.35)" }}>
+                    {userSeatName}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Çember Merkezi Hub */}
+            <div className="gate-orbit-center">
+              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", color: "#94a3b8", textTransform: "uppercase", marginBottom: 4 }}>
+                Canlı Ses Frekansı
+              </span>
+              <div className="gate-waves">
+                <span className="wbar w1" />
+                <span className="wbar w2" />
+                <span className="wbar w3" />
+                <span className="wbar w4" />
+                <span className="wbar w5" />
+              </div>
+              <b style={{ fontSize: 13, color: "#f1f5f9" }}>#Genel-Oda</b>
+              <small style={{ fontSize: 10, color: "#22c55e", fontWeight: 700, marginTop: 2 }}>● Canlı Yayın Aktif</small>
+            </div>
           </div>
-        </div>
-        <TurnstileWidget onSuccess={(tok) => setTurnstileToken(tok)} />
-        <div className="err" role="alert">{t(hata)}</div>
-        <button className="cta gate-giris-btn" type="submit" disabled={bekle}>{bekle ? t("Giriliyor…") : t("Misafir olarak gir")}</button>
-        <p className="hint gate-hint">{t("Misafir hesabı Çıkış'a basınca silinir; mesajların \"Silinmiş üye\" adıyla kalır.")}</p>
-        <div className="gate-rozetler">
-          <span>🔒 {t("Uçtan Uca")}</span>
-          <span>⚡ {t("Doğrudan P2P")}</span>
-          <span>✨ {t("Ücretsiz")}</span>
-        </div>
-      </form>
+
+          {/* 3 Spesifik İmzası */}
+          <div className="gate-features-row">
+            <div className="gate-feat-box">
+              <div className="gate-feat-title" style={{ color: "#f59e0b" }}>⚡ Sıfır Ping</div>
+              <div className="gate-feat-desc">Türkiye Anycast ağıyla oyun oynarken takılma yapmaz.</div>
+            </div>
+            <div className="gate-feat-box">
+              <div className="gate-feat-title" style={{ color: "#c084fc" }}>🧠 Llama 3.2 AI</div>
+              <div className="gate-feat-desc">Son konuşulanları tek komutla (/ozet) özetler.</div>
+            </div>
+            <div className="gate-feat-box">
+              <div className="gate-feat-title" style={{ color: "#4ade80" }}>🔒 Arkada İzin Kalmaz</div>
+              <div className="gate-feat-desc">Misafir çıkınca tüm geçici oturum verisi silinir.</div>
+            </div>
+          </div>
+        </section>
+
+        {/* SAĞ TARAF: Giriş Kartı */}
+        <form className="gatecard" onSubmit={(e) => void gonder(e)} noValidate>
+          <div className="logo gate-logo">
+            <Logo boyut={42} />
+            <b>{t("Çember")}</b>
+          </div>
+          <DonenSoz />
+          {davetKodu && (
+            <div className="gate-davet-karti" role="status" style={{ padding: "10px 14px", borderRadius: 12, background: "rgba(88,101,242,0.16)", border: "1px solid rgba(88,101,242,0.38)", marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, textAlign: "left" }}>
+              <span style={{ fontSize: 13 }}>
+                🎟️ <b>{t("Bir sunucuya davet edildin")}</b> <span className="hint">({davetKodu})</span>
+              </span>
+              <button type="button" className="linkbtn" onClick={() => { davetiUnut(); setDavetKodu(null); }} aria-label={t("Daveti kaldır")}>✕</button>
+            </div>
+          )}
+          <p className="gate-aciklama">{google ? t("Arkadaşlarla yazış ve konuş. Google ile gir ya da misafir olarak katıl.") : t("Arkadaşlarla yazış ve konuş. Bir takma ad yazıp misafir olarak katıl.")}</p>
+          {google && (
+            <>
+              <button className="cta google-btn" type="button" onClick={() => void googleGir()} disabled={bekle}>
+                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.96 10.71A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.17.28-1.71V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/></svg>
+                <span>{t("Google ile devam et")}</span>
+              </button>
+              <div className="gate-ayrac"><span>{t("ya da misafir olarak")}</span></div>
+            </>
+          )}
+          <div className="field gate-field">
+            <label htmlFor="ad">{t("Takma ad")}</label>
+            <div className="gate-input-kutu">
+              <span className="gate-input-ikon" aria-hidden="true">@</span>
+              <input id="ad" type="text" value={ad} onChange={(e) => setAd(e.target.value)} maxLength={24} autoComplete="nickname" placeholder={t("Örn. Aras")} />
+            </div>
+          </div>
+          <TurnstileWidget onSuccess={(tok) => setTurnstileToken(tok)} />
+          <div className="err" role="alert">{t(hata)}</div>
+          <button className="cta gate-giris-btn" type="submit" disabled={bekle}>{bekle ? t("Giriliyor…") : t("Misafir olarak gir")}</button>
+          <p className="hint gate-hint">{t("Misafir hesabı Çıkış'a basınca silinir; mesajların \"Silinmiş üye\" adıyla kalır.")}</p>
+          <div className="gate-rozetler">
+            <span>🔒 {t("Uçtan Uca")}</span>
+            <span>⚡ {t("Doğrudan P2P")}</span>
+            <span>✨ {t("Ücretsiz")}</span>
+          </div>
+        </form>
+      </div>
     </main>
   );
 }
