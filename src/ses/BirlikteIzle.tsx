@@ -289,6 +289,17 @@ export default function BirlikteIzle({ durum, baslatanAd, benId, onDegistir, onK
               <button type="button" className="linkbtn" onClick={() => sar(15)} title={t("15 saniye ileri")}>+15s ⏩</button>
               <button type="button" className="linkbtn" onClick={() => setBuyuk((b) => !b)} aria-pressed={buyuk}>{buyuk ? t("Küçült") : t("Büyüt")}</button>
               <button type="button" className="linkbtn" onClick={tamEkran}>{t("Tam ekran")}</button>
+              {tur === "dosya" && baslatanBenim && onEkranPaylas && (
+                <button
+                  type="button"
+                  className="linkbtn"
+                  style={{ background: "#2563eb", color: "#fff", fontWeight: 600, padding: "3px 10px", borderRadius: 6 }}
+                  onClick={onEkranPaylas}
+                  title={t("Videonuzu karşı tarafın doğrudan izleyebilmesi için canlı ekran yayını başlatın")}
+                >
+                  🖥️ {t("Odaya Canlı Yayınla")}
+                </button>
+              )}
               <button
                 type="button"
                 className="linkbtn"
