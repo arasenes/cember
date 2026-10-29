@@ -9,14 +9,14 @@ const anahtar = (kova: string, yol: string) => `${kova}/${yol}`;
 
 export function onbellektenAl(kova: string, yol: string | null | undefined): string | null {
   if (!yol) return null;
-  if (yol.startsWith("http://") || yol.startsWith("https://")) return yol;
+  if (yol.startsWith("http://") || yol.startsWith("https://") || yol.startsWith("/") || yol.startsWith("data:")) return yol;
   const v = onbellek.get(anahtar(kova, yol));
   return v && v.bitis > Date.now() ? v.url : null;
 }
 
 export function imzaliUrlAl(kova: string, yol: string): Promise<string | null> {
   if (!yol) return Promise.resolve(null);
-  if (yol.startsWith("http://") || yol.startsWith("https://")) return Promise.resolve(yol);
+  if (yol.startsWith("http://") || yol.startsWith("https://") || yol.startsWith("/") || yol.startsWith("data:")) return Promise.resolve(yol);
   const a = anahtar(kova, yol);
   const hazir = onbellektenAl(kova, yol);
   if (hazir) return Promise.resolve(hazir);

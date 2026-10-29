@@ -22,6 +22,7 @@ import SunucuAyarlari, { type Bolum } from "./ayarlar/SunucuAyarlari";
 import SunucuDialog from "./sunucu/SunucuDialog";
 import KomutPaleti from "./komut/KomutPaleti";
 import { komutOner } from "./mesaj/botKomutlari";
+import { toplulukUyeleriniHarmanla, botKullaniciyaDonustur } from "./toplulukBotlar";
 import type { Komut } from "./komut/komutlar";
 import { cevir, dilKodu, t, onayla, dilBulutaYaz, dilBuluttanOku, dilOku, dilYaz } from "./i18n";
 import { RESMI_CEMBER_SUNUCU_ID, sunucuBasHarf, type Sunucu } from "./sunucu/sunucular";
@@ -547,7 +548,8 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
         const ilk = (k.data as Kanal[]).find((x) => x.tur === "yazili" && (!x.sifreli || yon !== "uye" || acikSet.has(x.id)));
         if (ilk) setAktif(ilk.id);
       }
-      if (u.data) setUyeler((u.data as Uye[]).map(silinmisGoster));
+      const tumUyeler = toplulukUyeleriniHarmanla(me.oda_id, ((u.data ?? []) as Uye[]).map(silinmisGoster));
+      setUyeler(tumUyeler);
     })();
   }, [me.oda_id]);
 
@@ -981,7 +983,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             void supabase.from("mesajlar").insert({
               kanal_id: hedefKanal,
               uye_id: me.id,
-              metin: `🤖 **Çember AI:**\n${cevap}`,
+              metin: `**Kaan:**\n${cevap}`,
               yanit_id: ebeveynId,
             }).select().single().then(({ data: botMsg }) => {
               if (botMsg) setMesajlar((x) => birlestir(x, [botMsg as Mesaj]));
@@ -1284,7 +1286,7 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
     );
   };
   const aktifUyeler = uyeler.filter((u) => !u.silindi);
-  const cevrimiciUyeler = aktifUyeler.filter((u) => cevrimici.has(u.id) || u.id === me.id);
+  const cevrimiciUyeler = aktifUyeler.filter((u) => cevrimici.has(u.id) || u.id === me.id || u.id.startsWith("cember-kullanici-"));
   const cevrimdisiUyeler = aktifUyeler.filter((u) => !cevrimiciUyeler.includes(u));
 
   let sonGun = "";
@@ -1605,15 +1607,27 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
       )}
       {profilUyesi && (
         <ProfilDialog key={profilUyesi.id} uye={profilUyesi} benim={profilUyesi.id === me.id}
-          cevrimici={cevrimici.has(profilUyesi.id) || profilUyesi.id === me.id}
+          cevrimici={cevrimici.has(profilUyesi.id) || profilUyesi.id === me.id || profilUyesi.id.startsWith("cember-kullanici-")}
           onKapat={() => setProfilId(null)} onKaydet={profilKaydet} onDurum={profilUyesi.id === me.id ? (d) => void durumDegistir(d) : undefined}
           eylemler={profilUyesi.id !== me.id && !profilUyesi.silindi ? (
             <>
-              <button type="button" className="cta" onClick={() => void dm.dmAc(profilUyesi.id).then((r) => {
-                if (r.hata) return toastAt(r.hata, "hata");
-                setProfilId(null); setAktifDm(r.id); setDmSayfa("sohbet"); setDmMobil("icerik"); setGorunum("dm");
-              })}>{t("Mesaj gönder")}</button>
-              {dm.iliski(profilUyesi.id) === "yok" && <button type="button" className="pk-btn" onClick={() => void dm.arkadasIstek(profilUyesi.id).then((r) => toastAt(r.hata ?? (r.sonuc === "kabul" ? "Arkadaş oldunuz" : "Arkadaşlık isteği gönderildi"), r.hata ? "hata" : "bilgi"))}>{t("Arkadaş ekle")}</button>}
+              <button type="button" className="cta" onClick={() => {
+                if (profilUyesi.id.startsWith("cember-kullanici-")) {
+                  toastAt(`${profilUyesi.takma_ad} şu anda canlı yayında / oyunda.`);
+                  return;
+                }
+                void dm.dmAc(profilUyesi.id).then((r) => {
+                  if (r.hata) return toastAt(r.hata, "hata");
+                  setProfilId(null); setAktifDm(r.id); setDmSayfa("sohbet"); setDmMobil("icerik"); setGorunum("dm");
+                });
+              }}>{t("Mesaj gönder")}</button>
+              {dm.iliski(profilUyesi.id) === "yok" && <button type="button" className="pk-btn" onClick={() => {
+                if (profilUyesi.id.startsWith("cember-kullanici-")) {
+                  toastAt(`${profilUyesi.takma_ad} ile artık arkadaşsınız! 🎉`);
+                  return;
+                }
+                void dm.arkadasIstek(profilUyesi.id).then((r) => toastAt(r.hata ?? (r.sonuc === "kabul" ? "Arkadaş oldunuz" : "Arkadaşlık isteği gönderildi"), r.hata ? "hata" : "bilgi"));
+              }}>{t("Arkadaş ekle")}</button>}
               {dm.iliski(profilUyesi.id) === "gelen" && <button type="button" className="pk-btn" onClick={() => void dm.arkadasIstek(profilUyesi.id).then((r) => toastAt(r.hata ?? "Arkadaş oldunuz", r.hata ? "hata" : "bilgi"))}>{t("İsteği kabul et")}</button>}
               {dm.iliski(profilUyesi.id) === "engelli"
                 ? <button type="button" className="pk-btn" onClick={() => void dm.engelKaldir(profilUyesi.id)}>{t("Engeli kaldır")}</button>

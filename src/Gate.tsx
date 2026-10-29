@@ -80,7 +80,7 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
               <div className="gate-seat" style={{ top: 0, left: "50%" }}>
                 <div className="gate-seat-counter">
                   <div className="gate-seat-avatar" style={{ border: "2px solid #22c55e", animation: "gateGreenPulse 2s infinite" }}>
-                    👑
+                    <img src="/avatarlar/aras.jpg" alt="Aras" />
                   </div>
                   <span className="gate-seat-tag" style={{ color: "#4ade80" }}>Aras (Konuşuyor)</span>
                 </div>
@@ -90,19 +90,19 @@ export default function Gate({ onJoined }: { onJoined: () => void }) {
               <div className="gate-seat" style={{ top: "50%", right: 0, transform: "translate(50%, -50%)", left: "auto" }}>
                 <div className="gate-seat-counter">
                   <div className="gate-seat-avatar" style={{ border: "2px solid #818cf8" }}>
-                    🖥️
+                    <img src="/avatarlar/selin.jpg" alt="Selin" />
                   </div>
                   <span className="gate-seat-tag" style={{ color: "#a5b4fc" }}>Selin (Canlı Yayın)</span>
                 </div>
               </div>
 
-              {/* 3. Koltuk: @CemberAI */}
+              {/* 3. Koltuk: Kaan */}
               <div className="gate-seat" style={{ bottom: 0, left: "50%", top: "auto" }}>
                 <div className="gate-seat-counter">
-                  <div className="gate-seat-avatar" style={{ border: "2px solid #c084fc", background: "#2e1065" }}>
-                    🤖
+                  <div className="gate-seat-avatar" style={{ border: "2px solid #38bdf8" }}>
+                    <img src="/avatarlar/kaan.jpg" alt="Kaan" />
                   </div>
-                  <span className="gate-seat-tag" style={{ color: "#d8b4fe" }}>@CemberAI (Özet)</span>
+                  <span className="gate-seat-tag" style={{ color: "#38bdf8" }}>Kaan (Sohbet)</span>
                 </div>
               </div>
 

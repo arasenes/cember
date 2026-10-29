@@ -349,7 +349,7 @@ function XoxKart({
 
   const adGoster = (id: string) => {
     if (id === "*") return t("Herhangi biri");
-    if (id === "bot") return "🤖 Çember Bot";
+    if (id === "bot") return "Kaan";
     return uyeAd?.(id) ?? id;
   };
 
@@ -419,7 +419,7 @@ function TkmKart({
 
   const adGoster = (id: string) => {
     if (id === "*") return t("Herhangi biri");
-    if (id === "bot") return "🤖 Çember Bot";
+    if (id === "bot") return "Kaan";
     return uyeAd?.(id) ?? id;
   };
 
@@ -518,7 +518,7 @@ export function OyunBaslatMenusu({
       </button>
       <button type="button" className="kontrol" style={{ justifyContent: "flex-start", padding: "8px 10px" }}
         onClick={() => { onBaslat(miniOyunKodla({ tur: "xox", xId: benId, oId: "bot", tahta: "---------", sira: "X" })); onKapat(); }}>
-        🤖 {t("XOX (Bot'a Karşı)")}
+        🎮 {t("XOX (Kaan ile oyna)")}
       </button>
       <button type="button" className="kontrol" style={{ justifyContent: "flex-start", padding: "8px 10px" }}
         onClick={() => { onBaslat(miniOyunKodla({ tur: "tkm", p1Id: benId, p2Id: "*", p1Secim: "-", p2Secim: "-" })); onKapat(); }}>
@@ -526,7 +526,7 @@ export function OyunBaslatMenusu({
       </button>
       <button type="button" className="kontrol" style={{ justifyContent: "flex-start", padding: "8px 10px" }}
         onClick={() => { onBaslat(miniOyunKodla({ tur: "tkm", p1Id: benId, p2Id: "bot", p1Secim: "-", p2Secim: "-" })); onKapat(); }}>
-        🤖 {t("Taş-Kağıt-Makas (Bot'a Karşı)")}
+        ✊ {t("Taş-Kağıt-Makas (Kaan ile oyna)")}
       </button>
       <button type="button" className="kontrol" style={{ justifyContent: "flex-start", padding: "8px 10px", borderTop: "1px solid var(--line)" }}
         onClick={() => { onBaslat(yeniKelimeOyunu(benId)); onKapat(); }}>
