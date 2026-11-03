@@ -9,8 +9,8 @@
  */
 
 const CF_AYAR_ANAHTARI = "cember:cf_calls_config";
-const VARSAYILAN_CF_APP_ID = "f56971bc644bea8a231358fa32bde748";
-const VARSAYILAN_CF_APP_TOKEN = "eaf2df467ec039845c82049796f2604c0bd9650362bf5c17443316f06dc1266a";
+// Kimlik bilgileri koda GÖMÜLMEZ (depo herkese açık olabilir, tarayıcıya giden kod herkese görünür).
+// Yalnızca ortam değişkeni (.env: VITE_CLOUDFLARE_CALLS_APP_ID / _APP_TOKEN) ya da Ayarlar ekranından yerel depolamaya girilir.
 
 export type CloudflareCallsAyar = {
   appId: string;
@@ -34,7 +34,7 @@ export function cfCallsAyarAl(): CloudflareCallsAyar {
     return { appId: envAppId, appToken: envAppToken };
   }
 
-  return { appId: VARSAYILAN_CF_APP_ID, appToken: VARSAYILAN_CF_APP_TOKEN };
+  return { appId: "", appToken: "" };
 }
 
 /** Ayarlar ekranından Cloudflare Calls yapılandırmasını kaydeder */
@@ -52,7 +52,8 @@ export function cfCallsAyarKaydet(appId: string, appToken: string): void {
  */
 export function cfCallsAktifMi(): boolean {
   try {
-    return localStorage.getItem("cember:cf_calls") === "1";
+    const { appId, appToken } = cfCallsAyarAl();
+    return localStorage.getItem("cember:cf_calls") === "1" && !!appId && !!appToken;
   } catch {
     return false;
   }
