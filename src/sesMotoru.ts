@@ -57,6 +57,7 @@ export function useSesMotoru(
     kullanilan: null as number | null,
     sorunlu: motor === "p2p" ? p2p.sorunlu : BOS_KUME,
     turnVar: p2p.turnVar,
+    tani: p2p.tani,
     motor,
     hata,
     bilgi,

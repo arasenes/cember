@@ -54,6 +54,27 @@ async function iceSunuculariniAl(): Promise<{ iceServers: RTCIceServer[]; turn: 
   return sonuc ?? { iceServers: VARSAYILAN_ICE, turn: false };
 }
 
+/** Bir eşle bağlantının durumunu kısa bir etiketle verir: doğrudan, TURN üzerinden ya da ses akışı gelmiyor. */
+async function baglantiTipi(pc: RTCPeerConnection): Promise<string> {
+  if (pc.connectionState !== "connected") return pc.connectionState === "new" ? "bağlanıyor" : pc.connectionState;
+  try {
+    const st = await pc.getStats();
+    const yerel = new Map<string, { candidateType?: string }>();
+    type Rapor = { type: string; id: string; candidateType?: string; selectedCandidatePairId?: string; nominated?: boolean; state?: string; kind?: string; bytesReceived?: number; localCandidateId?: string };
+    let secili: { localCandidateId?: string } | undefined;
+    let gelenBayt = 0;
+    st.forEach((r: Rapor) => {
+      if (r.type === "local-candidate") yerel.set(r.id, r);
+      if (r.type === "transport" && r.selectedCandidatePairId) secili = st.get(r.selectedCandidatePairId);
+      if (r.type === "inbound-rtp" && r.kind === "audio") gelenBayt += r.bytesReceived ?? 0;
+    });
+    if (!secili) st.forEach((r: Rapor) => { if (r.type === "candidate-pair" && r.nominated && r.state === "succeeded") secili = r; });
+    const tip = secili?.localCandidateId ? yerel.get(secili.localCandidateId)?.candidateType : undefined;
+    const yol = tip === "relay" ? "TURN üzerinden" : tip ? "doğrudan" : "bağlı";
+    return gelenBayt === 0 ? `${yol}, ses akışı yok` : yol;
+  } catch { return "bağlı"; }
+}
+
 /** Mobil ve arka plan sekmelerinde sesin uyutulmasını engelleyen bekçi (Audio Keep-Alive & WakeLock) */
 function baslatArkaPlanBekcisi(ctx: AudioContext | null): () => void {
   let osc: OscillatorNode | null = null;
@@ -94,6 +115,7 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const yerelRef = useRef<MediaStream | null>(null);
   const [sorunlu, setSorunlu] = useState<Set<string>>(new Set());
   const [turnVar, setTurnVar] = useState<boolean | null>(null);
+  const [tani, setTani] = useState<Record<string, string>>({});
   const [izlenen, setIzlenen] = useState<Izlenen | null>(null);
   const [paylasiyorum, setPaylasiyorum] = useState(false);
   const [kendiEkran, setKendiEkran] = useState<MediaStream | null>(null);
@@ -420,6 +442,11 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           }
         }
         setSorunlu((onceki) => (onceki.size === sorunluYeni.size && [...sorunluYeni].every((x) => onceki.has(x)) ? onceki : sorunluYeni));
+        void Promise.all([...esler].map(async ([id, e]) => [id, await baglantiTipi(e.pc)] as const)).then((liste) => {
+          if (kapandi) return;
+          const yeni = Object.fromEntries(liste);
+          setTani((onceki) => (JSON.stringify(onceki) === JSON.stringify(yeni) ? onceki : yeni));
+        });
       }, 4000);
 
       const bitHiziSinirla = async (pc: RTCPeerConnection, bps: number) => {
@@ -630,8 +657,15 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           return;
         }
         if (s.tur === "offer") {
-          esler.get(s.from)?.sonlandir(); esler.delete(s.from);
-          const es = esKur(s.from, false);
+          // Aynı DTLS parmak izine sahip teklif, mevcut bağlantının ICE yenilemesidir: bağlantıyı bozmadan aynı pc üzerinde yanıtlanır.
+          // Parmak izi farklıysa karşı taraf bağlantıyı sıfırdan kurmuştur; o zaman eski pc atılır.
+          const mevcutEs = esler.get(s.from);
+          const izi = (sdp?: string) => sdp?.match(/a=fingerprint:(\S+ \S+)/)?.[1];
+          const yenileme = !!mevcutEs && mevcutEs.pc.signalingState !== "closed" && !!izi(mevcutEs.pc.remoteDescription?.sdp)
+            && izi(mevcutEs.pc.remoteDescription?.sdp) === izi((s.veri as RTCSessionDescriptionInit).sdp);
+          if (!yenileme) { mevcutEs?.sonlandir(); esler.delete(s.from); }
+          const es = yenileme ? mevcutEs! : esKur(s.from, false);
+          if (yenileme && es.pc.signalingState === "have-local-offer") await es.pc.setLocalDescription({ type: "rollback" }).catch(() => {});
           await es.pc.setRemoteDescription(s.veri as RTCSessionDescriptionInit);
           es.uzakVar = true;
           for (const c of es.bekleyenIce) await es.pc.addIceCandidate(c).catch(() => {});
@@ -641,7 +675,8 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
           gonder(s.from, "answer", es.pc.localDescription?.toJSON());
         } else if (s.tur === "answer") {
           const es = esler.get(s.from);
-          if (!es || es.uzakVar) return;
+          // ICE yenilemesinin yanıtı da buradan geçer: uzakVar zaten true olsa bile teklif bekleyen bağlantı yanıtı almalı
+          if (!es || es.pc.signalingState !== "have-local-offer") return;
           await es.pc.setRemoteDescription(s.veri as RTCSessionDescriptionInit);
           es.uzakVar = true;
           for (const c of es.bekleyenIce) await es.pc.addIceCandidate(c).catch(() => {});
@@ -868,5 +903,5 @@ export function useSesP2P(uyeId: string, onKanal: (kanalId: string | null) => vo
   const cizimGonder = useCallback((olay: CizimOlayi) => { odaEylemRef.current?.cizim(olay); }, []);
   const sesModuAyarla = useCallback((mod: SesEfektModu) => { odaEylemRef.current?.sesModu(mod); }, []);
 
-  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, kendiEkran, ekranPaylas, ekranDurdur, kameralar, kameraAcik, kameraDegistir, sonEfekt, efektGonder, birlikteIzle, birlikteIzleAyarla, cizimGonder, sesModu, sesModuAyarla };
+  return { durum, kanalId, sessiz, konusanlar, sorunlu, turnVar, tani, sesKabi, baglan, ayril, sessizDegistir, sessizAyarla, gurultuAyarla, izlenen, paylasiyorum, kendiEkran, ekranPaylas, ekranDurdur, kameralar, kameraAcik, kameraDegistir, sonEfekt, efektGonder, birlikteIzle, birlikteIzleAyarla, cizimGonder, sesModu, sesModuAyarla };
 }

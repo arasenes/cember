@@ -1500,6 +1500,12 @@ export default function Chat({ me, sunucular = [], onSunucuSec, onSunucularYenil
             ⚠️ {[...ses.sorunlu].map((id) => uyeHaritasi.get(id)?.takma_ad ?? "Biri").join(", ")} ile ses bağlantısı kurulamıyor; tekrar deneniyor.
           </div>
         )}
+        {ses.durum === "bagli" && (ses.turnVar === false || Object.keys(ses.tani ?? {}).length > 0) && (
+          <details className="banner" role="status">
+            <summary>{t("Ses bağlantı durumu")}{ses.turnVar === false ? ` · ${t("TURN yok, bazı ağlarda ses kurulamayabilir")}` : ""}</summary>
+            {Object.entries(ses.tani ?? {}).map(([id, d]) => <div key={id}>{uyeHaritasi.get(id)?.takma_ad ?? "Biri"}: {d}</div>)}
+          </details>
+        )}
         {me.rol === "sahip" && kullanimDk !== null && kullanimDk >= SES_LIMIT * 0.8 && (
           <div className="banner" role="status">{t("Bu ay sesli odada {a} / {b} dakika kullanıldı", { a: kullanimDk, b: SES_LIMIT })}{kullanimDk >= SES_LIMIT ? t("; limit doldu, ses kapandı") : t("; limite yaklaşıyorsunuz")}{t(". Yazılı sohbet çalışmaya devam eder.")}</div>
         )}
